@@ -1,4 +1,5 @@
 extends Node2D
+const BATTLE_BGM := preload("res://assets/audio/battle_bgm.wav")
 
 @export var enemy_scene: PackedScene
 @export var projectile_scene: PackedScene
@@ -6,22 +7,45 @@ extends Node2D
 @export var sword_scene: PackedScene
 @export var grenade_scene: PackedScene
 @export var hazard_scene: PackedScene
+@export var boss_totem_scene: PackedScene
+
+const SFX := {
+	"shoot": preload("res://assets/audio/sfx_shoot.wav"),
+	"sword": preload("res://assets/audio/sfx_sword_soft.wav"),
+	"hit": preload("res://assets/audio/sfx_hit.wav"),
+	"hurt": preload("res://assets/audio/sfx_hit.wav"),
+	"shield_hit": preload("res://assets/audio/sfx_hit.wav"),
+	"dash": preload("res://assets/audio/sfx_dash.wav"),
+	"mode_switch": preload("res://assets/audio/sfx_card_pick.wav"),
+	"respawn": preload("res://assets/audio/sfx_wave_start.wav"),
+	"grenade_throw": preload("res://assets/audio/sfx_grenade_throw.wav"),
+	"grenade_explode": preload("res://assets/audio/sfx_grenade_explode.wav"),
+	"shield_on": preload("res://assets/audio/sfx_shield_on.wav"),
+	"shield_off": preload("res://assets/audio/sfx_shield_off.wav"),
+	"card_pick": preload("res://assets/audio/sfx_card_pick.wav"),
+	"wave_start": preload("res://assets/audio/sfx_wave_start.wav"),
+	"wave_clear": preload("res://assets/audio/sfx_wave_clear.wav"),
+	"enemy_shoot": preload("res://assets/audio/sfx_enemy_shoot.wav")
+}
 
 const INTERMISSION_SECONDS := 5.0
 const PREVIEW_SECONDS := 3.0
 const PREVIEW_ENEMY_COUNT := 8
 const BASE_SPAWN_INTERVAL := 0.35
+const MINI_BOSS_INTERVAL := 5
 
 const ENEMY_TYPE_LABEL := {
-	0: "Chaser",
-	1: "Shooter",
-	2: "Dasher"
+	0: "enemy_chaser",
+	1: "enemy_shooter",
+	2: "enemy_dasher",
+	3: "enemy_sniper",
+	4: "enemy_artillery"
 }
 
 const RARITY_LABEL := {
-	"common": "Common",
-	"rare": "Rare",
-	"epic": "Epic"
+	"common": "rarity_common",
+	"rare": "rarity_rare",
+	"epic": "rarity_epic"
 }
 
 const RARITY_COLOR := {
@@ -31,33 +55,40 @@ const RARITY_COLOR := {
 }
 
 const ELITE_MODS: Array[Dictionary] = [
-	{"name": "Titan", "hp_mul": 1.7, "dmg_mul": 1.2, "speed_mul": 0.9, "color": Color(0.90, 0.72, 0.20, 1.0)},
-	{"name": "Haste", "hp_mul": 1.1, "dmg_mul": 1.0, "speed_mul": 1.18, "color": Color(0.33, 0.95, 0.92, 1.0)},
-	{"name": "Berserk", "hp_mul": 1.25, "dmg_mul": 1.42, "speed_mul": 1.08, "color": Color(0.97, 0.35, 0.35, 1.0)}
+	{"name": "Titan", "hp_mul": 1.8, "dmg_mul": 1.2, "speed_mul": 0.9, "color": Color(0.90, 0.72, 0.20, 1.0)},
+	{"name": "Haste", "hp_mul": 1.1, "dmg_mul": 1.0, "speed_mul": 1.2, "color": Color(0.33, 0.95, 0.92, 1.0)},
+	{"name": "Berserk", "hp_mul": 1.3, "dmg_mul": 1.45, "speed_mul": 1.08, "color": Color(0.97, 0.35, 0.35, 1.0)},
+	{"name": "Summoner", "hp_mul": 1.25, "dmg_mul": 1.0, "speed_mul": 0.95, "ability_summon": true, "color": Color(0.95, 0.78, 0.40, 1.0)},
+	{"name": "Splitter", "hp_mul": 1.15, "dmg_mul": 1.0, "speed_mul": 1.05, "ability_split": true, "color": Color(0.83, 0.52, 1.0, 1.0)},
+	{"name": "ShieldBreak", "hp_mul": 1.2, "dmg_mul": 1.15, "speed_mul": 1.0, "ability_shield_break": true, "color": Color(0.42, 0.90, 0.98, 1.0)}
 ]
 
 const CARD_POOL: Array[Dictionary] = [
-	{"title":"Blade Temper", "desc":"Sword damage +12", "rarity":"common", "effect":{"sword_damage_add": 12}},
-	{"title":"Wide Arc", "desc":"Sword radius +18", "rarity":"common", "effect":{"sword_radius_add": 18.0}},
-	{"title":"Rapid Slash", "desc":"Sword interval -14%", "rarity":"rare", "effect":{"sword_cd_mul": 0.86}},
-	{"title":"Spin Up", "desc":"Sword spin speed +22%", "rarity":"rare", "effect":{"sword_speed_mul": 1.22}},
-	{"title":"Storm Blade", "desc":"Sword spin speed +35%", "rarity":"epic", "effect":{"sword_speed_mul": 1.35}},
-	{"title":"Impact Core", "desc":"Bullet damage +8", "rarity":"common", "effect":{"shot_damage_add": 8}},
-	{"title":"Rail Coil", "desc":"Bullet speed +80", "rarity":"common", "effect":{"shot_speed_add": 80.0}},
-	{"title":"Trigger Rhythm", "desc":"Shot cooldown -12%", "rarity":"rare", "effect":{"shot_cd_mul": 0.88}},
-	{"title":"Quick Steps", "desc":"Move speed +10%", "rarity":"common", "effect":{"move_speed_mul": 1.10}},
-	{"title":"Blink Module", "desc":"Dash cooldown -18%", "rarity":"rare", "effect":{"dash_cd_mul": 0.82}},
-	{"title":"Dash Engine", "desc":"Dash speed +90", "rarity":"rare", "effect":{"dash_speed_add": 90.0}},
-	{"title":"Displacement Frame", "desc":"Dash distance +20%", "rarity":"rare", "effect":{"dash_distance_mul": 1.20}},
-	{"title":"Warp Core", "desc":"Dash distance +35%", "rarity":"epic", "effect":{"dash_distance_mul": 1.35}},
-	{"title":"Deflect Layer", "desc":"Shield drain -18%", "rarity":"rare", "effect":{"shield_drain_mul": 0.82}},
-	{"title":"Recharge Coil", "desc":"Shield regen +20%", "rarity":"rare", "effect":{"shield_regen_mul": 1.20}},
-	{"title":"High Explosive", "desc":"Grenade damage +16", "rarity":"common", "effect":{"grenade_damage_add": 16}},
-	{"title":"Fragment Spread", "desc":"Grenade radius +20", "rarity":"rare", "effect":{"grenade_radius_add": 20.0}},
-	{"title":"Fast Fuse", "desc":"Grenade cooldown -15%", "rarity":"rare", "effect":{"grenade_cd_mul": 0.85}},
-	{"title":"Vital Alloy", "desc":"Max HP +30, heal +20", "rarity":"common", "effect":{"max_hp_add": 30.0, "heal_add": 20.0}},
-	{"title":"Shield Matrix", "desc":"Max SP +25, SP +20", "rarity":"common", "effect":{"max_sp_add": 25.0, "sp_add": 20.0}},
-	{"title":"Blood Echo", "desc":"Lifesteal +5%", "rarity":"epic", "effect":{"lifesteal_add": 0.05}}
+	{"title":"card_blade_temper_t", "desc":"card_blade_temper_d", "rarity":"common", "effect":{"sword_damage_add": 12}},
+	{"title":"card_wide_arc_t", "desc":"card_wide_arc_d", "rarity":"common", "effect":{"sword_radius_add": 18.0}},
+	{"title":"card_rapid_slash_t", "desc":"card_rapid_slash_d", "rarity":"rare", "effect":{"sword_cd_mul": 0.86}},
+	{"title":"card_spin_up_t", "desc":"card_spin_up_d", "rarity":"rare", "effect":{"sword_speed_mul": 1.22}},
+	{"title":"card_storm_blade_t", "desc":"card_storm_blade_d", "rarity":"epic", "effect":{"sword_speed_mul": 1.35}},
+	{"title":"card_impact_core_t", "desc":"card_impact_core_d", "rarity":"common", "effect":{"shot_damage_add": 8}},
+	{"title":"card_rail_coil_t", "desc":"card_rail_coil_d", "rarity":"common", "effect":{"shot_speed_add": 80.0}},
+	{"title":"card_trigger_rhythm_t", "desc":"card_trigger_rhythm_d", "rarity":"rare", "effect":{"shot_cd_mul": 0.88}},
+	{"title":"card_splitshot_t", "desc":"card_splitshot_d", "rarity":"rare", "effect":{"shot_multishot_add": 1}},
+	{"title":"card_drill_t", "desc":"card_drill_d", "rarity":"rare", "effect":{"shot_pierce_bonus": 1}},
+	{"title":"card_quick_steps_t", "desc":"card_quick_steps_d", "rarity":"common", "effect":{"move_speed_mul": 1.10}},
+	{"title":"card_blink_module_t", "desc":"card_blink_module_d", "rarity":"rare", "effect":{"dash_cd_mul": 0.82}},
+	{"title":"card_dash_engine_t", "desc":"card_dash_engine_d", "rarity":"rare", "effect":{"dash_speed_add": 90.0}},
+	{"title":"card_displacement_t", "desc":"card_displacement_d", "rarity":"rare", "effect":{"dash_distance_mul": 1.20}},
+	{"title":"card_warp_core_t", "desc":"card_warp_core_d", "rarity":"epic", "effect":{"dash_distance_mul": 1.35}},
+	{"title":"card_impact_dash_t", "desc":"card_impact_dash_d", "rarity":"rare", "effect":{"dash_impact_add": 22, "dash_impact_radius_add": 18.0}},
+	{"title":"card_deflect_t", "desc":"card_deflect_d", "rarity":"rare", "effect":{"shield_drain_mul": 0.82}},
+	{"title":"card_recharge_t", "desc":"card_recharge_d", "rarity":"rare", "effect":{"shield_regen_mul": 1.20}},
+	{"title":"card_hex_t", "desc":"card_hex_d", "rarity":"common", "effect":{"grenade_damage_add": 16}},
+	{"title":"card_frag_t", "desc":"card_frag_d", "rarity":"rare", "effect":{"grenade_radius_add": 20.0}},
+	{"title":"card_fuse_t", "desc":"card_fuse_d", "rarity":"rare", "effect":{"grenade_cd_mul": 0.85}},
+	{"title":"card_echo_t", "desc":"card_echo_d", "rarity":"epic", "effect":{"sword_echo_add": 0.22}},
+	{"title":"card_vital_t", "desc":"card_vital_d", "rarity":"common", "effect":{"max_hp_add": 30.0, "heal_add": 20.0}},
+	{"title":"card_shield_t", "desc":"card_shield_d", "rarity":"common", "effect":{"max_sp_add": 25.0, "sp_add": 20.0}},
+	{"title":"card_blood_t", "desc":"card_blood_d", "rarity":"epic", "effect":{"lifesteal_add": 0.05}}
 ]
 
 var wave := 0
@@ -71,7 +102,10 @@ var _card_choices: Array[Dictionary] = []
 var _preview_enemies: Array[Node] = []
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _terrain_seed := 0
-var _next_wave_comp_text := ""
+const ARENA_RECT := Rect2(-790.0, -430.0, 1580.0, 860.0)
+var _boss_spawned_this_wave := false
+var _score := 0
+var _kills := 0
 
 @onready var terrain_root: Node2D = $World/Terrain
 @onready var dynamic_root: Node2D = $World/Dynamic
@@ -84,6 +118,9 @@ var _next_wave_comp_text := ""
 @onready var status_label: Label = $HUD/StatusLabel
 @onready var alive_label: Label = $HUD/AliveLabel
 @onready var timer_label: Label = $HUD/TimerLabel
+@onready var score_label: Label = $HUD/ScoreLabel
+@onready var kills_label: Label = $HUD/KillsLabel
+@onready var mul_label: Label = $HUD/MulLabel
 @onready var hp_bar: ProgressBar = $HUD/Vitals/HPBar
 @onready var sp_bar: ProgressBar = $HUD/Vitals/SPBar
 @onready var hp_text: Label = $HUD/Vitals/HPLabel
@@ -94,32 +131,56 @@ var _next_wave_comp_text := ""
 
 @onready var card_shade: ColorRect = $CardUI/Shade
 @onready var card_panel: Panel = $CardUI/Shade/Center/Panel
+@onready var card_vbox: VBoxContainer = $CardUI/Shade/Center/Panel/VBox
 @onready var card_a: Button = $CardUI/Shade/Center/Panel/VBox/CardA
 @onready var card_b: Button = $CardUI/Shade/Center/Panel/VBox/CardB
 @onready var card_c: Button = $CardUI/Shade/Center/Panel/VBox/CardC
+@onready var pause_shade: ColorRect = $PauseUI/Shade
+@onready var pause_title: Label = $PauseUI/Shade/Center/Panel/VBox/Title
+@onready var pause_resume: Button = $PauseUI/Shade/Center/Panel/VBox/ResumeButton
+@onready var pause_restart: Button = $PauseUI/Shade/Center/Panel/VBox/RestartButton
+@onready var pause_mainmenu: Button = $PauseUI/Shade/Center/Panel/VBox/MainMenuButton
+@onready var pause_quit: Button = $PauseUI/Shade/Center/Panel/VBox/QuitButton
+@onready var local_bgm: AudioStreamPlayer = $LocalBgm
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_rng.randomize()
 	_setup_actions()
+	_init_local_bgm()
+	if AudioManager != null:
+		AudioManager.play_battle()
 	_build_static_arena()
 	_setup_spawns()
+	_apply_ui_locale()
 	player.sword_scene = sword_scene
 	player.projectile_scene = projectile_scene
 	player.grenade_scene = grenade_scene
 	player.stats_changed.connect(_on_player_stats_changed)
 	player.message_sent.connect(_show_message)
+	player.sfx_event.connect(play_sfx)
 	card_a.pressed.connect(func() -> void: _pick_card(0))
 	card_b.pressed.connect(func() -> void: _pick_card(1))
 	card_c.pressed.connect(func() -> void: _pick_card(2))
-	_show_message("Auto sword | LMB shoot | RMB shield | E grenade | Shift dash | Q bullet mode")
+	pause_resume.pressed.connect(_on_pause_resume)
+	pause_restart.pressed.connect(_on_pause_restart)
+	pause_mainmenu.pressed.connect(_on_pause_mainmenu)
+	pause_quit.pressed.connect(_on_pause_quit)
+	_apply_pause_locale()
+	pause_shade.visible = false
+	_show_message(Loc.t("msg_controls"))
 	_set_intermission(INTERMISSION_SECONDS)
 	_update_ui()
 
 func _process(delta: float) -> void:
+	if local_bgm != null and not local_bgm.playing:
+		local_bgm.play()
+	if get_tree().paused:
+		_update_ui()
+		return
 	if card_shade.visible:
 		_update_ui()
 		return
-
 	if _wave_preview:
 		_preview_left -= delta
 		if _preview_left <= 0.0:
@@ -130,14 +191,98 @@ func _process(delta: float) -> void:
 			_spawn_timer = maxf(0.12, BASE_SPAWN_INTERVAL - wave * 0.005)
 			var enemy_kind: int = int(_spawn_queue.pop_back())
 			_spawn_enemy(enemy_kind, true)
+		_sanitize_enemies()
 		if _spawn_queue.is_empty() and _alive_enemies() == 0:
 			_on_wave_clear()
 	else:
 		_intermission_left -= delta
 		if _intermission_left <= 0.0:
 			_begin_wave_preview()
-
 	_update_ui()
+
+func play_sfx(name: String) -> void:
+	if not SFX.has(name):
+		return
+	var p := AudioStreamPlayer.new()
+	p.stream = SFX[name]
+	p.bus = "Master"
+	p.volume_db = -6.0
+	add_child(p)
+	p.finished.connect(func() -> void: p.queue_free())
+	p.play()
+
+func request_elite_summon(pos: Vector2) -> void:
+	if _alive_enemies() > 120:
+		return
+	var kind := _rng.randi_range(0, 4)
+	var child: Node = _spawn_enemy(kind, true)
+	if child is Node2D:
+		var p := pos + Vector2(_rng.randf_range(-42.0, 42.0), _rng.randf_range(-42.0, 42.0))
+		(child as Node2D).global_position = _clamp_to_arena(p)
+
+func request_split_spawn(pos: Vector2) -> void:
+	for i in 2:
+		var child: Node = _spawn_enemy(0, true)
+		if child is Node2D:
+			var p := pos + Vector2(_rng.randf_range(-28.0, 28.0), _rng.randf_range(-28.0, 28.0))
+			(child as Node2D).global_position = _clamp_to_arena(p)
+			if child.has_method("apply_impulse"):
+				child.apply_impulse(Vector2(_rng.randf_range(-200.0, 200.0), _rng.randf_range(-200.0, 200.0)))
+
+func request_spawn_totem(pos: Vector2) -> void:
+	if boss_totem_scene == null:
+		return
+	_spawn_ground_warning(pos, 74.0, Color(1.0, 0.70, 0.22, 0.85), 0.70)
+	var delay := get_tree().create_timer(0.7)
+	await delay.timeout
+	var t: Node = boss_totem_scene.instantiate()
+	dynamic_root.add_child(t)
+	if t is Node2D:
+		(t as Node2D).global_position = _clamp_to_arena(pos + Vector2(_rng.randf_range(-64.0, 64.0), _rng.randf_range(-64.0, 64.0)))
+	if t.has_method("set_target"):
+		t.set_target(player)
+	if t.has_method("configure_for_wave"):
+		t.configure_for_wave(wave)
+	if t.has_signal("died"):
+		t.connect("died", Callable(self, "_on_enemy_died"))
+
+func request_bullet_hell(pos: Vector2) -> void:
+	if enemy_projectile_scene == null:
+		return
+	_spawn_ground_warning(pos, 150.0, Color(1.0, 0.34, 0.34, 0.9), 0.95)
+	var delay := get_tree().create_timer(0.95)
+	await delay.timeout
+	_spawn_radial_volley(pos, 18, 0.0)
+	var delay2 := get_tree().create_timer(0.45)
+	await delay2.timeout
+	_spawn_radial_volley(pos, 18, PI / 18.0)
+
+func _spawn_ground_warning(pos: Vector2, radius: float, color: Color, duration: float) -> void:
+	var warn := TelegraphDecal2D.new()
+	warn.global_position = _clamp_to_arena(pos)
+	warn.radius = radius
+	warn.base_color = color
+	warn.duration = duration
+	dynamic_root.add_child(warn)
+
+func _spawn_radial_volley(pos: Vector2, count: int, angle_offset: float) -> void:
+	for i in count:
+		var a: float = TAU * float(i) / float(count) + angle_offset
+		var dir := Vector2(cos(a), sin(a))
+		var b: Node = enemy_projectile_scene.instantiate()
+		add_child(b)
+		if b is Node2D:
+			(b as Node2D).global_position = pos
+		if b.has_method("setup"):
+			b.setup(dir, 250.0, 11 + int(wave * 0.25), 4)
+
+func _apply_ui_locale() -> void:
+	var title_label := card_vbox.get_node("Title") as Label
+	if title_label != null:
+		title_label.text = Loc.t("ui_card_title")
+	card_a.text = Loc.t("ui_card_a")
+	card_b.text = Loc.t("ui_card_b")
+	card_c.text = Loc.t("ui_card_c")
 
 func _setup_actions() -> void:
 	_set_key("move_forward", KEY_W)
@@ -147,6 +292,9 @@ func _setup_actions() -> void:
 	_set_key("dash", KEY_SHIFT)
 	_set_key("throw_grenade", KEY_E)
 	_set_key("switch_bullet", KEY_Q)
+	_set_key("bullet_mode_1", KEY_1)
+	_set_key("bullet_mode_2", KEY_2)
+	_set_key("bullet_mode_3", KEY_3)
 	_set_mouse("attack_primary", MOUSE_BUTTON_LEFT)
 	_set_mouse("shield", MOUSE_BUTTON_RIGHT)
 
@@ -186,6 +334,7 @@ func _setup_spawns() -> void:
 
 func _begin_wave_preview() -> void:
 	wave += 1
+	_boss_spawned_this_wave = false
 	_wave_preview = true
 	_wave_active = false
 	_preview_left = PREVIEW_SECONDS
@@ -193,7 +342,7 @@ func _begin_wave_preview() -> void:
 	_build_spawn_queue()
 	_set_hazards_active(false)
 	_spawn_preview_enemies()
-	_show_message("Wave %d starts in %.0fs: inspect map + enemies" % [wave, PREVIEW_SECONDS])
+	_show_message(Loc.t("msg_wave_preview") % [wave, PREVIEW_SECONDS])
 
 func _spawn_preview_enemies() -> void:
 	_preview_enemies.clear()
@@ -213,25 +362,28 @@ func _activate_wave_from_preview() -> void:
 		if is_instance_valid(e) and e.has_method("set_active"):
 			e.set_active(true)
 	_preview_enemies.clear()
-	_show_message("Wave %d started" % wave)
+	_spawn_miniboss_if_needed()
+	_show_message(Loc.t("msg_wave_start") % wave)
+	play_sfx("wave_start")
 
 func _build_spawn_queue() -> void:
 	_spawn_queue.clear()
 	var chaser: int = 6 + wave * 2
 	var shooter: int = 2 + int(wave / 2)
 	var dasher: int = int((wave + 2) / 3)
+	var sniper: int = maxi(0, int((wave - 2) / 2))
+	var artillery: int = maxi(0, int((wave - 4) / 3))
 	for i in chaser:
 		_spawn_queue.append(0)
 	for i in shooter:
 		_spawn_queue.append(1)
 	for i in dasher:
 		_spawn_queue.append(2)
+	for i in sniper:
+		_spawn_queue.append(3)
+	for i in artillery:
+		_spawn_queue.append(4)
 	_spawn_queue.shuffle()
-	_next_wave_comp_text = "%s x%d  %s x%d  %s x%d" % [
-		str(ENEMY_TYPE_LABEL[0]), chaser,
-		str(ENEMY_TYPE_LABEL[1]), shooter,
-		str(ENEMY_TYPE_LABEL[2]), dasher
-	]
 
 func _spawn_enemy(kind: int, active: bool) -> Node:
 	if enemy_scene == null:
@@ -239,12 +391,14 @@ func _spawn_enemy(kind: int, active: bool) -> Node:
 	var e: Node = enemy_scene.instantiate()
 	enemy_root.add_child(e)
 	if e is Node2D:
-		(e as Node2D).global_position = _random_spawn()
+		(e as Node2D).global_position = _clamp_to_arena(_random_spawn())
 	if e.has_method("set_target"):
 		e.set_target(player)
 	if e.has_method("configure"):
 		e.configure(kind, wave, enemy_projectile_scene)
 	_try_apply_elite(e)
+	if e.has_signal("died"):
+		e.connect("died", Callable(self, "_on_enemy_died"))
 	if e.has_method("set_active"):
 		e.set_active(active)
 	return e
@@ -252,17 +406,50 @@ func _spawn_enemy(kind: int, active: bool) -> Node:
 func _try_apply_elite(enemy: Node) -> void:
 	if wave < 3:
 		return
-	if _rng.randf() > clampf(0.06 + wave * 0.01, 0.0, 0.42):
+	if _rng.randf() > clampf(0.08 + wave * 0.012, 0.0, 0.45):
 		return
-	var mod: Dictionary = ELITE_MODS[_rng.randi_range(0, ELITE_MODS.size() - 1)]
-	if enemy.has_method("apply_elite_mod"):
-		enemy.apply_elite_mod(mod)
+	_apply_elite_combo(enemy, false)
+
+func _apply_elite_combo(enemy: Node, force_double: bool) -> void:
+	if not enemy.has_method("apply_elite_mod"):
+		return
+	var first_idx: int = _rng.randi_range(0, ELITE_MODS.size() - 1)
+	var first: Dictionary = ELITE_MODS[first_idx]
+	enemy.apply_elite_mod(first)
+	var do_double: bool = force_double or (wave >= 8 and _rng.randf() < clampf(0.08 + wave * 0.01, 0.0, 0.55))
+	if not do_double:
+		return
+	var second_idx: int = _rng.randi_range(0, ELITE_MODS.size() - 1)
+	var guard := 0
+	while second_idx == first_idx and guard < 12:
+		second_idx = _rng.randi_range(0, ELITE_MODS.size() - 1)
+		guard += 1
+	var second: Dictionary = ELITE_MODS[second_idx]
+	enemy.apply_elite_mod(second)
+
+func _spawn_miniboss_if_needed() -> void:
+	if _boss_spawned_this_wave:
+		return
+	if wave % MINI_BOSS_INTERVAL != 0:
+		return
+	_boss_spawned_this_wave = true
+	var boss_kind: int = _rng.randi_range(2, 4)
+	var boss: Node = _spawn_enemy(boss_kind, true)
+	if boss == null:
+		return
+	if boss is Node2D:
+		(boss as Node2D).scale = Vector2(1.5, 1.5)
+	_apply_elite_combo(boss, true)
+	if boss.has_method("apply_elite_mod"):
+		boss.apply_elite_mod({"name":"MiniBoss", "hp_mul": 2.8, "dmg_mul": 1.35, "speed_mul": 0.95, "color": Color(1.0, 0.74, 0.18, 1.0)})
+	_show_message("绗?%d 娉細灏廈oss鏉ヨ" % wave)
 
 func _on_wave_clear() -> void:
 	_wave_active = false
 	player.heal(20.0)
 	player.restore_sp(25.0)
-	_show_message("Wave %d cleared" % wave)
+	_show_message(Loc.t("msg_wave_clear") % wave)
+	play_sfx("wave_clear")
 	_show_cards()
 
 func _show_cards() -> void:
@@ -282,7 +469,8 @@ func _pick_card(index: int) -> void:
 		return
 	var card: Dictionary = _card_choices[index]
 	player.apply_upgrade(card["effect"])
-	_show_message("Picked: %s" % str(card["title"]))
+	_show_message(Loc.t("msg_card_pick") % Loc.t(str(card["title"])))
+	play_sfx("card_pick")
 	card_shade.visible = false
 	_set_intermission(INTERMISSION_SECONDS)
 
@@ -301,8 +489,8 @@ func _draw_cards(count: int) -> Array[Dictionary]:
 
 func _update_card_button(btn: Button, card: Dictionary) -> void:
 	var rarity: String = str(card.get("rarity", "common"))
-	var rarity_text: String = str(RARITY_LABEL.get(rarity, "Common"))
-	btn.text = "[%s] %s\n%s" % [rarity_text, str(card["title"]), str(card["desc"])]
+	var rarity_text: String = Loc.t(str(RARITY_LABEL.get(rarity, "rarity_common")))
+	btn.text = "[%s] %s\n%s" % [rarity_text, Loc.t(str(card["title"])), Loc.t(str(card["desc"]))]
 	var c: Color = Color(RARITY_COLOR.get(rarity, Color(0.92, 0.92, 0.92, 1.0)))
 	btn.add_theme_color_override("font_color", c)
 	btn.add_theme_color_override("font_hover_color", c.lightened(0.1))
@@ -398,8 +586,23 @@ func _random_spawn() -> Vector2:
 	var m := spawn_root.get_child(idx) as Marker2D
 	return m.global_position
 
+func _clamp_to_arena(p: Vector2) -> Vector2:
+	return Vector2(
+		clampf(p.x, ARENA_RECT.position.x + 16.0, ARENA_RECT.end.x - 16.0),
+		clampf(p.y, ARENA_RECT.position.y + 16.0, ARENA_RECT.end.y - 16.0)
+	)
+
 func _alive_enemies() -> int:
 	return enemy_root.get_child_count()
+
+func _sanitize_enemies() -> void:
+	for n in enemy_root.get_children():
+		if n is Node2D:
+			var e := n as Node2D
+			if not ARENA_RECT.has_point(e.global_position):
+				e.global_position = _clamp_to_arena(e.global_position)
+			if player != null and e.global_position.distance_to(player.global_position) > 2400.0:
+				e.global_position = _clamp_to_arena(_random_spawn())
 
 func _on_player_stats_changed(hp: float, max_hp: float, sp: float, max_sp: float, bullet_mode: String, dash_cd: float, grenade_cd: float, shield_on: bool) -> void:
 	hp_bar.max_value = max_hp
@@ -408,8 +611,8 @@ func _on_player_stats_changed(hp: float, max_hp: float, sp: float, max_sp: float
 	sp_bar.value = sp
 	hp_text.text = "HP %.0f/%.0f" % [hp, max_hp]
 	sp_text.text = "SP %.0f/%.0f" % [sp, max_sp]
-	mode_text.text = "Bullet: %s | Shield: %s | Grenade: E (to mouse)" % [bullet_mode, ("On" if shield_on else "Off")]
-	cooldown_text.text = "Dash %.1fs | Grenade %.1fs" % [dash_cd, grenade_cd]
+	mode_text.text = Loc.t("ui_mode_line") % [bullet_mode, (Loc.t("ui_on") if shield_on else Loc.t("ui_off"))]
+	cooldown_text.text = Loc.t("ui_cd_line") % [dash_cd, grenade_cd]
 
 func _show_message(text: String) -> void:
 	msg_label.text = text
@@ -420,14 +623,77 @@ func _show_message(text: String) -> void:
 	)
 
 func _update_ui() -> void:
-	wave_label.text = "Wave: %d" % wave
-	alive_label.text = "Enemies: %d" % _alive_enemies()
+	wave_label.text = Loc.t("ui_wave") % wave
+	alive_label.text = Loc.t("ui_enemies") % _alive_enemies()
+	score_label.text = Loc.t("ui_score") % _score
+	kills_label.text = Loc.t("ui_kills") % _kills
+	mul_label.text = Loc.t("ui_mul") % _wave_multiplier()
 	if _wave_preview:
-		status_label.text = "Status: Preview"
-		timer_label.text = "Fight in %.1f | %s" % [maxf(0.0, _preview_left), _next_wave_comp_text]
+		status_label.text = Loc.t("ui_status_preview")
+		timer_label.text = Loc.t("ui_preview_timer") % maxf(0.0, _preview_left)
 	elif _wave_active:
-		status_label.text = "Status: Combat"
-		timer_label.text = "Remaining Spawns: %d" % _spawn_queue.size()
+		status_label.text = Loc.t("ui_status_combat")
+		timer_label.text = Loc.t("ui_spawn_left") % _spawn_queue.size()
 	else:
-		status_label.text = "Status: Intermission"
-		timer_label.text = "Next wave %.1f | %s" % [maxf(0.0, _intermission_left), _next_wave_comp_text]
+		status_label.text = Loc.t("ui_status_intermission")
+		timer_label.text = Loc.t("ui_next_wave") % maxf(0.0, _intermission_left)
+
+func _on_enemy_died(score_value: int) -> void:
+	_kills += 1
+	var gained: int = int(round(float(score_value) * _wave_multiplier()))
+	_score += maxi(1, gained)
+
+func _wave_multiplier() -> float:
+	return 1.0 + float(maxi(1, wave) - 1) * 0.15
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		if card_shade.visible:
+			return
+		_toggle_pause()
+		get_viewport().set_input_as_handled()
+
+func _toggle_pause() -> void:
+	var next_paused: bool = not get_tree().paused
+	get_tree().paused = next_paused
+	pause_shade.visible = next_paused
+
+func _apply_pause_locale() -> void:
+	pause_title.text = Loc.t("menu_pause")
+	pause_resume.text = Loc.t("menu_resume")
+	pause_restart.text = Loc.t("menu_restart")
+	pause_mainmenu.text = Loc.t("menu_mainmenu")
+	pause_quit.text = Loc.t("menu_quit")
+
+func _on_pause_resume() -> void:
+	get_tree().paused = false
+	pause_shade.visible = false
+
+func _on_pause_restart() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _on_pause_mainmenu() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+func _on_pause_quit() -> void:
+	get_tree().quit()
+
+func _init_local_bgm() -> void:
+	if local_bgm == null:
+		return
+	if AudioServer.get_bus_count() > 0:
+		AudioServer.set_bus_mute(0, false)
+		AudioServer.set_bus_volume_db(0, 0.0)
+	var stream: AudioStream = load("res://assets/audio/battle_bgm.wav") as AudioStream
+	if stream == null:
+		stream = BATTLE_BGM
+	if stream is AudioStreamWAV:
+		var wav := (stream as AudioStreamWAV).duplicate() as AudioStreamWAV
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		stream = wav
+	local_bgm.stream = stream
+	local_bgm.bus = "Master"
+	local_bgm.volume_db = -3.0
+	local_bgm.play()

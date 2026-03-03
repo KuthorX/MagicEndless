@@ -7,6 +7,7 @@ var _fuse := 1.1
 var _exploded := false
 var _explosion_t := 0.0
 var _trail: Array[Vector2] = []
+var knockback_force := 360.0
 
 func setup(v: Vector2, dmg: int, r: float) -> void:
 	velocity = v
@@ -58,7 +59,13 @@ func _explode() -> void:
 			var dist: float = ((enemy as Node2D).global_position - global_position).length()
 			if dist <= radius and enemy.has_method("take_damage"):
 				enemy.take_damage(damage)
+				if enemy.has_method("apply_impulse"):
+					var dir := ((enemy as Node2D).global_position - global_position).normalized()
+					enemy.apply_impulse(dir * knockback_force)
 				var player := get_tree().get_first_node_in_group("player")
 				if player != null and player.has_method("on_dealt_damage"):
 					player.on_dealt_damage(float(damage))
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("play_sfx"):
+		scene.play_sfx("grenade_explode")
 	queue_redraw()

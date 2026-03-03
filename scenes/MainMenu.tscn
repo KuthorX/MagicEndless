@@ -32,6 +32,10 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.04, 0.06, 0.09, 1)
 
+[node name="LocalBgm" type="AudioStreamPlayer" parent="."]
+autoplay = false
+volume_db = -8.0
+
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -41,7 +45,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="Panel" parent="Center"]
-custom_minimum_size = Vector2(440, 310)
+custom_minimum_size = Vector2(460, 360)
 layout_mode = 2
 theme_override_styles/panel = SubResource("1")
 
@@ -59,12 +63,12 @@ theme_override_constants/separation = 14
 [node name="Title" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 42
-text = "俯视角肉鸽"
+text = "JianXia"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
-text = "无尽模式"
+text = "Endless Mode"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Center/Panel/VBox"]
@@ -74,9 +78,14 @@ layout_mode = 2
 [node name="StartButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-text = "开始游戏"
+text = "Start"
+
+[node name="CodexButton" type="Button" parent="Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Codex"
 
 [node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-text = "退出"
+text = "Quit"

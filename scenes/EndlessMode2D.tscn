@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/endless_mode_2d.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/player2d.gd" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/sword_wave2d.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/grenade2d.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/hazard2d.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/boss_totem2d.tscn" id="9"]
 
 [sub_resource type="RectangleShape2D" id="1"]
 size = Vector2(28, 28)
@@ -32,6 +33,7 @@ enemy_projectile_scene = ExtResource("5")
 sword_scene = ExtResource("6")
 grenade_scene = ExtResource("7")
 hazard_scene = ExtResource("8")
+boss_totem_scene = ExtResource("9")
 
 [node name="World" type="Node2D" parent="."]
 
@@ -63,6 +65,10 @@ current = true
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
+[node name="LocalBgm" type="AudioStreamPlayer" parent="."]
+autoplay = false
+volume_db = -7.0
+
 [node name="WaveLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
 anchor_right = 1.0
@@ -71,7 +77,7 @@ offset_top = 20.0
 offset_right = -20.0
 offset_bottom = 44.0
 horizontal_alignment = 2
-text = "波次：0"
+text = "娉㈡锛?"
 
 [node name="StatusLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
@@ -81,7 +87,7 @@ offset_top = 44.0
 offset_right = -20.0
 offset_bottom = 68.0
 horizontal_alignment = 2
-text = "状态：准备阶段"
+text = "鐘舵€侊細鍑嗗闃舵"
 
 [node name="AliveLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
@@ -91,7 +97,7 @@ offset_top = 68.0
 offset_right = -20.0
 offset_bottom = 92.0
 horizontal_alignment = 2
-text = "敌人数：0"
+text = "鏁屼汉锛?"
 
 [node name="TimerLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
@@ -101,8 +107,37 @@ offset_top = 92.0
 offset_right = -20.0
 offset_bottom = 116.0
 horizontal_alignment = 2
-text = "下波倒计时：0.0"
+text = "涓嬫尝鍊掕鏃讹細0.0"
 
+[node name="ScoreLabel" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 124.0
+offset_right = -20.0
+offset_bottom = 148.0
+horizontal_alignment = 2
+text = "Score: 0"
+
+[node name="KillsLabel" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 148.0
+offset_right = -20.0
+offset_bottom = 172.0
+horizontal_alignment = 2
+text = "Kills: 0"
+
+[node name="MulLabel" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 172.0
+offset_right = -20.0
+offset_bottom = 196.0
+horizontal_alignment = 2
+text = "x1.00"
 [node name="Vitals" type="Panel" parent="HUD"]
 offset_left = 18.0
 offset_top = 18.0
@@ -144,14 +179,14 @@ offset_left = 12.0
 offset_top = 106.0
 offset_right = 330.0
 offset_bottom = 126.0
-text = "子弹：普通 | 护盾：关闭"
+text = "Bullet: Normal | Shield: Off"
 
 [node name="CooldownLabel" type="Label" parent="HUD/Vitals"]
 offset_left = 12.0
 offset_top = 132.0
 offset_right = 330.0
 offset_bottom = 152.0
-text = "突进 0.0s | 手雷 0.0s"
+text = "绐佽繘 0.0s | 鎵嬮浄 0.0s"
 
 [node name="Message" type="Label" parent="HUD"]
 anchors_preset = 10
@@ -197,17 +232,70 @@ theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CardUI/Shade/Center/Panel/VBox"]
 theme_override_font_sizes/font_size = 34
-text = "波次奖励 - 三选一"
+text = "娉㈡濂栧姳 - 涓夐€変竴"
 horizontal_alignment = 1
 
 [node name="CardA" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 90)
-text = "卡片 A"
+text = "鍗＄墖 A"
 
 [node name="CardB" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 90)
-text = "卡片 B"
+text = "鍗＄墖 B"
 
 [node name="CardC" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 90)
-text = "卡片 C"
+text = "鍗＄墖 C"
+
+[node name="PauseUI" type="CanvasLayer" parent="."]
+
+[node name="Shade" type="ColorRect" parent="PauseUI"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.62)
+
+[node name="Center" type="CenterContainer" parent="PauseUI/Shade"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="PauseUI/Shade/Center"]
+custom_minimum_size = Vector2(520, 360)
+theme_override_styles/panel = SubResource("2")
+
+[node name="VBox" type="VBoxContainer" parent="PauseUI/Shade/Center/Panel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="PauseUI/Shade/Center/Panel/VBox"]
+theme_override_font_sizes/font_size = 34
+text = "Paused"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+text = "Resume"
+
+[node name="RestartButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+text = "Restart"
+
+[node name="MainMenuButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+text = "Main Menu"
+
+[node name="QuitButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+text = "Quit"
