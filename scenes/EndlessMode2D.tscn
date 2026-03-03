@@ -1,0 +1,213 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/endless_mode_2d.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/player2d.gd" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/enemy2d.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/projectile2d.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_projectile2d.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/sword_wave2d.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/grenade2d.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/hazard2d.tscn" id="8"]
+
+[sub_resource type="RectangleShape2D" id="1"]
+size = Vector2(28, 28)
+
+[sub_resource type="StyleBoxFlat" id="2"]
+bg_color = Color(0.08, 0.11, 0.16, 0.96)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.28, 0.48, 0.66, 1)
+
+[node name="EndlessMode2D" type="Node2D"]
+script = ExtResource("1")
+enemy_scene = ExtResource("3")
+projectile_scene = ExtResource("4")
+enemy_projectile_scene = ExtResource("5")
+sword_scene = ExtResource("6")
+grenade_scene = ExtResource("7")
+hazard_scene = ExtResource("8")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Terrain" type="Node2D" parent="World"]
+
+[node name="Dynamic" type="Node2D" parent="World"]
+
+[node name="Hazards" type="Node2D" parent="World"]
+
+[node name="Enemies" type="Node2D" parent="World"]
+
+[node name="Spawns" type="Node2D" parent="World"]
+
+[node name="Player" type="CharacterBody2D" parent="World"]
+script = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/Player"]
+shape = SubResource("1")
+
+[node name="Body" type="Polygon2D" parent="World/Player"]
+polygon = PackedVector2Array(-14, -14, 14, -14, 14, 14, -14, 14)
+color = Color(0.24, 0.82, 0.96, 1)
+
+[node name="Camera2D" type="Camera2D" parent="World/Player"]
+zoom = Vector2(1, 1)
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+current = true
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="WaveLabel" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 44.0
+horizontal_alignment = 2
+text = "波次：0"
+
+[node name="StatusLabel" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 44.0
+offset_right = -20.0
+offset_bottom = 68.0
+horizontal_alignment = 2
+text = "状态：准备阶段"
+
+[node name="AliveLabel" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 68.0
+offset_right = -20.0
+offset_bottom = 92.0
+horizontal_alignment = 2
+text = "敌人数：0"
+
+[node name="TimerLabel" type="Label" parent="HUD"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 92.0
+offset_right = -20.0
+offset_bottom = 116.0
+horizontal_alignment = 2
+text = "下波倒计时：0.0"
+
+[node name="Vitals" type="Panel" parent="HUD"]
+offset_left = 18.0
+offset_top = 18.0
+offset_right = 360.0
+offset_bottom = 180.0
+
+[node name="HPLabel" type="Label" parent="HUD/Vitals"]
+offset_left = 12.0
+offset_top = 8.0
+offset_right = 180.0
+offset_bottom = 28.0
+text = "HP 140/140"
+
+[node name="HPBar" type="ProgressBar" parent="HUD/Vitals"]
+offset_left = 12.0
+offset_top = 30.0
+offset_right = 330.0
+offset_bottom = 50.0
+max_value = 140.0
+value = 140.0
+
+[node name="SPLabel" type="Label" parent="HUD/Vitals"]
+offset_left = 12.0
+offset_top = 56.0
+offset_right = 180.0
+offset_bottom = 76.0
+text = "SP 100/100"
+
+[node name="SPBar" type="ProgressBar" parent="HUD/Vitals"]
+offset_left = 12.0
+offset_top = 78.0
+offset_right = 330.0
+offset_bottom = 98.0
+max_value = 100.0
+value = 100.0
+
+[node name="ModeLabel" type="Label" parent="HUD/Vitals"]
+offset_left = 12.0
+offset_top = 106.0
+offset_right = 330.0
+offset_bottom = 126.0
+text = "子弹：普通 | 护盾：关闭"
+
+[node name="CooldownLabel" type="Label" parent="HUD/Vitals"]
+offset_left = 12.0
+offset_top = 132.0
+offset_right = 330.0
+offset_bottom = 152.0
+text = "突进 0.0s | 手雷 0.0s"
+
+[node name="Message" type="Label" parent="HUD"]
+anchors_preset = 10
+offset_left = -360.0
+offset_top = -120.0
+offset_right = 360.0
+offset_bottom = -84.0
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 22
+
+[node name="CardUI" type="CanvasLayer" parent="."]
+
+[node name="Shade" type="ColorRect" parent="CardUI"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.58)
+
+[node name="Center" type="CenterContainer" parent="CardUI/Shade"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="CardUI/Shade/Center"]
+custom_minimum_size = Vector2(680, 430)
+theme_override_styles/panel = SubResource("2")
+
+[node name="VBox" type="VBoxContainer" parent="CardUI/Shade/Center/Panel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 20.0
+offset_right = -24.0
+offset_bottom = -20.0
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CardUI/Shade/Center/Panel/VBox"]
+theme_override_font_sizes/font_size = 34
+text = "波次奖励 - 三选一"
+horizontal_alignment = 1
+
+[node name="CardA" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 90)
+text = "卡片 A"
+
+[node name="CardB" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 90)
+text = "卡片 B"
+
+[node name="CardC" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 90)
+text = "卡片 C"

@@ -1,0 +1,19 @@
+; Engine configuration file.
+; Best edited using the editor UI and not directly.
+
+config_version=5
+
+[application]
+config/name="2D Rogue Endless"
+run/main_scene="res://scenes/MainMenu.tscn"
+config/features=PackedStringArray("4.5")
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+renderer/rendering_method="forward_plus"
+environment/defaults/default_clear_color=Color(0.06, 0.08, 0.11, 1)
