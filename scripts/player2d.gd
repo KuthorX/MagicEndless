@@ -6,7 +6,7 @@ signal sfx_event(name: String)
 
 const BASE_MOVE_SPEED := 220.0
 const BASE_SWORD_CD := 0.55
-const BASE_SHOT_CD := 0.18
+const BASE_SHOT_CD := 0.40
 const BASE_DASH_CD := 2.4
 const BASE_GRENADE_CD := 3.5
 const DASH_DURATION := 0.18
@@ -45,6 +45,9 @@ var sword_speed_mul := 1.0
 var shot_damage := 18
 var shot_speed := 520.0
 var shot_cd_mul := 1.0
+var shot_cd_normal_mul := 1.0
+var shot_cd_pierce_mul := 1.8
+var shot_cd_burst_mul := 2.6
 var grenade_damage := 52
 var grenade_radius := 95.0
 var grenade_cd_mul := 1.0
@@ -181,6 +184,12 @@ func apply_upgrade(effect: Dictionary) -> void:
 				shot_speed += float(value)
 			"shot_cd_mul":
 				shot_cd_mul *= float(value)
+			"shot_cd_normal_mul":
+				shot_cd_normal_mul *= float(value)
+			"shot_cd_pierce_mul":
+				shot_cd_pierce_mul *= float(value)
+			"shot_cd_burst_mul":
+				shot_cd_burst_mul *= float(value)
 			"shot_multishot_add":
 				shot_multishot_add += int(value)
 			"shot_pierce_bonus":
@@ -246,7 +255,7 @@ func _handle_attacks() -> void:
 		_do_sword_sweep()
 
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and _shot_cd_left <= 0.0:
-		_shot_cd_left = BASE_SHOT_CD * shot_cd_mul
+		_shot_cd_left = BASE_SHOT_CD * shot_cd_mul * _current_shot_mode_cd_mul()
 		_shoot_projectile()
 		sfx_event.emit("shoot")
 
@@ -350,6 +359,16 @@ func _fallback_aim_dir() -> Vector2:
 func _bullet_mode_name() -> String:
 	var key: String = str(BULLET_MODE_LABEL.get(bullet_mode, "mode_normal"))
 	return Loc.t(key)
+
+func _current_shot_mode_cd_mul() -> float:
+	match bullet_mode:
+		BulletMode.NORMAL:
+			return shot_cd_normal_mul
+		BulletMode.PIERCE:
+			return shot_cd_pierce_mul
+		BulletMode.BURST:
+			return shot_cd_burst_mul
+	return 1.0
 
 func _update_grenade_preview(speed: float) -> void:
 	var dir: Vector2 = (get_global_mouse_position() - global_position).normalized()

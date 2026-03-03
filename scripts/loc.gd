@@ -2,7 +2,7 @@ class_name Loc
 extends RefCounted
 
 const ZH := {
-	"menu_title": "\u5251\u4fa0\u5192\u9669",
+	"menu_title": "\u5f02\u4e16\u754c\u65e0\u5c3d\u6218\u6597",
 	"menu_subtitle": "\u65e0\u5c3d\u6a21\u5f0f",
 	"menu_start": "\u5f00\u59cb\u6e38\u620f",
 	"menu_codex": "\u767e\u79d1\u5168\u4e66",

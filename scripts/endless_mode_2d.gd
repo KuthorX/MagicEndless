@@ -1,6 +1,5 @@
 extends Node2D
 const BATTLE_BGM := preload("res://assets/audio/battle_bgm.wav")
-
 @export var enemy_scene: PackedScene
 @export var projectile_scene: PackedScene
 @export var enemy_projectile_scene: PackedScene
@@ -686,14 +685,12 @@ func _init_local_bgm() -> void:
 	if AudioServer.get_bus_count() > 0:
 		AudioServer.set_bus_mute(0, false)
 		AudioServer.set_bus_volume_db(0, 0.0)
-	var stream: AudioStream = load("res://assets/audio/battle_bgm.wav") as AudioStream
-	if stream == null:
-		stream = BATTLE_BGM
+	var stream: AudioStream = BATTLE_BGM
 	if stream is AudioStreamWAV:
 		var wav := (stream as AudioStreamWAV).duplicate() as AudioStreamWAV
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		stream = wav
 	local_bgm.stream = stream
 	local_bgm.bus = "Master"
-	local_bgm.volume_db = -3.0
+	local_bgm.volume_db = -6.0
 	local_bgm.play()

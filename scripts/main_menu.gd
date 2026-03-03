@@ -35,14 +35,12 @@ func _init_local_bgm() -> void:
 	if AudioServer.get_bus_count() > 0:
 		AudioServer.set_bus_mute(0, false)
 		AudioServer.set_bus_volume_db(0, 0.0)
-	var stream: AudioStream = load("res://assets/audio/menu_bgm.wav") as AudioStream
-	if stream == null:
-		stream = MENU_BGM
+	var stream: AudioStream = MENU_BGM
 	if stream is AudioStreamWAV:
 		var wav := (stream as AudioStreamWAV).duplicate() as AudioStreamWAV
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		stream = wav
 	local_bgm.stream = stream
 	local_bgm.bus = "Master"
-	local_bgm.volume_db = -4.0
+	local_bgm.volume_db = -8.0
 	local_bgm.play()
