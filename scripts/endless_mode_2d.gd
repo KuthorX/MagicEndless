@@ -473,7 +473,7 @@ func _process(delta: float) -> void:
 	_update_ui()
 
 func _setup_virtual_input() -> void:
-	_virtual_input_enabled = OS.has_feature("mobile") or OS.has_feature("web")
+	_virtual_input_enabled = _should_enable_virtual_input()
 	if not _virtual_input_enabled:
 		return
 	_virtual_ui_layer = CanvasLayer.new()
@@ -556,6 +556,29 @@ func _on_virtual_shield_up() -> void:
 func _on_virtual_dash_down() -> void:
 	if player != null and player.has_method("trigger_virtual_dash"):
 		player.trigger_virtual_dash()
+
+func _should_enable_virtual_input() -> bool:
+	if OS.has_feature("mobile"):
+		return true
+	if not OS.has_feature("web"):
+		return false
+	if not Engine.has_singleton("JavaScriptBridge"):
+		return false
+	var ua_value: Variant = JavaScriptBridge.eval("navigator.userAgent || ''", true)
+	var ua := str(ua_value).to_lower()
+	if ua.find("android") >= 0:
+		return true
+	if ua.find("iphone") >= 0:
+		return true
+	if ua.find("ipad") >= 0:
+		return true
+	if ua.find("ipod") >= 0:
+		return true
+	if ua.find("mobile") >= 0:
+		return true
+	if ua.find("harmonyos") >= 0:
+		return true
+	return false
 
 func _apply_virtual_move_actions(vec: Vector2) -> void:
 	Input.action_release("move_left")
