@@ -1,4 +1,5 @@
 extends Area2D
+const CombatFxScript := preload("res://scripts/combat_fx2d.gd")
 
 var velocity := Vector2.ZERO
 var damage := 12
@@ -6,19 +7,45 @@ var from_player := true
 var pierce_left := 0
 var _life := 1.6
 var _trail: Array[Vector2] = []
+var _ricochet_left := 0
+var _explosion_radius := 0.0
+var _homing_strength := 0.0
+var _chain_left := 0
+var _trail_color := Color(0.44, 0.88, 1.0, 0.85)
+var _core_color := Color(0.72, 0.96, 1.0, 1.0)
+var _glow_color := Color(0.36, 0.84, 1.0, 0.45)
+var _status_name := ""
+var _status_duration := 0.0
+var _status_stacks := 1
 
 func _ready() -> void:
 	z_index = 60
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
 
-func setup(dir: Vector2, speed: float, dmg: int, is_player: bool, pierce: int = 0) -> void:
+func setup(dir: Vector2, speed: float, dmg: int, is_player: bool, pierce: int = 0, profile: Dictionary = {}) -> void:
 	velocity = dir.normalized() * speed
 	damage = dmg
 	from_player = is_player
 	pierce_left = pierce
+	_ricochet_left = int(profile.get("ricochet", 0))
+	_explosion_radius = float(profile.get("explosion_radius", 0.0))
+	_homing_strength = float(profile.get("homing", 0.0))
+	_chain_left = int(profile.get("chain", 0))
+	_status_name = str(profile.get("apply_status", ""))
+	_status_duration = float(profile.get("status_duration", 0.0))
+	_status_stacks = int(profile.get("status_stacks", 1))
+	_life *= float(profile.get("life_mul", 1.0))
+	if profile.has("trail_color"):
+		_trail_color = Color(profile["trail_color"])
+	if profile.has("core_color"):
+		_core_color = Color(profile["core_color"])
+	if profile.has("glow_color"):
+		_glow_color = Color(profile["glow_color"])
 
 func _physics_process(delta: float) -> void:
+	if from_player and _homing_strength > 0.0:
+		_apply_homing(delta)
 	_trail.append(global_position)
 	if _trail.size() > 12:
 		_trail.pop_front()
@@ -33,27 +60,18 @@ func _draw() -> void:
 		var t: float = float(i + 1) / float(_trail.size())
 		var a := to_local(_trail[i])
 		var b := to_local(_trail[i + 1])
-		var c := Color(0.44, 0.88, 1.0, 0.20 + 0.65 * t)
+		var c := Color(_trail_color.r, _trail_color.g, _trail_color.b, 0.20 + 0.65 * t)
 		draw_line(a, b, c, 2.6)
-	draw_circle(Vector2.ZERO, 5.5, Color(0.36, 0.84, 1.0, 0.45))
-	draw_circle(Vector2.ZERO, 3.8, Color(0.72, 0.96, 1.0, 1.0))
+	draw_circle(Vector2.ZERO, 5.5, _glow_color)
+	draw_circle(Vector2.ZERO, 3.8, _core_color)
 
 func _on_body_entered(body: Node) -> void:
 	if from_player:
 		if body.is_in_group("enemy") and body.has_method("take_damage"):
-			body.take_damage(damage)
-			var scene := get_tree().current_scene
-			if scene != null and scene.has_method("play_sfx"):
-				scene.play_sfx("hit")
-			var player := get_tree().get_first_node_in_group("player")
-			if player != null and player.has_method("on_dealt_damage"):
-				player.on_dealt_damage(float(damage))
-			if pierce_left > 0:
-				pierce_left -= 1
-			else:
-				queue_free()
+			_hit_enemy(body)
 		elif body.is_in_group("world"):
-			queue_free()
+			if not _try_ricochet(null):
+				queue_free()
 	else:
 		if body.is_in_group("player") and body.has_method("take_damage"):
 			body.take_damage(damage)
@@ -66,3 +84,141 @@ func _on_area_entered(area: Area2D) -> void:
 		# Player bullets ignore generic areas (hazards/telegraphs/etc), only bodies handle hit.
 		return
 	queue_free()
+
+func _hit_enemy(enemy: Node) -> void:
+	enemy.take_damage(damage)
+	_spawn_hex_hit_fx(global_position)
+	if _status_name != "" and _status_duration > 0.0 and enemy.has_method("apply_status"):
+		enemy.apply_status(_status_name, _status_duration, _status_stacks)
+	_notify_player_damage(damage)
+	_play_hit_sfx()
+	if _explosion_radius > 1.0:
+		_apply_explosion(enemy)
+	if _chain_left > 0:
+		_apply_chain(enemy)
+	var keep_flying := false
+	if pierce_left > 0:
+		pierce_left -= 1
+		keep_flying = true
+	if _try_ricochet(enemy):
+		keep_flying = true
+	if not keep_flying:
+		queue_free()
+
+func _apply_homing(delta: float) -> void:
+	var target := _nearest_enemy(520.0, [])
+	if target == null:
+		return
+	var desired := (target.global_position - global_position).normalized()
+	var speed := velocity.length()
+	if speed < 0.1:
+		return
+	var steer := clampf(delta * (2.2 + _homing_strength * 1.8), 0.0, 1.0)
+	var next_dir := velocity.normalized().lerp(desired, steer).normalized()
+	velocity = next_dir * speed
+
+func _apply_explosion(primary: Node) -> void:
+	_spawn_hex_blast_fx(global_position, _explosion_radius)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if not (e is Node2D):
+			continue
+		if e == primary:
+			continue
+		var en := e as Node2D
+		if en.global_position.distance_to(global_position) <= _explosion_radius and e.has_method("take_damage"):
+			var splash := int(round(float(damage) * 0.55))
+			e.take_damage(splash)
+			_notify_player_damage(splash)
+
+func _apply_chain(primary: Node) -> void:
+	var origin := global_position
+	var exclude: Array[Node] = [primary]
+	var jumps := _chain_left
+	while jumps > 0:
+		var target := _nearest_enemy(280.0, exclude, origin)
+		if target == null:
+			return
+		_spawn_chain_arc_fx(origin, target.global_position)
+		var d := int(round(float(damage) * (0.60 + 0.08 * float(jumps - 1))))
+		if target.has_method("take_damage"):
+			target.take_damage(d)
+		_notify_player_damage(d)
+		exclude.append(target)
+		origin = target.global_position
+		jumps -= 1
+
+func _try_ricochet(hit_enemy: Node) -> bool:
+	if _ricochet_left <= 0:
+		return false
+	var exclude: Array[Node] = []
+	if hit_enemy != null:
+		exclude.append(hit_enemy)
+	var target := _nearest_enemy(460.0, exclude)
+	if target == null:
+		velocity = -velocity
+	else:
+		var speed := maxf(220.0, velocity.length())
+		velocity = (target.global_position - global_position).normalized() * speed
+	_ricochet_left -= 1
+	return true
+
+func _nearest_enemy(radius: float, excluded: Array[Node], origin: Vector2 = Vector2.INF) -> Node2D:
+	var from := global_position
+	if origin != Vector2.INF:
+		from = origin
+	var best: Node2D = null
+	var best_d := radius
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if not (e is Node2D):
+			continue
+		if excluded.has(e):
+			continue
+		var en := e as Node2D
+		var d := en.global_position.distance_to(from)
+		if d < best_d:
+			best_d = d
+			best = en
+	return best
+
+func _notify_player_damage(amount: int) -> void:
+	var player := get_tree().get_first_node_in_group("player")
+	if player != null and player.has_method("on_dealt_damage"):
+		player.on_dealt_damage(float(amount))
+
+func _play_hit_sfx() -> void:
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("play_sfx"):
+		scene.play_sfx("hit")
+
+func _spawn_hex_hit_fx(pos: Vector2) -> void:
+	if _status_name != "hex_mark":
+		return
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var fx := Node2D.new()
+	fx.set_script(CombatFxScript)
+	scene.add_child(fx)
+	fx.setup_hex_hit(pos, 18.0)
+
+func _spawn_hex_blast_fx(pos: Vector2, radius: float) -> void:
+	if _status_name != "hex_mark":
+		return
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var fx := Node2D.new()
+	fx.set_script(CombatFxScript)
+	scene.add_child(fx)
+	fx.setup_hex_blast(pos, maxf(26.0, radius))
+
+func _spawn_chain_arc_fx(from: Vector2, to: Vector2) -> void:
+	if _status_name != "hex_mark":
+		return
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var fx := Node2D.new()
+	fx.set_script(CombatFxScript)
+	scene.add_child(fx)
+	fx.setup_chain_arc(from, to)

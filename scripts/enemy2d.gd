@@ -6,6 +6,19 @@ const TYPE_SHOOTER := 1
 const TYPE_DASHER := 2
 const TYPE_SNIPER := 3
 const TYPE_ARTILLERY := 4
+const TYPE_WARDEN := 5
+const TYPE_WARLOCK := 6
+const TYPE_BEACON := 7
+const TYPE_LANCER := 8
+const FACTION_LEGION := 0
+const FACTION_ARCANE := 1
+const FACTION_VOID := 2
+const FACTION_STORM := 3
+const ROLE_FRONTLINE := 0
+const ROLE_SKIRMISHER := 1
+const ROLE_SUPPORT := 2
+const ROLE_CONTROLLER := 3
+const ROLE_SIEGE := 4
 const ARENA_RECT := Rect2(-790.0, -430.0, 1580.0, 860.0)
 
 var enemy_type := TYPE_CHASER
@@ -29,6 +42,32 @@ var _summon_cd := 0.0
 var _is_miniboss := false
 var _boss_skill_cd := 0.0
 var _boss_skill_toggle := false
+var _wave_level := 1
+var _anim_phase := 0.0
+var _shape_pulse_speed := 2.0
+var _shape_pulse_amp := 0.04
+var _hex_mark_t := 0.0
+var _hex_mark_stack := 0
+var _chill_t := 0.0
+var _chill_stack := 0
+var _support_cd := 0.0
+var _temp_guard_t := 0.0
+var _temp_guard_ratio := 0.0
+var _temp_haste_t := 0.0
+var _temp_haste_mul := 1.0
+var _faction := FACTION_LEGION
+var _role := ROLE_FRONTLINE
+var _faction_scan_cd := 0.0
+var _near_faction_count := 0
+var _near_hazard_count := 0
+var _void_step_cd := 0.0
+var _role_pulse_cd := 0.0
+var _siege_open_lane := false
+var _faction_guard_ratio := 0.0
+var _faction_time_mul := 1.0
+var _projectile_speed_mul := 1.0
+var _faction_break_t := 0.0
+var _is_anchor := false
 
 var _attack_windup := 0.0
 var _attack_windup_total := 0.0
@@ -54,7 +93,9 @@ func set_active(active: bool) -> void:
 
 func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 	enemy_type = kind
+	_wave_level = wave
 	projectile_scene = proj_scene
+	_assign_identity_by_type()
 	match enemy_type:
 		TYPE_CHASER:
 			max_hp = 52.0 + wave * 10.0
@@ -62,30 +103,92 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			contact_damage = 9 + int(wave * 0.8)
 			lunge_cd = 2.0
 			body_poly.color = Color(0.93, 0.30, 0.23)
+			body_poly.polygon = PackedVector2Array([Vector2(-16, -14), Vector2(14, -16), Vector2(18, 0), Vector2(14, 16), Vector2(-16, 14), Vector2(-12, 0)])
+			_shape_pulse_speed = 2.1
+			_shape_pulse_amp = 0.035
 		TYPE_SHOOTER:
 			max_hp = 44.0 + wave * 8.0
 			move_speed = 82.0 + wave * 1.8
 			contact_damage = 6 + int(wave * 0.5)
 			shoot_cd = 0.7
 			body_poly.color = Color(0.27, 0.86, 0.36)
+			body_poly.polygon = PackedVector2Array([Vector2(-14, -14), Vector2(14, -14), Vector2(18, 0), Vector2(14, 14), Vector2(-14, 14), Vector2(-18, 0)])
+			_shape_pulse_speed = 1.9
+			_shape_pulse_amp = 0.03
 		TYPE_DASHER:
 			max_hp = 66.0 + wave * 10.5
 			move_speed = 104.0 + wave * 2.2
 			contact_damage = 10 + int(wave * 0.8)
 			dash_cd = 1.4
 			body_poly.color = Color(0.56, 0.40, 0.98)
+			body_poly.polygon = PackedVector2Array([Vector2(-14, -12), Vector2(8, -16), Vector2(18, 0), Vector2(8, 16), Vector2(-14, 12), Vector2(-6, 0)])
+			_shape_pulse_speed = 3.2
+			_shape_pulse_amp = 0.06
 		TYPE_SNIPER:
 			max_hp = 52.0 + wave * 8.0
 			move_speed = 78.0 + wave * 1.5
 			contact_damage = 8 + int(wave * 0.6)
 			shoot_cd = 0.9
 			body_poly.color = Color(0.95, 0.90, 0.28)
+			body_poly.polygon = PackedVector2Array([Vector2(-16, -11), Vector2(6, -16), Vector2(18, -4), Vector2(18, 4), Vector2(6, 16), Vector2(-16, 11), Vector2(-10, 0)])
+			_shape_pulse_speed = 1.4
+			_shape_pulse_amp = 0.025
 		TYPE_ARTILLERY:
 			max_hp = 70.0 + wave * 10.0
 			move_speed = 62.0 + wave * 1.2
 			contact_damage = 10 + int(wave * 0.7)
 			shoot_cd = 1.2
 			body_poly.color = Color(1.0, 0.54, 0.28)
+			body_poly.polygon = PackedVector2Array([Vector2(-18, -12), Vector2(12, -16), Vector2(20, 0), Vector2(12, 16), Vector2(-18, 12), Vector2(-10, 0)])
+			_shape_pulse_speed = 1.2
+			_shape_pulse_amp = 0.022
+		TYPE_WARDEN:
+			max_hp = 86.0 + wave * 12.0
+			move_speed = 76.0 + wave * 1.6
+			contact_damage = 11 + int(wave * 0.85)
+			shoot_cd = 1.0
+			body_poly.color = Color(0.32, 0.84, 1.0)
+			body_poly.polygon = PackedVector2Array([Vector2(-18, -16), Vector2(16, -16), Vector2(20, 0), Vector2(16, 16), Vector2(-18, 16), Vector2(-22, 0)])
+			_shape_pulse_speed = 1.7
+			_shape_pulse_amp = 0.03
+		TYPE_WARLOCK:
+			max_hp = 78.0 + wave * 11.0
+			move_speed = 84.0 + wave * 1.5
+			contact_damage = 9 + int(wave * 0.7)
+			shoot_cd = 1.2
+			body_poly.color = Color(0.90, 0.44, 1.0)
+			body_poly.polygon = PackedVector2Array([Vector2(-14, -18), Vector2(10, -14), Vector2(18, 0), Vector2(10, 14), Vector2(-14, 18), Vector2(-20, 0)])
+			_shape_pulse_speed = 2.3
+			_shape_pulse_amp = 0.045
+		TYPE_BEACON:
+			max_hp = 112.0 + wave * 13.5
+			move_speed = 58.0 + wave * 1.0
+			contact_damage = 8 + int(wave * 0.4)
+			shoot_cd = 1.8
+			_support_cd = 1.5
+			body_poly.color = Color(0.34, 1.0, 0.90)
+			body_poly.polygon = PackedVector2Array([Vector2(-20, -20), Vector2(16, -20), Vector2(22, 0), Vector2(16, 20), Vector2(-20, 20), Vector2(-24, 0)])
+			_shape_pulse_speed = 1.5
+			_shape_pulse_amp = 0.03
+		TYPE_LANCER:
+			max_hp = 72.0 + wave * 10.2
+			move_speed = 132.0 + wave * 2.4
+			contact_damage = 12 + int(wave * 0.9)
+			dash_cd = 1.0
+			body_poly.color = Color(0.96, 0.62, 0.30)
+			body_poly.polygon = PackedVector2Array([Vector2(-14, -10), Vector2(4, -14), Vector2(22, 0), Vector2(4, 14), Vector2(-14, 10), Vector2(-8, 0)])
+			_shape_pulse_speed = 2.8
+			_shape_pulse_amp = 0.05
+	var col := $CollisionShape2D as CollisionShape2D
+	if col != null and col.shape is CircleShape2D:
+		var r := 16.0
+		if enemy_type == TYPE_WARDEN:
+			r = 18.0
+		elif enemy_type == TYPE_WARLOCK:
+			r = 17.0
+		elif enemy_type == TYPE_BEACON:
+			r = 19.0
+		(col.shape as CircleShape2D).radius = r
 	hp = max_hp
 
 func apply_elite_mod(mod: Dictionary) -> void:
@@ -128,6 +231,12 @@ func _physics_process(delta: float) -> void:
 	if dir.length() < 0.001:
 		dir = Vector2.RIGHT
 	rotation = dir.angle()
+	_anim_phase += delta * _shape_pulse_speed
+	_update_visual_anim()
+	_update_status(delta)
+	_update_faction_role_state(delta, to_target)
+	_update_temporary_buffs(delta)
+	var time_scale := _current_haste_mul() * _faction_time_mul
 
 	if _attack_windup > 0.0:
 		_attack_windup -= delta
@@ -137,37 +246,70 @@ func _physics_process(delta: float) -> void:
 	else:
 		match enemy_type:
 			TYPE_CHASER:
-				velocity = dir * move_speed
-				lunge_cd -= delta
+				velocity = dir * move_speed * time_scale
+				lunge_cd -= delta * time_scale
 				if lunge_cd <= 0.0:
 					_begin_windup("lunge", 0.28, dir)
 					lunge_cd = 2.2
 			TYPE_SHOOTER:
 				velocity = _seek_with_distance(to_target, dir, 220.0)
-				shoot_cd -= delta
+				shoot_cd -= delta * time_scale
 				if shoot_cd <= 0.0:
 					_begin_windup("shoot", 0.24, dir)
 					shoot_cd = 1.4
 			TYPE_DASHER:
-				dash_cd -= delta
+				dash_cd -= delta * time_scale
 				if dash_cd <= 0.0:
 					velocity = Vector2.ZERO
 					_begin_windup("dash", 0.35, dir)
 					dash_cd = 2.1
 				else:
-					velocity = dir * move_speed * 0.9
+					velocity = dir * move_speed * 0.9 * time_scale
 			TYPE_SNIPER:
 				velocity = _seek_with_distance(to_target, dir, 420.0)
-				shoot_cd -= delta
+				shoot_cd -= delta * time_scale
 				if shoot_cd <= 0.0:
 					_begin_windup("sniper", 0.65, dir)
 					shoot_cd = 2.0
 			TYPE_ARTILLERY:
 				velocity = _seek_with_distance(to_target, dir, 340.0)
-				shoot_cd -= delta
+				shoot_cd -= delta * time_scale
 				if shoot_cd <= 0.0:
 					_begin_windup("burst", 0.8, dir)
 					shoot_cd = 2.4
+			TYPE_WARDEN:
+				velocity = _seek_with_distance(to_target, dir, 270.0)
+				shoot_cd -= delta * time_scale
+				if shoot_cd <= 0.0:
+					_begin_windup("fan", 0.55, dir)
+					shoot_cd = 2.3
+			TYPE_WARLOCK:
+				velocity = _seek_with_distance(to_target, dir, 330.0)
+				shoot_cd -= delta * time_scale
+				if shoot_cd <= 0.0:
+					if randi() % 2 == 0:
+						_begin_windup("rift", 0.78, dir)
+					else:
+						_begin_windup("hex", 0.4, dir)
+					shoot_cd = 2.7
+			TYPE_BEACON:
+				velocity = _seek_with_distance(to_target, dir, 300.0) * 0.7
+				_support_cd -= delta * time_scale
+				if _support_cd <= 0.0:
+					_support_cd = 3.0
+					_support_pulse()
+				shoot_cd -= delta * time_scale
+				if shoot_cd <= 0.0:
+					_begin_windup("shoot", 0.26, dir)
+					shoot_cd = 2.1
+			TYPE_LANCER:
+				dash_cd -= delta * time_scale
+				if dash_cd <= 0.0:
+					velocity = Vector2.ZERO
+					_begin_windup("pierce_dash", 0.28, dir)
+					dash_cd = 1.7
+				else:
+					velocity = dir * move_speed * 0.95 * time_scale
 
 	if elite_summoner:
 		_summon_cd -= delta
@@ -189,6 +331,7 @@ func _physics_process(delta: float) -> void:
 		if elite_shield_break and target.has_method("drain_sp"):
 			target.drain_sp(6.0)
 
+	velocity *= _status_move_mul()
 	velocity += _impulse
 	_impulse = _impulse.move_toward(Vector2.ZERO, 900.0 * delta)
 	move_and_slide()
@@ -213,9 +356,34 @@ func _execute_pending_attack() -> void:
 			_impulse += _telegraph_dir * (move_speed * 4.4)
 		"lunge":
 			_impulse += _telegraph_dir * (move_speed * 3.2)
+		"fan":
+			_shoot_fan(_telegraph_dir)
+		"hex":
+			_shoot_hex(_telegraph_dir)
+		"rift":
+			_request_void_zone()
+		"pierce_dash":
+			_impulse += _telegraph_dir * (move_speed * 5.1)
 	_pending_attack = ""
 
 func _draw() -> void:
+	if _is_anchor:
+		var ap := 0.72 + 0.28 * sin(_anim_phase * 2.0)
+		draw_arc(Vector2.ZERO, 25.0 + 1.5 * ap, 0.0, TAU, 40, Color(1.0, 0.86, 0.24, 0.90), 2.4)
+		draw_arc(Vector2.ZERO, 31.0 + 2.2 * ap, 0.0, TAU, 44, Color(1.0, 0.95, 0.64, 0.58), 1.8)
+	if _faction_break_t > 0.0:
+		var bp := 0.45 + 0.55 * sin(_anim_phase * 3.2)
+		draw_arc(Vector2.ZERO, 22.0, 0.0, TAU, 32, Color(1.0, 0.35, 0.35, 0.35 + 0.4 * bp), 2.0)
+	if _hex_mark_t > 0.0:
+		var pulse := 0.65 + 0.35 * sin(_anim_phase * 2.2)
+		draw_arc(Vector2.ZERO, 22.0 + 2.0 * pulse, 0.0, TAU, 36, Color(0.92, 0.56, 1.0, 0.48 + 0.28 * pulse), 2.0)
+		for i in _hex_mark_stack:
+			var a := TAU * float(i) / float(maxi(1, _hex_mark_stack)) + _anim_phase
+			var p := Vector2(cos(a), sin(a)) * (13.0 + 2.0 * sin(_anim_phase * 1.8))
+			draw_circle(p, 2.0, Color(0.96, 0.72, 1.0, 0.95))
+	if _chill_t > 0.0:
+		var pulse_c := 0.55 + 0.45 * sin(_anim_phase * 1.7)
+		draw_arc(Vector2.ZERO, 20.0 + 1.6 * pulse_c, 0.0, TAU, 32, Color(0.46, 0.82, 1.0, 0.42 + 0.24 * pulse_c), 2.0)
 	if _attack_windup <= 0.0 or _attack_windup_total <= 0.0:
 		return
 	var t := clampf(1.0 - _attack_windup / _attack_windup_total, 0.0, 1.0)
@@ -237,6 +405,18 @@ func _draw() -> void:
 		"lunge":
 			_draw_telegraph_line(origin, _telegraph_dir, 120.0, Color(1.0, 0.36, 0.30, a))
 			draw_arc(origin, 18.0 + 8.0 * t, 0.0, TAU, 24, Color(1.0, 0.36, 0.30, a), 2.0)
+		"fan":
+			for ang in [-24.0, -12.0, 0.0, 12.0, 24.0]:
+				_draw_telegraph_line(origin, _telegraph_dir.rotated(deg_to_rad(ang)), 260.0, Color(0.38, 0.92, 1.0, a))
+		"hex":
+			_draw_telegraph_line(origin, _telegraph_dir, 260.0, Color(0.88, 0.52, 1.0, a))
+			draw_arc(origin + _telegraph_dir * 120.0, 42.0, 0.0, TAU, 32, Color(0.88, 0.52, 1.0, a), 2.0)
+		"rift":
+			draw_arc(origin, 54.0, 0.0, TAU, 40, Color(0.92, 0.44, 1.0, a), 2.0)
+			draw_arc(origin, 86.0, 0.0, TAU, 44, Color(0.92, 0.44, 1.0, a * 0.82), 2.0)
+		"pierce_dash":
+			_draw_telegraph_line(origin, _telegraph_dir, 220.0, Color(1.0, 0.66, 0.34, a))
+			draw_arc(origin, 20.0 + 9.0 * t, 0.0, TAU, 26, Color(1.0, 0.66, 0.34, a), 2.0)
 
 func _draw_telegraph_line(origin: Vector2, dir: Vector2, len: float, c: Color) -> void:
 	draw_line(origin, origin + dir * len, c, 2.0)
@@ -253,7 +433,8 @@ func _shoot(dir: Vector2) -> void:
 	var sp_burn := 0
 	if elite_shield_break:
 		sp_burn = 7
-	b.setup(dir, 300.0, 12 + int(contact_damage * 0.5), sp_burn)
+	var dmg := _with_siege_damage(12 + int(contact_damage * 0.5))
+	b.setup(dir, 300.0 * _projectile_speed_mul, dmg, sp_burn)
 	_play_sfx("enemy_shoot")
 
 func _shoot_sniper(dir: Vector2) -> void:
@@ -268,7 +449,8 @@ func _shoot_sniper(dir: Vector2) -> void:
 	var sp_burn := 0
 	if elite_shield_break:
 		sp_burn = 12
-	b.setup(dir, 500.0, 18 + int(contact_damage * 0.8), sp_burn)
+	var dmg := _with_siege_damage(18 + int(contact_damage * 0.8))
+	b.setup(dir, 500.0 * _projectile_speed_mul, dmg, sp_burn)
 	_play_sfx("enemy_shoot")
 
 func _shoot_burst(dir: Vector2) -> void:
@@ -285,7 +467,36 @@ func _shoot_burst(dir: Vector2) -> void:
 		var sp_burn := 0
 		if elite_shield_break:
 			sp_burn = 5
-		b.setup(shot_dir, 480.0, 10 + int(contact_damage * 0.4), sp_burn)
+		var dmg := _with_siege_damage(10 + int(contact_damage * 0.4))
+		b.setup(shot_dir, 480.0 * _projectile_speed_mul, dmg, sp_burn)
+	_play_sfx("enemy_shoot")
+
+func _shoot_fan(dir: Vector2) -> void:
+	if projectile_scene == null:
+		return
+	for ang in [-24.0, -12.0, 0.0, 12.0, 24.0]:
+		var shot_dir := dir.rotated(deg_to_rad(ang))
+		var from := muzzle.global_position
+		var to := from + shot_dir * 260.0
+		_spawn_tracer(from, to, Color(0.36, 0.95, 1.0, 0.88), 0.11, 2.4)
+		var b := projectile_scene.instantiate()
+		get_tree().current_scene.add_child(b)
+		b.global_position = from
+		var dmg := _with_siege_damage(10 + int(contact_damage * 0.45))
+		b.setup(shot_dir, 360.0 * _projectile_speed_mul, dmg, 3)
+	_play_sfx("enemy_shoot")
+
+func _shoot_hex(dir: Vector2) -> void:
+	if projectile_scene == null:
+		return
+	var from := muzzle.global_position
+	var to := from + dir * 250.0
+	_spawn_tracer(from, to, Color(0.92, 0.52, 1.0, 0.9), 0.15, 3.0)
+	var b := projectile_scene.instantiate()
+	get_tree().current_scene.add_child(b)
+	b.global_position = from
+	var dmg := _with_siege_damage(14 + int(contact_damage * 0.62))
+	b.setup(dir, 300.0 * _projectile_speed_mul, dmg, 8)
 	_play_sfx("enemy_shoot")
 
 func _spawn_tracer(from: Vector2, to: Vector2, color: Color, fade: float, width: float) -> void:
@@ -300,10 +511,11 @@ func _spawn_tracer(from: Vector2, to: Vector2, color: Color, fade: float, width:
 	scene.add_child(line)
 	var tween := line.create_tween()
 	tween.tween_property(line, "modulate:a", 0.0, fade)
-	tween.finished.connect(func() -> void:
-		if is_instance_valid(line):
-			line.queue_free()
-	)
+	tween.finished.connect(Callable(self, "_on_tracer_tween_finished").bind(line))
+
+func _on_tracer_tween_finished(line: Line2D) -> void:
+	if is_instance_valid(line):
+		line.queue_free()
 
 func _request_summon() -> void:
 	var scene := get_tree().current_scene
@@ -320,8 +532,58 @@ func _request_boss_barrage() -> void:
 	if scene != null and scene.has_method("request_bullet_hell"):
 		scene.request_bullet_hell(global_position)
 
+func _request_void_zone() -> void:
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("request_void_zone"):
+		scene.request_void_zone(global_position, _wave_level)
+
+func apply_status(status_name: String, duration: float, stacks: int = 1) -> void:
+	if status_name == "hex_mark":
+		_hex_mark_t = maxf(_hex_mark_t, duration)
+		_hex_mark_stack = mini(4, _hex_mark_stack + maxi(1, stacks))
+	elif status_name == "chill":
+		_chill_t = maxf(_chill_t, duration)
+		_chill_stack = mini(5, _chill_stack + maxi(1, stacks))
+
+func apply_temporary_boost(guard_ratio: float, haste_mul: float, duration: float) -> void:
+	_temp_guard_ratio = maxf(_temp_guard_ratio, guard_ratio)
+	_temp_guard_t = maxf(_temp_guard_t, duration)
+	_temp_haste_mul = maxf(_temp_haste_mul, haste_mul)
+	_temp_haste_t = maxf(_temp_haste_t, duration)
+
+func has_status(status_name: String) -> bool:
+	if status_name == "hex_mark":
+		return _hex_mark_t > 0.0 and _hex_mark_stack > 0
+	if status_name == "chill":
+		return _chill_t > 0.0 and _chill_stack > 0
+	return false
+
+func consume_status_stack(status_name: String) -> int:
+	match status_name:
+		"hex_mark":
+			if _hex_mark_stack <= 0:
+				return 0
+			var s := _hex_mark_stack
+			_hex_mark_stack = 0
+			_hex_mark_t = 0.0
+			return s
+		"chill":
+			if _chill_stack <= 0:
+				return 0
+			var c := _chill_stack
+			_chill_stack = 0
+			_chill_t = 0.0
+			return c
+	return 0
+
 func take_damage(amount: int) -> void:
-	hp -= amount
+	var final := amount
+	var guard_ratio := _faction_guard_ratio
+	if _temp_guard_t > 0.0:
+		guard_ratio = maxf(guard_ratio, _temp_guard_ratio)
+	if guard_ratio > 0.0:
+		final = int(round(float(amount) * (1.0 - guard_ratio)))
+	hp -= maxi(1, final)
 	if hp <= 0.0:
 		died.emit(_score_value())
 		if elite_splitter:
@@ -360,8 +622,291 @@ func _score_value() -> int:
 			base = 16
 		TYPE_ARTILLERY:
 			base = 18
+		TYPE_WARDEN:
+			base = 22
+		TYPE_WARLOCK:
+			base = 25
+		TYPE_BEACON:
+			base = 27
+		TYPE_LANCER:
+			base = 24
 	if elite_name != "":
 		base += 8
 	if _is_miniboss:
 		base += 40
 	return base
+
+func _update_visual_anim() -> void:
+	var pulse := 1.0 + sin(_anim_phase) * _shape_pulse_amp
+	body_poly.scale = Vector2.ONE * pulse
+	match enemy_type:
+		TYPE_DASHER:
+			muzzle.position = Vector2(18.0 + 2.0 * sin(_anim_phase * 2.2), 0.0)
+		TYPE_SNIPER:
+			muzzle.position = Vector2(20.0 + 1.8 * sin(_anim_phase * 1.6), 0.0)
+		TYPE_WARLOCK:
+			muzzle.position = Vector2(18.0 + 1.4 * sin(_anim_phase * 2.8), 2.0 * sin(_anim_phase))
+		TYPE_BEACON:
+			muzzle.position = Vector2(17.0 + 1.2 * sin(_anim_phase * 1.4), 0.0)
+		TYPE_LANCER:
+			muzzle.position = Vector2(20.0 + 1.6 * sin(_anim_phase * 2.6), 0.0)
+		_:
+			muzzle.position = Vector2(18.0, 0.0)
+
+func _update_status(delta: float) -> void:
+	if _hex_mark_t > 0.0:
+		_hex_mark_t = maxf(0.0, _hex_mark_t - delta)
+		if _hex_mark_t <= 0.0:
+			_hex_mark_stack = 0
+	if _chill_t > 0.0:
+		_chill_t = maxf(0.0, _chill_t - delta)
+		if _chill_t <= 0.0:
+			_chill_stack = 0
+	if _faction_break_t > 0.0:
+		_faction_break_t = maxf(0.0, _faction_break_t - delta)
+
+func _update_temporary_buffs(delta: float) -> void:
+	if _temp_guard_t > 0.0:
+		_temp_guard_t = maxf(0.0, _temp_guard_t - delta)
+		if _temp_guard_t <= 0.0:
+			_temp_guard_ratio = 0.0
+	if _temp_haste_t > 0.0:
+		_temp_haste_t = maxf(0.0, _temp_haste_t - delta)
+		if _temp_haste_t <= 0.0:
+			_temp_haste_mul = 1.0
+
+func _current_haste_mul() -> float:
+	if _temp_haste_t > 0.0:
+		return _temp_haste_mul
+	return 1.0
+
+func _status_move_mul() -> float:
+	if _chill_t <= 0.0 or _chill_stack <= 0:
+		return 1.0
+	return clampf(1.0 - 0.12 * float(_chill_stack), 0.52, 1.0)
+
+func _support_pulse() -> void:
+	_play_sfx("enemy_shoot")
+	var radius := 230.0
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e == self:
+			continue
+		if not (e is Node2D):
+			continue
+		var en := e as Node2D
+		if en.global_position.distance_to(global_position) > radius:
+			continue
+		if e.has_method("apply_temporary_boost"):
+			e.apply_temporary_boost(0.20, 1.16, 2.8)
+	_role_support_link()
+
+func _assign_identity_by_type() -> void:
+	_faction = FACTION_LEGION
+	_role = ROLE_FRONTLINE
+	match enemy_type:
+		TYPE_CHASER:
+			_faction = FACTION_LEGION
+			_role = ROLE_FRONTLINE
+		TYPE_SHOOTER:
+			_faction = FACTION_LEGION
+			_role = ROLE_SKIRMISHER
+		TYPE_DASHER:
+			_faction = FACTION_STORM
+			_role = ROLE_SKIRMISHER
+		TYPE_SNIPER:
+			_faction = FACTION_ARCANE
+			_role = ROLE_SIEGE
+		TYPE_ARTILLERY:
+			_faction = FACTION_ARCANE
+			_role = ROLE_SIEGE
+		TYPE_WARDEN:
+			_faction = FACTION_LEGION
+			_role = ROLE_FRONTLINE
+		TYPE_WARLOCK:
+			_faction = FACTION_VOID
+			_role = ROLE_CONTROLLER
+		TYPE_BEACON:
+			_faction = FACTION_ARCANE
+			_role = ROLE_SUPPORT
+		TYPE_LANCER:
+			_faction = FACTION_STORM
+			_role = ROLE_FRONTLINE
+	_void_step_cd = 1.5 + randf() * 1.5
+	_role_pulse_cd = 0.8 + randf() * 0.9
+
+func _update_faction_role_state(delta: float, to_target: Vector2) -> void:
+	_faction_scan_cd -= delta
+	if _faction_scan_cd <= 0.0:
+		_faction_scan_cd = 0.40 + randf() * 0.24
+		_scan_local_ecology()
+		_apply_faction_effects()
+	if _faction == FACTION_VOID:
+		_void_step_cd -= delta
+		if _void_step_cd <= 0.0 and to_target.length() > 110.0 and to_target.length() < 430.0:
+			_try_void_step(to_target)
+	if _role == ROLE_SUPPORT:
+		_role_pulse_cd -= delta
+		if _role_pulse_cd <= 0.0:
+			_role_pulse_cd = 2.6 + randf() * 0.8
+			_role_support_link()
+	elif _role == ROLE_CONTROLLER:
+		_role_pulse_cd -= delta
+		if _role_pulse_cd <= 0.0:
+			_role_pulse_cd = 3.1 + randf() * 1.0
+			_role_zone_push()
+	if _role == ROLE_SIEGE:
+		_update_siege_open_lane()
+	else:
+		_siege_open_lane = false
+
+func _scan_local_ecology() -> void:
+	_near_faction_count = 0
+	_near_hazard_count = 0
+	for n in get_tree().get_nodes_in_group("enemy"):
+		if n == self:
+			continue
+		if not is_instance_valid(n):
+			continue
+		if not (n is Node2D):
+			continue
+		if (n as Node2D).global_position.distance_to(global_position) > 240.0:
+			continue
+		if n.has_method("get_faction"):
+			var fac: int = int(n.get_faction())
+			if fac == _faction:
+				_near_faction_count += 1
+	for hz in get_tree().get_nodes_in_group("hazard"):
+		if not is_instance_valid(hz):
+			continue
+		if not (hz is Node2D):
+			continue
+		if (hz as Node2D).global_position.distance_to(global_position) <= 210.0:
+			_near_hazard_count += 1
+
+func _apply_faction_effects() -> void:
+	_faction_guard_ratio = 0.0
+	_faction_time_mul = 1.0
+	_projectile_speed_mul = 1.0
+	match _faction:
+		FACTION_LEGION:
+			_faction_guard_ratio += minf(0.20, 0.04 * float(_near_faction_count))
+		FACTION_ARCANE:
+			_projectile_speed_mul *= 1.08 + minf(0.14, 0.02 * float(_near_faction_count))
+			_faction_time_mul *= 1.02
+		FACTION_VOID:
+			_faction_time_mul *= 1.06 + minf(0.10, 0.025 * float(_near_hazard_count))
+			_faction_guard_ratio += minf(0.16, 0.04 * float(_near_hazard_count))
+		FACTION_STORM:
+			_faction_time_mul *= 1.06 + minf(0.16, 0.03 * float(maxi(0, 4 - _near_faction_count)))
+			_projectile_speed_mul *= 1.05
+	match _role:
+		ROLE_FRONTLINE:
+			_faction_guard_ratio += 0.06
+		ROLE_SKIRMISHER:
+			_faction_time_mul *= 1.06
+		ROLE_SUPPORT:
+			_faction_guard_ratio += minf(0.12, 0.03 * float(_near_faction_count))
+		ROLE_CONTROLLER:
+			_projectile_speed_mul *= 1.07
+		ROLE_SIEGE:
+			if _siege_open_lane:
+				_projectile_speed_mul *= 1.15
+	if _faction_break_t > 0.0:
+		var ratio := clampf(_faction_break_t / 8.0, 0.25, 1.0)
+		_faction_guard_ratio *= 0.35
+		_faction_time_mul = lerpf(_faction_time_mul, 0.86, ratio)
+		_projectile_speed_mul = lerpf(_projectile_speed_mul, 0.88, ratio)
+	_faction_guard_ratio = clampf(_faction_guard_ratio, 0.0, 0.45)
+	_faction_time_mul = clampf(_faction_time_mul, 0.85, 1.34)
+	_projectile_speed_mul = clampf(_projectile_speed_mul, 0.88, 1.45)
+
+func _try_void_step(to_target: Vector2) -> void:
+	_void_step_cd = 2.8 - minf(0.9, 0.20 * float(_near_hazard_count))
+	var d: float = to_target.length()
+	var dir: Vector2 = to_target.normalized()
+	var side: Vector2 = dir.rotated(PI * 0.5 if randf() < 0.5 else -PI * 0.5)
+	var offset: Vector2 = (-dir * minf(140.0, d * 0.42)) + side * randf_range(-80.0, 80.0)
+	var next: Vector2 = global_position + offset
+	next = Vector2(
+		clampf(next.x, ARENA_RECT.position.x + 24.0, ARENA_RECT.end.x - 24.0),
+		clampf(next.y, ARENA_RECT.position.y + 24.0, ARENA_RECT.end.y - 24.0)
+	)
+	_spawn_tracer(global_position, next, Color(0.86, 0.46, 1.0, 0.78), 0.18, 2.2)
+	global_position = next
+
+func _role_support_link() -> void:
+	var linked := 0
+	for n in get_tree().get_nodes_in_group("enemy"):
+		if n == self:
+			continue
+		if not is_instance_valid(n):
+			continue
+		if not (n is Node2D):
+			continue
+		var en: Node2D = n as Node2D
+		if en.global_position.distance_to(global_position) > 250.0:
+			continue
+		if n.has_method("apply_temporary_boost"):
+			n.apply_temporary_boost(0.12, 1.08, 1.8)
+			linked += 1
+			if linked >= 5:
+				break
+
+func _role_zone_push() -> void:
+	if _faction_break_t > 0.0:
+		return
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		return
+	if not scene.has_method("request_control_zone"):
+		return
+	var zone_pos := global_position
+	if target != null:
+		var dir: Vector2 = (target.global_position - global_position).normalized()
+		if dir.length() > 0.01:
+			zone_pos += dir * 80.0
+	scene.request_control_zone(zone_pos, _wave_level)
+
+func _update_siege_open_lane() -> void:
+	if target == null:
+		_siege_open_lane = false
+		return
+	var aim: Vector2 = (target.global_position - global_position).normalized()
+	if aim.length() < 0.001:
+		_siege_open_lane = false
+		return
+	var blockers := 0
+	for n in get_tree().get_nodes_in_group("enemy"):
+		if n == self:
+			continue
+		if not is_instance_valid(n):
+			continue
+		if not (n is Node2D):
+			continue
+		var rel: Vector2 = (n as Node2D).global_position - global_position
+		var dist := rel.length()
+		if dist < 36.0 or dist > 220.0:
+			continue
+		var angle := absf(aim.angle_to(rel.normalized()))
+		if angle < 0.32:
+			blockers += 1
+			if blockers >= 2:
+				break
+	_siege_open_lane = blockers < 2
+
+func _with_siege_damage(base_damage: int) -> int:
+	if _role == ROLE_SIEGE and _siege_open_lane:
+		return int(round(float(base_damage) * 1.22))
+	return base_damage
+
+func set_anchor(active: bool) -> void:
+	_is_anchor = active
+
+func apply_faction_break(duration: float) -> void:
+	_faction_break_t = maxf(_faction_break_t, duration)
+
+func get_faction() -> int:
+	return _faction
+
+func get_role() -> int:
+	return _role
