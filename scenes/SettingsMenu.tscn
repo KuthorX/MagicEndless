@@ -29,7 +29,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="Panel" parent="Center"]
-custom_minimum_size = Vector2(640, 420)
+custom_minimum_size = Vector2(700, 620)
 layout_mode = 2
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel"]
@@ -118,6 +118,37 @@ horizontal_alignment = 2
 [node name="Spacer" type="Control" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
+
+[node name="BackupTitle" type="Label" parent="Center/Panel/VBox"]
+layout_mode = 2
+text = "Backup"
+
+[node name="BackupText" type="TextEdit" parent="Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+size_flags_vertical = 3
+placeholder_text = "Paste backup text here..."
+
+[node name="BackupButtons" type="HBoxContainer" parent="Center/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ExportButton" type="Button" parent="Center/Panel/VBox/BackupButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 44)
+text = "Export"
+
+[node name="ImportButton" type="Button" parent="Center/Panel/VBox/BackupButtons"]
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 44)
+text = "Import"
+
+[node name="BackupStatus" type="Label" parent="Center/Panel/VBox"]
+layout_mode = 2
+autowrap_mode = 2
+text = ""
 
 [node name="BackButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)

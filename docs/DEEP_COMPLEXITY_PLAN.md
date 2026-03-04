@@ -76,11 +76,11 @@ Build a long-term, high-complexity loop where each run differs at:
 
 ### C2. Socketed Augments
 - Cards can grant `socket` slots.
-- Drop-style augments attach to bullet/spell/grenade nodes.
+- Drop-style augments attach to bullet/spell nodes.
 - Example:
   - `Overheat Lens`: +damage over time, +recoil spread.
   - `Phase Prism`: bullets split when crossing hazard edges.
-- Status: core runtime implemented (socket slots + augment cards + bullet/spell/grenade attachment effects).
+- Status: core runtime implemented (socket slots + augment cards + bullet/spell attachment effects).
 
 ### C3. Conditional Combo Cards
 - Cards that activate only under state conditions:

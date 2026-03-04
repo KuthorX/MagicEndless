@@ -3,7 +3,6 @@ extends Node2D
 @export var projectile_scene: PackedScene
 @export var enemy_projectile_scene: PackedScene
 @export var sword_scene: PackedScene
-@export var grenade_scene: PackedScene
 @export var hazard_scene: PackedScene
 @export var boss_totem_scene: PackedScene
 
@@ -16,8 +15,6 @@ const SFX := {
 	"dash": preload("res://assets/audio/sfx_dash.wav"),
 	"mode_switch": preload("res://assets/audio/sfx_card_pick.wav"),
 	"respawn": preload("res://assets/audio/sfx_wave_start.wav"),
-	"grenade_throw": preload("res://assets/audio/sfx_grenade_throw.wav"),
-	"grenade_explode": preload("res://assets/audio/sfx_grenade_explode.wav"),
 	"shield_on": preload("res://assets/audio/sfx_shield_on.wav"),
 	"shield_off": preload("res://assets/audio/sfx_shield_off.wav"),
 	"card_pick": preload("res://assets/audio/sfx_card_pick.wav"),
@@ -25,6 +22,7 @@ const SFX := {
 	"wave_clear": preload("res://assets/audio/sfx_wave_clear.wav"),
 	"enemy_shoot": preload("res://assets/audio/sfx_enemy_shoot.wav")
 }
+const VirtualStickScript := preload("res://scripts/virtual_stick.gd")
 
 const INTERMISSION_SECONDS := 5.0
 const PREVIEW_SECONDS := 3.0
@@ -142,9 +140,6 @@ const CARD_POOL: Array[Dictionary] = [
 	{"title":"card_impact_dash_t", "desc":"card_impact_dash_d", "rarity":"rare", "effect":{"dash_impact_add": 22, "dash_impact_radius_add": 18.0}},
 	{"title":"card_deflect_t", "desc":"card_deflect_d", "rarity":"rare", "effect":{"shield_drain_mul": 0.82}},
 	{"title":"card_recharge_t", "desc":"card_recharge_d", "rarity":"rare", "effect":{"shield_regen_mul": 1.20}},
-	{"title":"card_hex_t", "desc":"card_hex_d", "rarity":"common", "effect":{"grenade_damage_add": 16}},
-	{"title":"card_frag_t", "desc":"card_frag_d", "rarity":"rare", "effect":{"grenade_radius_add": 20.0}},
-	{"title":"card_fuse_t", "desc":"card_fuse_d", "rarity":"rare", "effect":{"grenade_cd_mul": 0.85}},
 	{"title":"card_echo_t", "desc":"card_echo_d", "rarity":"epic", "effect":{"sword_echo_add": 0.22}},
 	{"title":"card_vital_t", "desc":"card_vital_d", "rarity":"common", "effect":{"max_hp_add": 30.0, "heal_add": 20.0}},
 	{"title":"card_shield_t", "desc":"card_shield_d", "rarity":"common", "effect":{"max_sp_add": 25.0, "sp_add": 20.0}},
@@ -193,7 +188,7 @@ const KEYSTONE_CARD_POOL: Array[Dictionary] = [
 		"rarity":"epic",
 		"keystone": true,
 		"requires_archetype": "arcane",
-		"effect":{"unlock_chain_sigil": true, "unlock_meteor_rain": true, "magic_power_mul": 1.22, "magic_haste_mul": 1.14, "shot_damage_add": -6, "grenade_cd_mul": 1.20}
+		"effect":{"unlock_chain_sigil": true, "unlock_meteor_rain": true, "magic_power_mul": 1.22, "magic_haste_mul": 1.14, "shot_damage_add": -6}
 	},
 	{
 		"title":"card_keystone_tactical_t",
@@ -201,7 +196,7 @@ const KEYSTONE_CARD_POOL: Array[Dictionary] = [
 		"rarity":"epic",
 		"keystone": true,
 		"requires_archetype": "tactical",
-		"effect":{"dash_cd_mul": 0.68, "dash_distance_mul": 1.22, "grenade_damage_add": 28, "grenade_cd_mul": 0.76, "sword_damage_add": -8, "move_speed_mul": 1.10}
+		"effect":{"dash_cd_mul": 0.68, "dash_distance_mul": 1.22, "dash_impact_add": 20, "dash_impact_radius_add": 20.0, "sword_damage_add": -8, "move_speed_mul": 1.10}
 	}
 ]
 const AUGMENT_CARD_POOL: Array[Dictionary] = [
@@ -216,12 +211,6 @@ const AUGMENT_CARD_POOL: Array[Dictionary] = [
 		"desc":"card_socket_spell_d",
 		"rarity":"common",
 		"effect":{"socket_spell_add": 1}
-	},
-	{
-		"title":"card_socket_grenade_t",
-		"desc":"card_socket_grenade_d",
-		"rarity":"common",
-		"effect":{"socket_grenade_add": 1}
 	},
 	{
 		"title":"card_augment_overheat_t",
@@ -249,15 +238,6 @@ const AUGMENT_CARD_POOL: Array[Dictionary] = [
 		"augment_id": "mana_weave",
 		"requires_socket": "spell",
 		"effect":{"augment_mana_weave": true}
-	},
-	{
-		"title":"card_augment_cluster_t",
-		"desc":"card_augment_cluster_d",
-		"rarity":"rare",
-		"augment": true,
-		"augment_id": "cluster_payload",
-		"requires_socket": "grenade",
-		"effect":{"augment_cluster_payload": true}
 	}
 ]
 
@@ -353,6 +333,13 @@ var _run_affliction_wave_count := 0
 var _run_director_peak := 0.0
 var _run_relic_id := ""
 var _run_relic_pack: Dictionary = {}
+var _virtual_stick: Control = null
+var _virtual_move := Vector2.ZERO
+var _virtual_input_enabled := false
+var _virtual_ui_layer: CanvasLayer = null
+var _virtual_shield_button: Button = null
+var _virtual_dash_button: Button = null
+var _virtual_shield_hold := false
 
 @onready var terrain_root: Node2D = $World/Terrain
 @onready var dynamic_root: Node2D = $World/Dynamic
@@ -409,7 +396,6 @@ func _ready() -> void:
 	_apply_ui_locale()
 	player.sword_scene = sword_scene
 	player.projectile_scene = projectile_scene
-	player.grenade_scene = grenade_scene
 	if ProgressionManager != null:
 		player.apply_meta_progression(ProgressionManager.get_player_meta())
 	_init_run_relic()
@@ -432,12 +418,14 @@ func _ready() -> void:
 	pause_shade.visible = false
 	game_over_shade.visible = false
 	_show_message(Loc.t("msg_controls"))
+	_setup_virtual_input()
 	_set_intermission(INTERMISSION_SECONDS)
 	_last_hp = float(player.hp)
 	_last_sp = float(player.sp)
 	_update_ui()
 
 func _process(delta: float) -> void:
+	_update_virtual_input_state()
 	if _game_over:
 		_update_ui()
 		return
@@ -483,6 +471,103 @@ func _process(delta: float) -> void:
 		if _intermission_left <= 0.0:
 			_begin_wave_preview()
 	_update_ui()
+
+func _setup_virtual_input() -> void:
+	_virtual_input_enabled = OS.has_feature("mobile") or OS.has_feature("web")
+	if not _virtual_input_enabled:
+		return
+	_virtual_ui_layer = CanvasLayer.new()
+	_virtual_ui_layer.layer = 20
+	add_child(_virtual_ui_layer)
+	_virtual_stick = VirtualStickScript.new()
+	_virtual_stick.anchor_left = 0.0
+	_virtual_stick.anchor_right = 0.0
+	_virtual_stick.anchor_top = 1.0
+	_virtual_stick.anchor_bottom = 1.0
+	_virtual_stick.offset_left = 22.0
+	_virtual_stick.offset_top = -218.0
+	_virtual_stick.offset_right = 190.0
+	_virtual_stick.offset_bottom = -20.0
+	if _virtual_stick.has_signal("vector_changed"):
+		_virtual_stick.connect("vector_changed", Callable(self, "_on_virtual_move_changed"))
+	_virtual_ui_layer.add_child(_virtual_stick)
+	_setup_virtual_action_buttons()
+
+func _on_virtual_move_changed(vec: Vector2) -> void:
+	_virtual_move = vec
+
+func _update_virtual_input_state() -> void:
+	if not _virtual_input_enabled:
+		return
+	var block := _game_over or get_tree().paused or card_shade.visible
+	if block:
+		_virtual_move = Vector2.ZERO
+		_virtual_shield_hold = false
+		if player != null and player.has_method("set_virtual_shield_hold"):
+			player.set_virtual_shield_hold(false)
+		if _virtual_stick != null and _virtual_stick.has_method("reset_vector"):
+			_virtual_stick.reset_vector()
+	_apply_virtual_move_actions(_virtual_move)
+
+func _setup_virtual_action_buttons() -> void:
+	if _virtual_ui_layer == null:
+		return
+	_virtual_shield_button = _create_virtual_action_button(Loc.t("ui_touch_shield"), 1)
+	_virtual_dash_button = _create_virtual_action_button(Loc.t("ui_touch_dash"), 0)
+	_virtual_ui_layer.add_child(_virtual_shield_button)
+	_virtual_ui_layer.add_child(_virtual_dash_button)
+	_virtual_shield_button.button_down.connect(_on_virtual_shield_down)
+	_virtual_shield_button.button_up.connect(_on_virtual_shield_up)
+	_virtual_dash_button.button_down.connect(_on_virtual_dash_down)
+
+func _create_virtual_action_button(label: String, slot: int) -> Button:
+	var margin_right := 24.0
+	var margin_bottom := 24.0
+	var width := 104.0
+	var height := 80.0
+	var gap := 14.0
+	var x_from_right := margin_right + float(slot) * (width + gap)
+	var btn := Button.new()
+	btn.anchor_left = 1.0
+	btn.anchor_right = 1.0
+	btn.anchor_top = 1.0
+	btn.anchor_bottom = 1.0
+	btn.offset_left = -(x_from_right + width)
+	btn.offset_right = -x_from_right
+	btn.offset_top = -(margin_bottom + height)
+	btn.offset_bottom = -margin_bottom
+	btn.text = label
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.add_theme_font_size_override("font_size", 24)
+	btn.modulate = Color(1.0, 1.0, 1.0, 0.92)
+	return btn
+
+func _on_virtual_shield_down() -> void:
+	_virtual_shield_hold = true
+	if player != null and player.has_method("set_virtual_shield_hold"):
+		player.set_virtual_shield_hold(true)
+
+func _on_virtual_shield_up() -> void:
+	_virtual_shield_hold = false
+	if player != null and player.has_method("set_virtual_shield_hold"):
+		player.set_virtual_shield_hold(false)
+
+func _on_virtual_dash_down() -> void:
+	if player != null and player.has_method("trigger_virtual_dash"):
+		player.trigger_virtual_dash()
+
+func _apply_virtual_move_actions(vec: Vector2) -> void:
+	Input.action_release("move_left")
+	Input.action_release("move_right")
+	Input.action_release("move_forward")
+	Input.action_release("move_back")
+	if vec.length() < 0.04:
+		return
+	Input.action_press("move_left", maxf(0.0, -vec.x))
+	Input.action_press("move_right", maxf(0.0, vec.x))
+	Input.action_press("move_forward", maxf(0.0, -vec.y))
+	Input.action_press("move_back", maxf(0.0, vec.y))
 
 func play_sfx(name: String) -> void:
 	if not SFX.has(name):
@@ -866,7 +951,6 @@ func _setup_actions() -> void:
 	_set_key("move_left", KEY_A)
 	_set_key("move_right", KEY_D)
 	_set_key("dash", KEY_SHIFT)
-	_set_key("throw_grenade", KEY_E)
 	_set_key("switch_bullet", KEY_Q)
 	_set_key("bullet_mode_1", KEY_1)
 	_set_key("bullet_mode_2", KEY_2)
@@ -1277,7 +1361,7 @@ func _effect_to_archetype(key: String) -> String:
 		return "ballistic"
 	if key.begins_with("magic_") or key.begins_with("meteor_") or key.begins_with("resonance_"):
 		return "arcane"
-	if key.begins_with("dash_") or key.begins_with("grenade_") or key.begins_with("shield_"):
+	if key.begins_with("dash_") or key.begins_with("shield_"):
 		return "tactical"
 	if key == "move_speed_mul":
 		return "tactical"
@@ -1399,7 +1483,7 @@ func _build_mitigation_choices(affliction_id: String) -> Array[Dictionary]:
 		"rupture_tides":
 			return [
 				{"title":"mitigation_tide_anchor_t", "desc":"mitigation_tide_anchor_d", "rarity":"rare", "effect":{"tide_interval_mul_mul": 1.28}},
-				{"title":"mitigation_tide_weave_t", "desc":"mitigation_tide_weave_d", "rarity":"rare", "effect":{"tide_damage_mul_mul": 0.72}, "grant_upgrade":{"grenade_cd_mul": 0.90}},
+				{"title":"mitigation_tide_weave_t", "desc":"mitigation_tide_weave_d", "rarity":"rare", "effect":{"tide_damage_mul_mul": 0.72}, "grant_upgrade":{"dash_cd_mul": 0.90}},
 				{"title":"mitigation_tide_kinetic_t", "desc":"mitigation_tide_kinetic_d", "rarity":"rare", "effect":{"tide_radius_mul_mul": 0.82}, "grant_upgrade":{"dash_cd_mul": 0.88}}
 			]
 	return [
@@ -2112,7 +2196,7 @@ func _sanitize_enemies() -> void:
 			if player != null and e.global_position.distance_to(player.global_position) > 2400.0:
 				e.global_position = _clamp_to_arena(_random_spawn())
 
-func _on_player_stats_changed(hp: float, max_hp: float, sp: float, max_sp: float, bullet_mode: String, dash_cd: float, grenade_cd: float, shield_on: bool) -> void:
+func _on_player_stats_changed(hp: float, max_hp: float, sp: float, max_sp: float, bullet_mode: String, dash_cd: float, shield_on: bool) -> void:
 	if _wave_active:
 		var hp_loss := maxf(0.0, _last_hp - hp)
 		var sp_loss := maxf(0.0, _last_sp - sp)
@@ -2126,7 +2210,7 @@ func _on_player_stats_changed(hp: float, max_hp: float, sp: float, max_sp: float
 	hp_text.text = "HP %.0f/%.0f" % [hp, max_hp]
 	sp_text.text = "SP %.0f/%.0f" % [sp, max_sp]
 	mode_text.text = Loc.t("ui_mode_line") % [bullet_mode, (Loc.t("ui_on") if shield_on else Loc.t("ui_off"))]
-	cooldown_text.text = Loc.t("ui_cd_line") % [dash_cd, grenade_cd]
+	cooldown_text.text = Loc.t("ui_cd_line") % [dash_cd]
 
 func _show_message(text: String) -> void:
 	msg_label.text = text
@@ -2296,22 +2380,18 @@ func _archetype_meter_summary() -> String:
 
 func _socket_summary() -> String:
 	if player == null:
-		return "B0/0 S0/0 G0/0"
+		return "B0/0 S0/0"
 	var bu := 0
 	var bs := 0
 	var su := 0
 	var ss := 0
-	var gu := 0
-	var gs := 0
 	if player.has_method("get_socket_used"):
 		bu = int(player.get_socket_used("bullet"))
 		su = int(player.get_socket_used("spell"))
-		gu = int(player.get_socket_used("grenade"))
 	if player.has_method("get_socket_slots"):
 		bs = int(player.get_socket_slots("bullet"))
 		ss = int(player.get_socket_slots("spell"))
-		gs = int(player.get_socket_slots("grenade"))
-	return "B%d/%d S%d/%d G%d/%d" % [bu, bs, su, ss, gu, gs]
+	return "B%d/%d S%d/%d" % [bu, bs, su, ss]
 
 func _update_ui() -> void:
 	wave_label.text = Loc.t("ui_wave") % wave

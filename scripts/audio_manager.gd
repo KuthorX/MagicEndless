@@ -2,7 +2,8 @@ extends Node
 
 const MENU_BGM := preload("res://assets/audio/menu_bgm.ogg")
 const BATTLE_BGM := preload("res://assets/audio/battle_bgm.ogg")
-const SETTINGS_PATH := "user://settings.cfg"
+const BASE_SETTINGS_FILE := "settings.cfg"
+const WEB_STORAGE_KEY := "jx_audio_cfg"
 const AUDIO_SECTION := "audio"
 const KEY_MASTER := "master_volume"
 const KEY_BGM := "bgm_volume"
@@ -13,9 +14,12 @@ var _target := "none"
 var _master_volume := 1.0
 var _bgm_volume := 1.0
 var _sfx_volume := 1.0
+var _settings_path := "user://settings.cfg"
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_settings_path = _resolve_settings_path()
+	_ensure_settings_dir()
 	_load_settings()
 	_ensure_player()
 	_apply_audio_settings()
@@ -94,6 +98,23 @@ func get_sfx_volume() -> float:
 func get_sfx_volume_db() -> float:
 	return _linear_to_db_safe(_sfx_volume)
 
+func export_snapshot() -> Dictionary:
+	return {
+		KEY_MASTER: _master_volume,
+		KEY_BGM: _bgm_volume,
+		KEY_SFX: _sfx_volume
+	}
+
+func import_snapshot(data: Dictionary) -> bool:
+	if data.is_empty():
+		return false
+	_master_volume = clampf(float(data.get(KEY_MASTER, _master_volume)), 0.0, 1.0)
+	_bgm_volume = clampf(float(data.get(KEY_BGM, _bgm_volume)), 0.0, 1.0)
+	_sfx_volume = clampf(float(data.get(KEY_SFX, _sfx_volume)), 0.0, 1.0)
+	_apply_audio_settings()
+	_save_settings()
+	return true
+
 func _apply_audio_settings() -> void:
 	if AudioServer.get_bus_count() > 0:
 		AudioServer.set_bus_mute(0, false)
@@ -106,16 +127,58 @@ func _save_settings() -> void:
 	cfg.set_value(AUDIO_SECTION, KEY_MASTER, _master_volume)
 	cfg.set_value(AUDIO_SECTION, KEY_BGM, _bgm_volume)
 	cfg.set_value(AUDIO_SECTION, KEY_SFX, _sfx_volume)
-	cfg.save(SETTINGS_PATH)
+	cfg.save(_settings_path)
+	_write_web_backup(cfg)
 
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()
-	var err := cfg.load(SETTINGS_PATH)
+	var err := cfg.load(_settings_path)
+	if err != OK and OS.has_feature("web"):
+		var text := _read_web_backup()
+		if text != "":
+			err = cfg.parse(text)
 	if err != OK:
 		return
 	_master_volume = clampf(float(cfg.get_value(AUDIO_SECTION, KEY_MASTER, 1.0)), 0.0, 1.0)
 	_bgm_volume = clampf(float(cfg.get_value(AUDIO_SECTION, KEY_BGM, 1.0)), 0.0, 1.0)
 	_sfx_volume = clampf(float(cfg.get_value(AUDIO_SECTION, KEY_SFX, 1.0)), 0.0, 1.0)
+
+func _resolve_settings_path() -> String:
+	if OS.has_feature("web"):
+		return "user://web/" + BASE_SETTINGS_FILE
+	if OS.has_feature("mobile"):
+		return "user://mobile/" + BASE_SETTINGS_FILE
+	return "user://" + BASE_SETTINGS_FILE
+
+func _ensure_settings_dir() -> void:
+	var sep := _settings_path.rfind("/")
+	if sep <= 0:
+		return
+	var dir_path := _settings_path.substr(0, sep)
+	DirAccess.make_dir_recursive_absolute(dir_path)
+
+func _write_web_backup(cfg: ConfigFile) -> void:
+	if not OS.has_feature("web"):
+		return
+	if not Engine.has_singleton("JavaScriptBridge"):
+		return
+	var storage = JavaScriptBridge.get_interface("localStorage")
+	if storage == null:
+		return
+	storage.setItem(WEB_STORAGE_KEY, cfg.encode_to_text())
+
+func _read_web_backup() -> String:
+	if not OS.has_feature("web"):
+		return ""
+	if not Engine.has_singleton("JavaScriptBridge"):
+		return ""
+	var storage = JavaScriptBridge.get_interface("localStorage")
+	if storage == null:
+		return ""
+	var value: Variant = storage.getItem(WEB_STORAGE_KEY)
+	if value == null:
+		return ""
+	return str(value)
 
 func _linear_to_db_safe(value: float) -> float:
 	if value <= 0.0001:

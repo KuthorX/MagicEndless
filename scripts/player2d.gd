@@ -1,6 +1,6 @@
 extends CharacterBody2D
 
-signal stats_changed(hp: float, max_hp: float, sp: float, max_sp: float, bullet_mode: String, dash_cd: float, grenade_cd: float, shield_on: bool)
+signal stats_changed(hp: float, max_hp: float, sp: float, max_sp: float, bullet_mode: String, dash_cd: float, shield_on: bool)
 signal message_sent(text: String)
 signal sfx_event(name: String)
 signal damage_dealt(amount: float)
@@ -10,12 +10,8 @@ const BASE_MOVE_SPEED := 220.0
 const BASE_SWORD_CD := 0.55
 const BASE_SHOT_CD := 0.40
 const BASE_DASH_CD := 2.4
-const BASE_GRENADE_CD := 3.5
 const DASH_DURATION := 0.18
 const DASH_SPEED := 620.0
-const GRENADE_SPEED := 280.0
-const GRENADE_CHARGE_MAX := 1.25
-const GRENADE_CHARGE_SPEED_MUL_MAX := 2.5
 const OVERDRIVE_MAX := 160.0
 const OVERDRIVE_DURATION := 6.0
 const SWORD_STYLE_DEFAULT := 0
@@ -50,7 +46,6 @@ const BULLET_MODE_COUNT := 5
 
 @export var sword_scene: PackedScene
 @export var projectile_scene: PackedScene
-@export var grenade_scene: PackedScene
 
 var max_hp := 140.0
 var hp := 140.0
@@ -69,9 +64,6 @@ var shot_cd_mul := 1.0
 var shot_cd_normal_mul := 1.0
 var shot_cd_pierce_mul := 1.8
 var shot_cd_burst_mul := 2.6
-var grenade_damage := 52
-var grenade_radius := 95.0
-var grenade_cd_mul := 1.0
 var dash_cd_mul := 1.0
 var dash_speed_bonus := 0.0
 var dash_distance_mul := 1.0
@@ -92,17 +84,12 @@ var _sword_style := SWORD_STYLE_DEFAULT
 var _shot_style := SHOT_STYLE_DEFAULT
 
 var _dash_cd_left := 0.0
-var _grenade_cd_left := 0.0
 var _sword_cd_left := 0.0
 var _shot_cd_left := 0.0
 var _dash_left := 0.0
 var _dash_dir := Vector2.ZERO
 var _shield_fx_phase := 0.0
 var _last_shield_active := false
-var _grenade_preview_pos := Vector2.ZERO
-var _grenade_preview_points: Array[Vector2] = []
-var _grenade_charging := false
-var _grenade_charge_t := 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _arcane_bolt_unlocked := false
 var _frost_nova_unlocked := false
@@ -128,22 +115,18 @@ var auto_fire_enabled := true
 var _overdrive_charge := 0.0
 var _overdrive_left := 0.0
 var _overdrive_active := false
-var _socket_slots := {"bullet": 0, "spell": 0, "grenade": 0}
-var _socket_used := {"bullet": 0, "spell": 0, "grenade": 0}
+var _socket_slots := {"bullet": 0, "spell": 0}
+var _socket_used := {"bullet": 0, "spell": 0}
 var _augment_state := {
 	"overheat_lens": false,
 	"phase_prism": false,
-	"mana_weave": false,
-	"cluster_payload": false
+	"mana_weave": false
 }
 var _augment_shot_spread := 0.0
 var _augment_spell_power_mul := 1.0
 var _augment_spell_haste_mul := 1.0
 var _augment_chain_jump := 0
 var _augment_meteor_strike := 0
-var _augment_grenade_cluster := 0
-var _augment_grenade_cluster_dmg := 0.35
-var _augment_grenade_cluster_radius := 0.46
 var _combo_state := {
 	"overdrive_link": false,
 	"shield_empty_link": false,
@@ -151,6 +134,8 @@ var _combo_state := {
 }
 var _combo_dash_times: Array[float] = []
 var _combo_dash_chain_left := 0.0
+var _virtual_shield_hold := false
+var _virtual_dash_request := false
 
 func _ready() -> void:
 	add_to_group("player")
@@ -168,7 +153,6 @@ func _process(delta: float) -> void:
 	_update_overdrive(delta)
 	_update_combo_cards(delta)
 	_shield_fx_phase += delta * 5.2
-	_update_grenade_preview(_get_current_grenade_speed())
 	queue_redraw()
 	_emit_stats()
 
@@ -176,13 +160,15 @@ func _physics_process(delta: float) -> void:
 	if _dead:
 		velocity = Vector2.ZERO
 		return
+	var wants_dash := Input.is_action_just_pressed("dash") or _virtual_dash_request
+	_virtual_dash_request = false
 	if _dash_left > 0.0:
 		_dash_left -= delta
 		velocity = _dash_dir * (DASH_SPEED + dash_speed_bonus)
 	else:
 		var input_vec := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 		velocity = input_vec * (BASE_MOVE_SPEED * move_speed_mul)
-		if Input.is_action_just_pressed("dash") and _dash_cd_left <= 0.0 and input_vec.length() > 0.1:
+		if wants_dash and _dash_cd_left <= 0.0 and input_vec.length() > 0.1:
 			_dash_cd_left = BASE_DASH_CD * dash_cd_mul
 			_dash_left = DASH_DURATION * dash_distance_mul
 			_dash_dir = input_vec.normalized()
@@ -193,16 +179,6 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func _draw() -> void:
-	if _grenade_cd_left <= 0.0:
-		for i in range(_grenade_preview_points.size() - 1):
-			if i % 2 == 0:
-				var a := to_local(_grenade_preview_points[i])
-				var b := to_local(_grenade_preview_points[i + 1])
-				draw_line(a, b, Color(1.0, 0.72, 0.30, 0.72), 2.0)
-		var p := to_local(_grenade_preview_pos)
-		draw_line(p + Vector2(-6, 0), p + Vector2(6, 0), Color(1.0, 0.82, 0.38, 0.78), 2.0)
-		draw_line(p + Vector2(0, -6), p + Vector2(0, 6), Color(1.0, 0.82, 0.38, 0.78), 2.0)
-
 	if not shield_active:
 		return
 	var pulse := 0.84 + 0.16 * sin(_shield_fx_phase)
@@ -308,12 +284,6 @@ func apply_upgrade(effect: Dictionary) -> void:
 				shield_drain_mul *= float(value)
 			"shield_regen_mul":
 				shield_regen_mul *= float(value)
-			"grenade_damage_add":
-				grenade_damage += int(value)
-			"grenade_radius_add":
-				grenade_radius += float(value)
-			"grenade_cd_mul":
-				grenade_cd_mul *= float(value)
 			"lifesteal_add":
 				lifesteal_ratio = minf(0.4, lifesteal_ratio + float(value))
 			"sword_echo_add":
@@ -360,8 +330,6 @@ func apply_upgrade(effect: Dictionary) -> void:
 				_socket_slots["bullet"] = int(_socket_slots["bullet"]) + maxi(0, int(value))
 			"socket_spell_add":
 				_socket_slots["spell"] = int(_socket_slots["spell"]) + maxi(0, int(value))
-			"socket_grenade_add":
-				_socket_slots["grenade"] = int(_socket_slots["grenade"]) + maxi(0, int(value))
 			"augment_overheat_lens":
 				if bool(value):
 					_attach_augment("bullet", "overheat_lens")
@@ -371,9 +339,6 @@ func apply_upgrade(effect: Dictionary) -> void:
 			"augment_mana_weave":
 				if bool(value):
 					_attach_augment("spell", "mana_weave")
-			"augment_cluster_payload":
-				if bool(value):
-					_attach_augment("grenade", "cluster_payload")
 			"unlock_combo_overdrive":
 				_combo_state["overdrive_link"] = _combo_state["overdrive_link"] or bool(value)
 			"unlock_combo_shield_empty":
@@ -384,7 +349,6 @@ func apply_upgrade(effect: Dictionary) -> void:
 
 func _update_cooldowns(delta: float) -> void:
 	_dash_cd_left = maxf(0.0, _dash_cd_left - delta)
-	_grenade_cd_left = maxf(0.0, _grenade_cd_left - delta)
 	_sword_cd_left = maxf(0.0, _sword_cd_left - delta)
 	_shot_cd_left = maxf(0.0, _shot_cd_left - delta)
 
@@ -429,25 +393,9 @@ func _handle_attacks() -> void:
 		_shoot_projectile()
 		sfx_event.emit("shoot")
 
-	if _grenade_cd_left <= 0.0:
-		if Input.is_action_just_pressed("throw_grenade"):
-			_grenade_charging = true
-			_grenade_charge_t = 0.0
-		if _grenade_charging and Input.is_action_pressed("throw_grenade"):
-			_grenade_charge_t = minf(GRENADE_CHARGE_MAX, _grenade_charge_t + get_process_delta_time())
-		if _grenade_charging and Input.is_action_just_released("throw_grenade"):
-			_grenade_charging = false
-			_grenade_cd_left = BASE_GRENADE_CD * grenade_cd_mul
-			_throw_grenade(_get_current_grenade_speed())
-			message_sent.emit(Loc.t("msg_grenade_throw"))
-			sfx_event.emit("grenade_throw")
-			_grenade_charge_t = 0.0
-	else:
-		_grenade_charging = false
-		_grenade_charge_t = 0.0
-
 func _handle_shield(delta: float) -> void:
-	if Input.is_action_pressed("shield") and sp > 0.0:
+	var shield_input := _virtual_shield_hold or Input.is_action_pressed("shield")
+	if shield_input and sp > 0.0:
 		shield_active = true
 		sp = maxf(0.0, sp - 24.0 * shield_drain_mul * delta)
 	else:
@@ -462,6 +410,12 @@ func _handle_shield(delta: float) -> void:
 			message_sent.emit(Loc.t("msg_shield_off"))
 			sfx_event.emit("shield_off")
 		_last_shield_active = shield_active
+
+func set_virtual_shield_hold(active: bool) -> void:
+	_virtual_shield_hold = active
+
+func trigger_virtual_dash() -> void:
+	_virtual_dash_request = true
 
 func _do_sword_sweep() -> void:
 	if sword_scene == null:
@@ -557,19 +511,6 @@ func _mode_projectile_profile() -> Dictionary:
 			}
 	return {}
 
-func _throw_grenade(speed: float) -> void:
-	if grenade_scene == null:
-		return
-	var to_mouse_vec: Vector2 = get_global_mouse_position() - global_position
-	var to_mouse: Vector2 = to_mouse_vec.normalized()
-	if to_mouse.length() < 0.001:
-		to_mouse = _fallback_aim_dir()
-	var g := grenade_scene.instantiate()
-	get_tree().current_scene.add_child(g)
-	g.global_position = global_position
-	var combo_g_dmg := int(round(float(grenade_damage) * _combo_grenade_damage_mul()))
-	g.setup(to_mouse * speed, combo_g_dmg, grenade_radius, _augment_grenade_cluster, _augment_grenade_cluster_dmg, _augment_grenade_cluster_radius)
-
 func _acquire_shot_direction() -> Vector2:
 	var target := _nearest_enemy(940.0)
 	if target != null:
@@ -611,28 +552,6 @@ func _current_shot_mode_cd_mul() -> float:
 			return shot_cd_burst_mul * 1.28 * overdrive_mul * style_mul
 	return 1.0
 
-func _update_grenade_preview(speed: float) -> void:
-	var dir: Vector2 = (get_global_mouse_position() - global_position).normalized()
-	if dir.length() < 0.001:
-		dir = _fallback_aim_dir()
-	var pos := global_position
-	var vel := dir * speed
-	_grenade_preview_points.clear()
-	_grenade_preview_points.append(pos)
-	var t := 0.0
-	var dt := 0.05
-	while t < 1.1:
-		pos += vel * dt
-		vel = vel.move_toward(Vector2.ZERO, 340.0 * dt)
-		t += dt
-		_grenade_preview_points.append(pos)
-	_grenade_preview_pos = pos
-
-func _get_current_grenade_speed() -> float:
-	var q := clampf(_grenade_charge_t / GRENADE_CHARGE_MAX, 0.0, 1.0)
-	var mul := lerpf(1.0, GRENADE_CHARGE_SPEED_MUL_MAX, q)
-	return GRENADE_SPEED * mul
-
 func _dash_impact() -> void:
 	if dash_impact_damage <= 0:
 		return
@@ -646,7 +565,7 @@ func _dash_impact() -> void:
 					e.apply_impulse(dir * 260.0)
 
 func _emit_stats() -> void:
-	stats_changed.emit(hp, max_hp, sp, max_sp, _bullet_mode_name(), _dash_cd_left, _grenade_cd_left, shield_active)
+	stats_changed.emit(hp, max_hp, sp, max_sp, _bullet_mode_name(), _dash_cd_left, shield_active)
 
 func apply_meta_progression(meta: Dictionary) -> void:
 	max_hp += float(meta.get("hp_bonus", 0.0))
@@ -1046,11 +965,6 @@ func _combo_magic_haste_mul() -> float:
 		return 1.20
 	return 1.0
 
-func _combo_grenade_damage_mul() -> float:
-	if _combo_dash_chain_on():
-		return 1.16
-	return 1.0
-
 func _apply_shot_style_spread(dir: Vector2) -> Vector2:
 	var aug_spread := _augment_shot_spread
 	if _shot_style == SHOT_STYLE_BARRAGE:
@@ -1078,10 +992,6 @@ func _attach_augment(domain: String, augment_id: String) -> void:
 			_augment_spell_haste_mul *= 1.10
 			_augment_chain_jump += 1
 			_augment_meteor_strike += 1
-		"cluster_payload":
-			_augment_grenade_cluster += 3
-			_augment_grenade_cluster_dmg = 0.38
-			_augment_grenade_cluster_radius = 0.48
 
 func _apply_bullet_augments(profile: Dictionary) -> void:
 	if bool(_augment_state.get("overheat_lens", false)):

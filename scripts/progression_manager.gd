@@ -1,6 +1,7 @@
 extends Node
 
-const SAVE_PATH := "user://progression.cfg"
+const BASE_SAVE_FILE := "progression.cfg"
+const WEB_STORAGE_KEY := "jx_progression_cfg"
 const SECTION_STATS := "stats"
 const SECTION_UPGRADES := "upgrades"
 const SECTION_SKILLS := "skills"
@@ -23,8 +24,11 @@ var unlock_frost_nova := false
 var unlock_relic_entropy_dial := false
 var unlock_relic_oath_anchor := false
 var unlock_relic_hazard_compact := false
+var _save_path := "user://progression.cfg"
 
 func _ready() -> void:
+	_save_path = _resolve_save_path()
+	_ensure_save_dir()
 	_load()
 
 func add_run_score(score: int) -> void:
@@ -59,6 +63,46 @@ func add_cheat_potential_levels(level_add: int = 1000) -> int:
 	unlock_frost_nova = true
 	_save()
 	return n
+
+func export_snapshot() -> Dictionary:
+	return {
+		"score_bank": score_bank,
+		"total_earned": total_earned,
+		"best_run_score": best_run_score,
+		"hp_level": hp_level,
+		"atk_level": atk_level,
+		"speed_level": speed_level,
+		"magic_level": magic_level,
+		"melee_branch_level": melee_branch_level,
+		"ranged_branch_level": ranged_branch_level,
+		"spell_branch_level": spell_branch_level,
+		"unlock_arcane_bolt": unlock_arcane_bolt,
+		"unlock_frost_nova": unlock_frost_nova,
+		"unlock_relic_entropy_dial": unlock_relic_entropy_dial,
+		"unlock_relic_oath_anchor": unlock_relic_oath_anchor,
+		"unlock_relic_hazard_compact": unlock_relic_hazard_compact
+	}
+
+func import_snapshot(data: Dictionary) -> bool:
+	if data.is_empty():
+		return false
+	score_bank = maxi(0, int(data.get("score_bank", score_bank)))
+	total_earned = maxi(0, int(data.get("total_earned", total_earned)))
+	best_run_score = maxi(0, int(data.get("best_run_score", best_run_score)))
+	hp_level = maxi(0, int(data.get("hp_level", hp_level)))
+	atk_level = maxi(0, int(data.get("atk_level", atk_level)))
+	speed_level = maxi(0, int(data.get("speed_level", speed_level)))
+	magic_level = maxi(0, int(data.get("magic_level", magic_level)))
+	melee_branch_level = maxi(0, int(data.get("melee_branch_level", melee_branch_level)))
+	ranged_branch_level = maxi(0, int(data.get("ranged_branch_level", ranged_branch_level)))
+	spell_branch_level = maxi(0, int(data.get("spell_branch_level", spell_branch_level)))
+	unlock_arcane_bolt = bool(data.get("unlock_arcane_bolt", unlock_arcane_bolt))
+	unlock_frost_nova = bool(data.get("unlock_frost_nova", unlock_frost_nova))
+	unlock_relic_entropy_dial = bool(data.get("unlock_relic_entropy_dial", unlock_relic_entropy_dial))
+	unlock_relic_oath_anchor = bool(data.get("unlock_relic_oath_anchor", unlock_relic_oath_anchor))
+	unlock_relic_hazard_compact = bool(data.get("unlock_relic_hazard_compact", unlock_relic_hazard_compact))
+	_save()
+	return true
 
 func get_player_meta() -> Dictionary:
 	return {
@@ -268,13 +312,21 @@ func _save() -> void:
 	cfg.set_value(SECTION_RELICS, "unlock_relic_entropy_dial", unlock_relic_entropy_dial)
 	cfg.set_value(SECTION_RELICS, "unlock_relic_oath_anchor", unlock_relic_oath_anchor)
 	cfg.set_value(SECTION_RELICS, "unlock_relic_hazard_compact", unlock_relic_hazard_compact)
-	cfg.save(SAVE_PATH)
+	cfg.save(_save_path)
+	_write_web_backup(cfg)
 
 func _load() -> void:
 	var cfg := ConfigFile.new()
-	var err := cfg.load(SAVE_PATH)
+	var err := cfg.load(_save_path)
+	if err != OK and OS.has_feature("web"):
+		var text := _read_web_backup()
+		if text != "":
+			err = cfg.parse(text)
 	if err != OK:
 		return
+	_apply_loaded(cfg)
+
+func _apply_loaded(cfg: ConfigFile) -> void:
 	score_bank = int(cfg.get_value(SECTION_STATS, "score_bank", 0))
 	total_earned = int(cfg.get_value(SECTION_STATS, "total_earned", 0))
 	best_run_score = int(cfg.get_value(SECTION_STATS, "best_run_score", 0))
@@ -290,3 +342,40 @@ func _load() -> void:
 	unlock_relic_entropy_dial = bool(cfg.get_value(SECTION_RELICS, "unlock_relic_entropy_dial", false))
 	unlock_relic_oath_anchor = bool(cfg.get_value(SECTION_RELICS, "unlock_relic_oath_anchor", false))
 	unlock_relic_hazard_compact = bool(cfg.get_value(SECTION_RELICS, "unlock_relic_hazard_compact", false))
+
+func _resolve_save_path() -> String:
+	if OS.has_feature("web"):
+		return "user://web/" + BASE_SAVE_FILE
+	if OS.has_feature("mobile"):
+		return "user://mobile/" + BASE_SAVE_FILE
+	return "user://" + BASE_SAVE_FILE
+
+func _ensure_save_dir() -> void:
+	var sep := _save_path.rfind("/")
+	if sep <= 0:
+		return
+	var dir_path := _save_path.substr(0, sep)
+	DirAccess.make_dir_recursive_absolute(dir_path)
+
+func _write_web_backup(cfg: ConfigFile) -> void:
+	if not OS.has_feature("web"):
+		return
+	if not Engine.has_singleton("JavaScriptBridge"):
+		return
+	var storage = JavaScriptBridge.get_interface("localStorage")
+	if storage == null:
+		return
+	storage.setItem(WEB_STORAGE_KEY, cfg.encode_to_text())
+
+func _read_web_backup() -> String:
+	if not OS.has_feature("web"):
+		return ""
+	if not Engine.has_singleton("JavaScriptBridge"):
+		return ""
+	var storage = JavaScriptBridge.get_interface("localStorage")
+	if storage == null:
+		return ""
+	var value: Variant = storage.getItem(WEB_STORAGE_KEY)
+	if value == null:
+		return ""
+	return str(value)

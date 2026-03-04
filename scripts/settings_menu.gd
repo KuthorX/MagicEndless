@@ -10,15 +10,29 @@ extends Control
 @onready var sfx_label: Label = $Center/Panel/VBox/SfxRow/Name
 @onready var sfx_slider: HSlider = $Center/Panel/VBox/SfxRow/Slider
 @onready var sfx_value: Label = $Center/Panel/VBox/SfxRow/Value
+@onready var backup_title: Label = $Center/Panel/VBox/BackupTitle
+@onready var backup_text: TextEdit = $Center/Panel/VBox/BackupText
+@onready var export_button: Button = $Center/Panel/VBox/BackupButtons/ExportButton
+@onready var import_button: Button = $Center/Panel/VBox/BackupButtons/ImportButton
+@onready var backup_status: Label = $Center/Panel/VBox/BackupStatus
 @onready var back_button: Button = $Center/Panel/VBox/BackButton
+
+const BACKUP_VERSION := 1
 
 func _ready() -> void:
 	title_label.text = Loc.t("settings_title")
 	master_label.text = Loc.t("settings_master")
 	bgm_label.text = Loc.t("settings_bgm")
 	sfx_label.text = Loc.t("settings_sfx")
+	backup_title.text = Loc.t("settings_backup_title")
+	backup_text.placeholder_text = Loc.t("settings_backup_placeholder")
+	export_button.text = Loc.t("settings_backup_export")
+	import_button.text = Loc.t("settings_backup_import")
+	backup_status.text = ""
 	back_button.text = Loc.t("menu_back")
 	back_button.pressed.connect(_on_back_pressed)
+	export_button.pressed.connect(_on_export_pressed)
+	import_button.pressed.connect(_on_import_pressed)
 
 	master_slider.value_changed.connect(_on_master_changed)
 	bgm_slider.value_changed.connect(_on_bgm_changed)
@@ -60,3 +74,39 @@ func _update_value_labels() -> void:
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
+
+func _on_export_pressed() -> void:
+	var payload := {
+		"version": BACKUP_VERSION,
+		"progression": {},
+		"audio": {}
+	}
+	if ProgressionManager != null:
+		payload["progression"] = ProgressionManager.export_snapshot()
+	if AudioManager != null:
+		payload["audio"] = AudioManager.export_snapshot()
+	backup_text.text = JSON.stringify(payload, "\t")
+	backup_status.text = Loc.t("settings_backup_export_ok")
+
+func _on_import_pressed() -> void:
+	var raw := backup_text.text.strip_edges()
+	if raw == "":
+		backup_status.text = Loc.t("settings_backup_import_empty")
+		return
+	var parsed: Variant = JSON.parse_string(raw)
+	if not (parsed is Dictionary):
+		backup_status.text = Loc.t("settings_backup_import_fail")
+		return
+	var root := parsed as Dictionary
+	var imported_any := false
+	var progression_data: Variant = root.get("progression", null)
+	if progression_data is Dictionary and ProgressionManager != null:
+		imported_any = ProgressionManager.import_snapshot(progression_data) or imported_any
+	var audio_data: Variant = root.get("audio", null)
+	if audio_data is Dictionary and AudioManager != null:
+		imported_any = AudioManager.import_snapshot(audio_data) or imported_any
+	if not imported_any:
+		backup_status.text = Loc.t("settings_backup_import_fail")
+		return
+	_sync_from_audio()
+	backup_status.text = Loc.t("settings_backup_import_ok")
