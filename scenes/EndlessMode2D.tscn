@@ -65,10 +65,6 @@ current = true
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
-[node name="LocalBgm" type="AudioStreamPlayer" parent="."]
-autoplay = false
-volume_db = -7.0
-
 [node name="WaveLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
 anchor_right = 1.0
@@ -299,3 +295,61 @@ text = "Main Menu"
 [node name="QuitButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 52)
 text = "Quit"
+
+[node name="GameOverUI" type="CanvasLayer" parent="."]
+process_mode = 3
+
+[node name="Shade" type="ColorRect" parent="GameOverUI"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.74)
+
+[node name="Center" type="CenterContainer" parent="GameOverUI/Shade"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="GameOverUI/Shade/Center"]
+custom_minimum_size = Vector2(540, 360)
+theme_override_styles/panel = SubResource("2")
+
+[node name="VBox" type="VBoxContainer" parent="GameOverUI/Shade/Center/Panel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="GameOverUI/Shade/Center/Panel/VBox"]
+theme_override_font_sizes/font_size = 36
+text = "Game Over"
+horizontal_alignment = 1
+
+[node name="ScoreLabel" type="Label" parent="GameOverUI/Shade/Center/Panel/VBox"]
+text = "Score: 0"
+horizontal_alignment = 1
+
+[node name="BankLabel" type="Label" parent="GameOverUI/Shade/Center/Panel/VBox"]
+text = "Bank: 0"
+horizontal_alignment = 1
+
+[node name="BestLabel" type="Label" parent="GameOverUI/Shade/Center/Panel/VBox"]
+text = "Best: 0"
+horizontal_alignment = 1
+
+[node name="RestartButton" type="Button" parent="GameOverUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+text = "Restart"
+
+[node name="MainMenuButton" type="Button" parent="GameOverUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 52)
+text = "Main Menu"

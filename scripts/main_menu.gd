@@ -1,6 +1,4 @@
 extends Control
-const MENU_BGM := preload("res://assets/audio/menu_bgm.wav")
-@onready var local_bgm: AudioStreamPlayer = $LocalBgm
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -8,17 +6,18 @@ func _ready() -> void:
 	$Center/Panel/VBox/Subtitle.text = Loc.t("menu_subtitle")
 	$Center/Panel/VBox/StartButton.text = Loc.t("menu_start")
 	$Center/Panel/VBox/CodexButton.text = Loc.t("menu_codex")
+	$Center/Panel/VBox/PotentialButton.text = Loc.t("menu_potential")
+	$Center/Panel/VBox/SettingsButton.text = Loc.t("menu_settings")
 	$Center/Panel/VBox/QuitButton.text = Loc.t("menu_quit")
 	$Center/Panel/VBox/StartButton.pressed.connect(_on_start_pressed)
 	$Center/Panel/VBox/CodexButton.pressed.connect(_on_codex_pressed)
+	$Center/Panel/VBox/PotentialButton.pressed.connect(_on_potential_pressed)
+	$Center/Panel/VBox/SettingsButton.pressed.connect(_on_settings_pressed)
 	$Center/Panel/VBox/QuitButton.pressed.connect(_on_quit_pressed)
-	_init_local_bgm()
 	if AudioManager != null:
 		AudioManager.play_menu()
-
-func _process(_delta: float) -> void:
-	if local_bgm != null and not local_bgm.playing:
-		local_bgm.play()
+	else:
+		push_error("AudioManager singleton is null in MainMenu.")
 
 func _on_start_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/EndlessMode2D.tscn")
@@ -26,21 +25,11 @@ func _on_start_pressed() -> void:
 func _on_codex_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/Codex.tscn")
 
+func _on_potential_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/PotentialMenu.tscn")
+
+func _on_settings_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/SettingsMenu.tscn")
+
 func _on_quit_pressed() -> void:
 	get_tree().quit()
-
-func _init_local_bgm() -> void:
-	if local_bgm == null:
-		return
-	if AudioServer.get_bus_count() > 0:
-		AudioServer.set_bus_mute(0, false)
-		AudioServer.set_bus_volume_db(0, 0.0)
-	var stream: AudioStream = MENU_BGM
-	if stream is AudioStreamWAV:
-		var wav := (stream as AudioStreamWAV).duplicate() as AudioStreamWAV
-		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		stream = wav
-	local_bgm.stream = stream
-	local_bgm.bus = "Master"
-	local_bgm.volume_db = -8.0
-	local_bgm.play()

@@ -1,5 +1,4 @@
 extends Node2D
-const BATTLE_BGM := preload("res://assets/audio/battle_bgm.wav")
 @export var enemy_scene: PackedScene
 @export var projectile_scene: PackedScene
 @export var enemy_projectile_scene: PackedScene
@@ -105,6 +104,7 @@ const ARENA_RECT := Rect2(-790.0, -430.0, 1580.0, 860.0)
 var _boss_spawned_this_wave := false
 var _score := 0
 var _kills := 0
+var _game_over := false
 
 @onready var terrain_root: Node2D = $World/Terrain
 @onready var dynamic_root: Node2D = $World/Dynamic
@@ -140,24 +140,34 @@ var _kills := 0
 @onready var pause_restart: Button = $PauseUI/Shade/Center/Panel/VBox/RestartButton
 @onready var pause_mainmenu: Button = $PauseUI/Shade/Center/Panel/VBox/MainMenuButton
 @onready var pause_quit: Button = $PauseUI/Shade/Center/Panel/VBox/QuitButton
-@onready var local_bgm: AudioStreamPlayer = $LocalBgm
+@onready var game_over_shade: ColorRect = $GameOverUI/Shade
+@onready var game_over_title: Label = $GameOverUI/Shade/Center/Panel/VBox/Title
+@onready var game_over_score: Label = $GameOverUI/Shade/Center/Panel/VBox/ScoreLabel
+@onready var game_over_bank: Label = $GameOverUI/Shade/Center/Panel/VBox/BankLabel
+@onready var game_over_best: Label = $GameOverUI/Shade/Center/Panel/VBox/BestLabel
+@onready var game_over_restart: Button = $GameOverUI/Shade/Center/Panel/VBox/RestartButton
+@onready var game_over_mainmenu: Button = $GameOverUI/Shade/Center/Panel/VBox/MainMenuButton
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_rng.randomize()
 	_setup_actions()
-	_init_local_bgm()
 	if AudioManager != null:
 		AudioManager.play_battle()
+	else:
+		push_error("AudioManager singleton is null in EndlessMode2D.")
 	_build_static_arena()
 	_setup_spawns()
 	_apply_ui_locale()
 	player.sword_scene = sword_scene
 	player.projectile_scene = projectile_scene
 	player.grenade_scene = grenade_scene
+	if ProgressionManager != null:
+		player.apply_meta_progression(ProgressionManager.get_player_meta())
 	player.stats_changed.connect(_on_player_stats_changed)
 	player.message_sent.connect(_show_message)
 	player.sfx_event.connect(play_sfx)
+	player.died.connect(_on_player_died)
 	card_a.pressed.connect(func() -> void: _pick_card(0))
 	card_b.pressed.connect(func() -> void: _pick_card(1))
 	card_c.pressed.connect(func() -> void: _pick_card(2))
@@ -165,15 +175,19 @@ func _ready() -> void:
 	pause_restart.pressed.connect(_on_pause_restart)
 	pause_mainmenu.pressed.connect(_on_pause_mainmenu)
 	pause_quit.pressed.connect(_on_pause_quit)
+	game_over_restart.pressed.connect(_on_game_over_restart)
+	game_over_mainmenu.pressed.connect(_on_game_over_mainmenu)
 	_apply_pause_locale()
 	pause_shade.visible = false
+	game_over_shade.visible = false
 	_show_message(Loc.t("msg_controls"))
 	_set_intermission(INTERMISSION_SECONDS)
 	_update_ui()
 
 func _process(delta: float) -> void:
-	if local_bgm != null and not local_bgm.playing:
-		local_bgm.play()
+	if _game_over:
+		_update_ui()
+		return
 	if get_tree().paused:
 		_update_ui()
 		return
@@ -205,7 +219,10 @@ func play_sfx(name: String) -> void:
 	var p := AudioStreamPlayer.new()
 	p.stream = SFX[name]
 	p.bus = "Master"
-	p.volume_db = -6.0
+	var sfx_db := 0.0
+	if AudioManager != null:
+		sfx_db = AudioManager.get_sfx_volume_db()
+	p.volume_db = -6.0 + sfx_db
 	add_child(p)
 	p.finished.connect(func() -> void: p.queue_free())
 	p.play()
@@ -646,6 +663,8 @@ func _wave_multiplier() -> float:
 	return 1.0 + float(maxi(1, wave) - 1) * 0.15
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _game_over:
+		return
 	if event.is_action_pressed("ui_cancel"):
 		if card_shade.visible:
 			return
@@ -653,6 +672,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func _toggle_pause() -> void:
+	if _game_over:
+		return
 	var next_paused: bool = not get_tree().paused
 	get_tree().paused = next_paused
 	pause_shade.visible = next_paused
@@ -679,18 +700,34 @@ func _on_pause_mainmenu() -> void:
 func _on_pause_quit() -> void:
 	get_tree().quit()
 
-func _init_local_bgm() -> void:
-	if local_bgm == null:
+func _on_player_died() -> void:
+	if _game_over:
 		return
-	if AudioServer.get_bus_count() > 0:
-		AudioServer.set_bus_mute(0, false)
-		AudioServer.set_bus_volume_db(0, 0.0)
-	var stream: AudioStream = BATTLE_BGM
-	if stream is AudioStreamWAV:
-		var wav := (stream as AudioStreamWAV).duplicate() as AudioStreamWAV
-		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
-		stream = wav
-	local_bgm.stream = stream
-	local_bgm.bus = "Master"
-	local_bgm.volume_db = -6.0
-	local_bgm.play()
+	_game_over = true
+	_wave_active = false
+	_wave_preview = false
+	_spawn_queue.clear()
+	card_shade.visible = false
+	pause_shade.visible = false
+	var bank := 0
+	var best := _score
+	if ProgressionManager != null:
+		ProgressionManager.add_run_score(_score)
+		bank = ProgressionManager.score_bank
+		best = ProgressionManager.best_run_score
+	game_over_title.text = Loc.t("gameover_title")
+	game_over_score.text = Loc.t("gameover_score") % _score
+	game_over_bank.text = Loc.t("gameover_bank") % bank
+	game_over_best.text = Loc.t("gameover_best") % best
+	game_over_restart.text = Loc.t("menu_restart")
+	game_over_mainmenu.text = Loc.t("menu_mainmenu")
+	game_over_shade.visible = true
+	get_tree().paused = true
+
+func _on_game_over_restart() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _on_game_over_mainmenu() -> void:
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")

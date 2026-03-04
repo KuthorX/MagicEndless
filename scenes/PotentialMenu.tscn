@@ -1,0 +1,152 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/potential_menu.gd" id="1"]
+
+[node name="PotentialMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.06, 0.09, 1)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="Center"]
+custom_minimum_size = Vector2(700, 620)
+layout_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Center/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+follow_focus = true
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+offset_left = 24.0
+offset_top = 20.0
+offset_right = -24.0
+offset_bottom = -20.0
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Center/Panel/Scroll/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Potential"
+horizontal_alignment = 1
+
+[node name="BankLabel" type="Label" parent="Center/Panel/Scroll/VBox"]
+layout_mode = 2
+text = "Bank"
+horizontal_alignment = 1
+
+[node name="TotalLabel" type="Label" parent="Center/Panel/Scroll/VBox"]
+layout_mode = 2
+text = "Total"
+horizontal_alignment = 1
+
+[node name="BestLabel" type="Label" parent="Center/Panel/Scroll/VBox"]
+layout_mode = 2
+text = "Best"
+horizontal_alignment = 1
+
+[node name="SpacerA" type="Control" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+
+[node name="HpButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "HP"
+
+[node name="AtkButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "ATK"
+
+[node name="SpeedButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "SPD"
+
+[node name="MagicButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "MAG"
+
+[node name="TreeTitle" type="Label" parent="Center/Panel/Scroll/VBox"]
+layout_mode = 2
+text = "Branches"
+horizontal_alignment = 1
+
+[node name="MeleeBranchButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Melee"
+
+[node name="RangedBranchButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Ranged"
+
+[node name="SpellBranchButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Spell"
+
+[node name="ArcaneButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Arcane"
+
+[node name="FrostButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Frost"
+
+[node name="TipLabel" type="Label" parent="Center/Panel/Scroll/VBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="DescTitle" type="Label" parent="Center/Panel/Scroll/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "说明"
+
+[node name="DescLabel" type="Label" parent="Center/Panel/Scroll/VBox"]
+layout_mode = 2
+autowrap_mode = 3
+text = "-"
+
+[node name="SpacerB" type="Control" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="Center/Panel/Scroll/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Back"

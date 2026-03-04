@@ -3,6 +3,7 @@ extends CharacterBody2D
 signal stats_changed(hp: float, max_hp: float, sp: float, max_sp: float, bullet_mode: String, dash_cd: float, grenade_cd: float, shield_on: bool)
 signal message_sent(text: String)
 signal sfx_event(name: String)
+signal died
 
 const BASE_MOVE_SPEED := 220.0
 const BASE_SWORD_CD := 0.55
@@ -14,6 +15,8 @@ const DASH_SPEED := 620.0
 const GRENADE_SPEED := 280.0
 const GRENADE_CHARGE_MAX := 1.25
 const GRENADE_CHARGE_SPEED_MUL_MAX := 2.5
+const ArcaneFxScript := preload("res://scripts/magic_arcane_fx.gd")
+const NovaFxScript := preload("res://scripts/magic_nova_fx.gd")
 
 enum BulletMode {
 	NORMAL,
@@ -77,6 +80,13 @@ var _grenade_preview_points: Array[Vector2] = []
 var _grenade_charging := false
 var _grenade_charge_t := 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _arcane_bolt_unlocked := false
+var _frost_nova_unlocked := false
+var _magic_power_mul := 1.0
+var _magic_haste_mul := 1.0
+var _arcane_cd := 0.0
+var _frost_cd := 0.0
+var _dead := false
 
 func _ready() -> void:
 	add_to_group("player")
@@ -84,16 +94,22 @@ func _ready() -> void:
 	_emit_stats()
 
 func _process(delta: float) -> void:
+	if _dead:
+		return
 	_update_cooldowns(delta)
 	_handle_modes_input()
 	_handle_attacks()
 	_handle_shield(delta)
+	_handle_magic(delta)
 	_shield_fx_phase += delta * 5.2
 	_update_grenade_preview(_get_current_grenade_speed())
 	queue_redraw()
 	_emit_stats()
 
 func _physics_process(delta: float) -> void:
+	if _dead:
+		velocity = Vector2.ZERO
+		return
 	if _dash_left > 0.0:
 		_dash_left -= delta
 		velocity = _dash_dir * (DASH_SPEED + dash_speed_bonus)
@@ -130,6 +146,8 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, 7.0, Color(0.82, 0.98, 1.0, 0.22 * pulse))
 
 func take_damage(amount: int) -> void:
+	if _dead:
+		return
 	if shield_active and sp > 0.5:
 		sp = maxf(0.0, sp - 10.0)
 		sfx_event.emit("shield_hit")
@@ -137,10 +155,10 @@ func take_damage(amount: int) -> void:
 	hp -= amount
 	sfx_event.emit("hurt")
 	if hp <= 0.0:
-		hp = max_hp
-		global_position = Vector2.ZERO
-		message_sent.emit(Loc.t("msg_respawn"))
-		sfx_event.emit("respawn")
+		hp = 0.0
+		_dead = true
+		_emit_stats()
+		died.emit()
 
 func drain_sp(amount: float) -> void:
 	sp = maxf(0.0, sp - amount)
@@ -406,3 +424,85 @@ func _dash_impact() -> void:
 
 func _emit_stats() -> void:
 	stats_changed.emit(hp, max_hp, sp, max_sp, _bullet_mode_name(), _dash_cd_left, _grenade_cd_left, shield_active)
+
+func apply_meta_progression(meta: Dictionary) -> void:
+	max_hp += float(meta.get("hp_bonus", 0.0))
+	hp = max_hp
+	shot_damage += int(meta.get("atk_bonus", 0))
+	move_speed_mul *= float(meta.get("speed_mul", 1.0))
+	_magic_power_mul = float(meta.get("magic_mul", 1.0))
+	sword_damage += int(meta.get("melee_damage_add", 0))
+	sword_radius += float(meta.get("melee_radius_add", 0.0))
+	shot_damage += int(meta.get("ranged_damage_add", 0))
+	shot_speed += float(meta.get("ranged_speed_add", 0.0))
+	shot_cd_mul *= float(meta.get("ranged_cd_mul", 1.0))
+	_magic_power_mul *= float(meta.get("spell_power_mul", 1.0))
+	_magic_haste_mul = float(meta.get("spell_haste_mul", 1.0))
+	_arcane_bolt_unlocked = bool(meta.get("arcane_bolt", false))
+	_frost_nova_unlocked = bool(meta.get("frost_nova", false))
+	_emit_stats()
+
+func _handle_magic(delta: float) -> void:
+	if _arcane_bolt_unlocked:
+		_arcane_cd -= delta
+		if _arcane_cd <= 0.0:
+			_arcane_cd = maxf(0.35, (2.1 - 0.12 * _magic_power_mul) / _magic_haste_mul)
+			_fire_arcane_bolt()
+	if _frost_nova_unlocked:
+		_frost_cd -= delta
+		if _frost_cd <= 0.0:
+			_frost_cd = maxf(3.2, (10.0 - 0.3 * _magic_power_mul) / _magic_haste_mul)
+			_cast_frost_nova()
+
+func _fire_arcane_bolt() -> void:
+	var target: Node2D = _nearest_enemy(620.0)
+	if target == null:
+		return
+	_spawn_arcane_fx(target.global_position)
+	if target.has_method("take_damage"):
+		var dmg := int(round(22.0 * _magic_power_mul))
+		target.take_damage(dmg)
+
+func _cast_frost_nova() -> void:
+	var radius := 170.0
+	var dmg := int(round(18.0 * _magic_power_mul))
+	_spawn_nova_fx(radius)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e is Node2D:
+			var en := e as Node2D
+			if en.global_position.distance_to(global_position) <= radius:
+				if e.has_method("take_damage"):
+					e.take_damage(dmg)
+				if e.has_method("apply_impulse"):
+					var dir := (en.global_position - global_position).normalized()
+					e.apply_impulse(dir * 260.0)
+
+func _nearest_enemy(radius: float) -> Node2D:
+	var best: Node2D = null
+	var best_d := radius
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e is Node2D:
+			var en := e as Node2D
+			var d := en.global_position.distance_to(global_position)
+			if d < best_d:
+				best_d = d
+				best = en
+	return best
+
+func _spawn_arcane_fx(end_pos: Vector2) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var fx := Node2D.new()
+	fx.set_script(ArcaneFxScript)
+	scene.add_child(fx)
+	fx.setup(global_position, end_pos)
+
+func _spawn_nova_fx(radius: float) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var fx := Node2D.new()
+	fx.set_script(NovaFxScript)
+	scene.add_child(fx)
+	fx.setup(global_position, radius)

@@ -32,10 +32,6 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.04, 0.06, 0.09, 1)
 
-[node name="LocalBgm" type="AudioStreamPlayer" parent="."]
-autoplay = false
-volume_db = -8.0
-
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -45,7 +41,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="Panel" parent="Center"]
-custom_minimum_size = Vector2(460, 360)
+custom_minimum_size = Vector2(460, 480)
 layout_mode = 2
 theme_override_styles/panel = SubResource("1")
 
@@ -84,6 +80,16 @@ text = "Start"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Codex"
+
+[node name="PotentialButton" type="Button" parent="Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Potential"
+
+[node name="SettingsButton" type="Button" parent="Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Settings"
 
 [node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)

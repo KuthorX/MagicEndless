@@ -277,7 +277,7 @@ func _shoot_burst(dir: Vector2) -> void:
 	for a in [-14.0, 0.0, 14.0]:
 		var shot_dir: Vector2 = dir.rotated(deg_to_rad(a))
 		var from := muzzle.global_position
-		var to := from + shot_dir * 160.0
+		var to := from + shot_dir * 320.0
 		_spawn_tracer(from, to, Color(1.0, 0.63, 0.26, 0.85), 0.10, 2.2)
 		var b := projectile_scene.instantiate()
 		get_tree().current_scene.add_child(b)
@@ -285,7 +285,7 @@ func _shoot_burst(dir: Vector2) -> void:
 		var sp_burn := 0
 		if elite_shield_break:
 			sp_burn = 5
-		b.setup(shot_dir, 240.0, 10 + int(contact_damage * 0.4), sp_burn)
+		b.setup(shot_dir, 480.0, 10 + int(contact_damage * 0.4), sp_burn)
 	_play_sfx("enemy_shoot")
 
 func _spawn_tracer(from: Vector2, to: Vector2, color: Color, fade: float, width: float) -> void:
