@@ -1,5 +1,6 @@
 extends Area2D
 const CombatFxScript := preload("res://scripts/combat_fx2d.gd")
+const ProjectileScene := preload("res://scenes/projectile2d.tscn")
 
 var velocity := Vector2.ZERO
 var damage := 12
@@ -17,11 +18,20 @@ var _glow_color := Color(0.36, 0.84, 1.0, 0.45)
 var _status_name := ""
 var _status_duration := 0.0
 var _status_stacks := 1
+var _damage_mul := 1.0
+var _augment_overheat := false
+var _overheat_tick_damage_mul := 0.0
+var _overheat_ticks := 0
+var _overheat_tick_interval := 0.25
+var _augment_phase_prism := false
+var _phase_prism_splits_left := 0
+var _last_pos := Vector2.ZERO
 
 func _ready() -> void:
 	z_index = 60
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+	_last_pos = global_position
 
 func setup(dir: Vector2, speed: float, dmg: int, is_player: bool, pierce: int = 0, profile: Dictionary = {}) -> void:
 	velocity = dir.normalized() * speed
@@ -35,6 +45,13 @@ func setup(dir: Vector2, speed: float, dmg: int, is_player: bool, pierce: int = 
 	_status_name = str(profile.get("apply_status", ""))
 	_status_duration = float(profile.get("status_duration", 0.0))
 	_status_stacks = int(profile.get("status_stacks", 1))
+	_damage_mul = float(profile.get("damage_mul", 1.0))
+	_augment_overheat = bool(profile.get("augment_overheat", false))
+	_overheat_tick_damage_mul = float(profile.get("overheat_tick_damage_mul", 0.0))
+	_overheat_ticks = int(profile.get("overheat_ticks", 0))
+	_overheat_tick_interval = float(profile.get("overheat_tick_interval", 0.25))
+	_augment_phase_prism = bool(profile.get("augment_phase_prism", false))
+	_phase_prism_splits_left = int(profile.get("phase_prism_splits", 0))
 	_life *= float(profile.get("life_mul", 1.0))
 	if profile.has("trail_color"):
 		_trail_color = Color(profile["trail_color"])
@@ -46,10 +63,13 @@ func setup(dir: Vector2, speed: float, dmg: int, is_player: bool, pierce: int = 
 func _physics_process(delta: float) -> void:
 	if from_player and _homing_strength > 0.0:
 		_apply_homing(delta)
+	_last_pos = global_position
 	_trail.append(global_position)
 	if _trail.size() > 12:
 		_trail.pop_front()
 	global_position += velocity * delta
+	if from_player and _augment_phase_prism:
+		_try_phase_prism_split()
 	_life -= delta
 	queue_redraw()
 	if _life <= 0.0:
@@ -86,11 +106,14 @@ func _on_area_entered(area: Area2D) -> void:
 	queue_free()
 
 func _hit_enemy(enemy: Node) -> void:
-	enemy.take_damage(damage)
+	var hit_damage := int(round(float(damage) * _damage_mul))
+	enemy.take_damage(maxi(1, hit_damage))
 	_spawn_hex_hit_fx(global_position)
 	if _status_name != "" and _status_duration > 0.0 and enemy.has_method("apply_status"):
 		enemy.apply_status(_status_name, _status_duration, _status_stacks)
-	_notify_player_damage(damage)
+	if _augment_overheat and _overheat_ticks > 0 and _overheat_tick_damage_mul > 0.0:
+		_apply_overheat(enemy, hit_damage)
+	_notify_player_damage(hit_damage)
 	_play_hit_sfx()
 	if _explosion_radius > 1.0:
 		_apply_explosion(enemy)
@@ -126,7 +149,7 @@ func _apply_explosion(primary: Node) -> void:
 			continue
 		var en := e as Node2D
 		if en.global_position.distance_to(global_position) <= _explosion_radius and e.has_method("take_damage"):
-			var splash := int(round(float(damage) * 0.55))
+			var splash := int(round(float(damage) * _damage_mul * 0.55))
 			e.take_damage(splash)
 			_notify_player_damage(splash)
 
@@ -139,7 +162,7 @@ func _apply_chain(primary: Node) -> void:
 		if target == null:
 			return
 		_spawn_chain_arc_fx(origin, target.global_position)
-		var d := int(round(float(damage) * (0.60 + 0.08 * float(jumps - 1))))
+		var d := int(round(float(damage) * _damage_mul * (0.60 + 0.08 * float(jumps - 1))))
 		if target.has_method("take_damage"):
 			target.take_damage(d)
 		_notify_player_damage(d)
@@ -189,6 +212,64 @@ func _play_hit_sfx() -> void:
 	var scene := get_tree().current_scene
 	if scene != null and scene.has_method("play_sfx"):
 		scene.play_sfx("hit")
+
+func _apply_overheat(enemy: Node, base_damage: int) -> void:
+	_apply_overheat_tick(enemy, int(round(float(base_damage) * _overheat_tick_damage_mul)), _overheat_ticks)
+
+func _apply_overheat_tick(enemy: Node, tick_damage: int, ticks_left: int) -> void:
+	if ticks_left <= 0:
+		return
+	var timer := get_tree().create_timer(_overheat_tick_interval)
+	timer.timeout.connect(func() -> void:
+		if not is_instance_valid(enemy):
+			return
+		if enemy.has_method("take_damage"):
+			enemy.take_damage(maxi(1, tick_damage))
+			_notify_player_damage(maxi(1, tick_damage))
+		_apply_overheat_tick(enemy, tick_damage, ticks_left - 1)
+	)
+
+func _try_phase_prism_split() -> void:
+	if _phase_prism_splits_left <= 0:
+		return
+	var crossed := false
+	for h in get_tree().get_nodes_in_group("hazard"):
+		if not (h is Node2D):
+			continue
+		var center := (h as Node2D).global_position
+		var d_prev := _last_pos.distance_to(center)
+		var d_now := global_position.distance_to(center)
+		if d_prev > 78.0 and d_now <= 78.0:
+			crossed = true
+			break
+	if not crossed:
+		return
+	_phase_prism_splits_left -= 1
+	var dir := velocity.normalized()
+	var speed := velocity.length()
+	_spawn_phase_prism_child(dir.rotated(deg_to_rad(16.0)), speed)
+	_spawn_phase_prism_child(dir.rotated(deg_to_rad(-16.0)), speed)
+
+func _spawn_phase_prism_child(dir: Vector2, speed: float) -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var p: Node = ProjectileScene.instantiate()
+	scene.add_child(p)
+	if p is Node2D:
+		(p as Node2D).global_position = global_position
+	if p.has_method("setup"):
+		p.setup(dir, speed * 0.92, int(round(float(damage) * 0.58)), from_player, maxi(0, pierce_left - 1), {
+			"life_mul": _life / 1.6,
+			"ricochet": 0,
+			"damage_mul": _damage_mul,
+			"augment_overheat": _augment_overheat,
+			"overheat_tick_damage_mul": _overheat_tick_damage_mul,
+			"overheat_ticks": maxi(1, _overheat_ticks - 1),
+			"overheat_tick_interval": _overheat_tick_interval,
+			"augment_phase_prism": false,
+			"phase_prism_splits": 0
+		})
 
 func _spawn_hex_hit_fx(pos: Vector2) -> void:
 	if _status_name != "hex_mark":

@@ -49,13 +49,14 @@ Build a long-term, high-complexity loop where each run differs at:
   - `Convoy Fracture`: moving hazard train crosses arena.
   - `Rift Seal`: destroy rift nodes to stop elite spawns.
 - Failure does not end run, but applies punitive modifiers.
-- Status: partially implemented (`Pylon Capture` + `Rift Seal` runtime objective with success/fail branches).
+- Status: implemented (`Pylon Capture` + `Rift Seal` + `Convoy Fracture` runtime objectives with success/fail branches).
 
 ### B2. Hazard Network
 - Hazards become linked nodes:
   - Adjacent nodes can chain pulses.
   - Mixed element nodes trigger reactions (fire + storm => shockburn).
 - Add decay and re-ignition states.
+- Status: core runtime implemented (adjacent-chain pulse + fire/storm shockburn + decay/re-ignition).
 
 ### B3. Mid-Wave Terrain Mutation
 - Wave has 2 mutation checkpoints (time or kill-based).
@@ -63,6 +64,7 @@ Build a long-term, high-complexity loop where each run differs at:
   - Layout opens/closes lanes.
   - Hazard types rotate.
   - Directive pool changes.
+- Status: core runtime implemented (2 checkpoints + lane mutation + hazard rotation + directive pool escalation).
 
 ## Phase C: Buildcraft Meta Depth
 ### C1. Archetype Commitment
@@ -70,6 +72,7 @@ Build a long-term, high-complexity loop where each run differs at:
   - Blade, Ballistic, Arcane, Tactical.
 - Picking cards fills meter; at threshold unlocks keystone cards.
 - Keystone cards are strong but enforce tradeoffs.
+- Status: core runtime implemented (meter accumulation + threshold unlock + exclusive keystone commit).
 
 ### C2. Socketed Augments
 - Cards can grant `socket` slots.
@@ -77,12 +80,14 @@ Build a long-term, high-complexity loop where each run differs at:
 - Example:
   - `Overheat Lens`: +damage over time, +recoil spread.
   - `Phase Prism`: bullets split when crossing hazard edges.
+- Status: core runtime implemented (socket slots + augment cards + bullet/spell/grenade attachment effects).
 
 ### C3. Conditional Combo Cards
 - Cards that activate only under state conditions:
   - During overdrive.
   - While shield is empty.
   - After 3 dashes in 6s.
+- Status: core runtime implemented (3 conditional combo cards + live condition tracking + combat stat modulation).
 
 ## Phase D: Run-Level Systems
 ### D1. Threat Director
@@ -95,6 +100,7 @@ Build a long-term, high-complexity loop where each run differs at:
   - Spawn rhythm
   - Directive intensity
   - Elite composition
+- Status: core runtime implemented (per-wave telemetry + live threat evaluation + dynamic spawn/directive/elite scaling).
 
 ### D2. World Afflictions
 - Global run afflictions every N waves:
@@ -102,10 +108,12 @@ Build a long-term, high-complexity loop where each run differs at:
   - `Mana Static`
   - `Rupture Tides`
 - Player can pick one mitigation before next wave.
+- Status: core runtime implemented (interval affliction roll + pre-wave mitigation pick + live affliction behavior hooks).
 
 ### D3. Meta Relics
 - Outside-run relic unlocks with strict conditions.
 - Relics alter run rules, not just stats.
+- Status: core runtime implemented (run-report based strict unlocks + random unlocked relic activation + rule-level modifiers).
 
 ## Delivery Strategy
 1. Implement Phase A1+A2 first (highest combat depth per code cost). Status: mostly done (core combat + preview UI + anchor-counterplay done).
@@ -122,6 +130,7 @@ Build a long-term, high-complexity loop where each run differs at:
   - card pick order
   - archetype meter trajectory
   - damage source breakdown
+- Status: baseline runtime hooks implemented in EndlessMode (wave telemetry snapshot + in-run history buffer).
 
 ## Balance Guardrails
 - Any new high-complexity system must keep:

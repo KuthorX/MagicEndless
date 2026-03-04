@@ -31,6 +31,10 @@ const PREVIEW_SECONDS := 3.0
 const PREVIEW_ENEMY_COUNT := 8
 const BASE_SPAWN_INTERVAL := 0.35
 const MINI_BOSS_INTERVAL := 5
+const AFFLICTION_INTERVAL := 4
+const ARCHETYPE_THRESHOLD := 12.0
+const ARCHETYPE_MAX := 24.0
+const ARCHETYPES: Array[String] = ["blade", "ballistic", "arcane", "tactical"]
 
 const ENEMY_TYPE_LABEL := {
 	0: "enemy_chaser",
@@ -161,7 +165,100 @@ const CARD_POOL: Array[Dictionary] = [
 	{"title":"card_sword_style_whirl_t", "desc":"card_sword_style_whirl_d", "rarity":"epic", "effect":{"sword_style_whirl": true}},
 	{"title":"card_sword_style_exec_t", "desc":"card_sword_style_exec_d", "rarity":"epic", "effect":{"sword_style_exec": true}},
 	{"title":"card_shot_style_barrage_t", "desc":"card_shot_style_barrage_d", "rarity":"epic", "effect":{"shot_style_barrage": true}},
-	{"title":"card_shot_style_rail_t", "desc":"card_shot_style_rail_d", "rarity":"epic", "effect":{"shot_style_rail": true}}
+	{"title":"card_shot_style_rail_t", "desc":"card_shot_style_rail_d", "rarity":"epic", "effect":{"shot_style_rail": true}},
+	{"title":"card_combo_overdrive_t", "desc":"card_combo_overdrive_d", "rarity":"epic", "effect":{"unlock_combo_overdrive": true}},
+	{"title":"card_combo_shield_empty_t", "desc":"card_combo_shield_empty_d", "rarity":"epic", "effect":{"unlock_combo_shield_empty": true}},
+	{"title":"card_combo_dash_chain_t", "desc":"card_combo_dash_chain_d", "rarity":"epic", "effect":{"unlock_combo_dash_chain": true}}
+]
+const KEYSTONE_CARD_POOL: Array[Dictionary] = [
+	{
+		"title":"card_keystone_blade_t",
+		"desc":"card_keystone_blade_d",
+		"rarity":"epic",
+		"keystone": true,
+		"requires_archetype": "blade",
+		"effect":{"sword_damage_add": 24, "sword_speed_mul": 1.18, "sword_radius_add": 16.0, "shot_cd_mul": 1.16}
+	},
+	{
+		"title":"card_keystone_ballistic_t",
+		"desc":"card_keystone_ballistic_d",
+		"rarity":"epic",
+		"keystone": true,
+		"requires_archetype": "ballistic",
+		"effect":{"shot_damage_add": 14, "shot_speed_add": 130.0, "shot_cd_mul": 0.78, "sword_cd_mul": 1.16, "shield_drain_mul": 1.14}
+	},
+	{
+		"title":"card_keystone_arcane_t",
+		"desc":"card_keystone_arcane_d",
+		"rarity":"epic",
+		"keystone": true,
+		"requires_archetype": "arcane",
+		"effect":{"unlock_chain_sigil": true, "unlock_meteor_rain": true, "magic_power_mul": 1.22, "magic_haste_mul": 1.14, "shot_damage_add": -6, "grenade_cd_mul": 1.20}
+	},
+	{
+		"title":"card_keystone_tactical_t",
+		"desc":"card_keystone_tactical_d",
+		"rarity":"epic",
+		"keystone": true,
+		"requires_archetype": "tactical",
+		"effect":{"dash_cd_mul": 0.68, "dash_distance_mul": 1.22, "grenade_damage_add": 28, "grenade_cd_mul": 0.76, "sword_damage_add": -8, "move_speed_mul": 1.10}
+	}
+]
+const AUGMENT_CARD_POOL: Array[Dictionary] = [
+	{
+		"title":"card_socket_bullet_t",
+		"desc":"card_socket_bullet_d",
+		"rarity":"common",
+		"effect":{"socket_bullet_add": 1}
+	},
+	{
+		"title":"card_socket_spell_t",
+		"desc":"card_socket_spell_d",
+		"rarity":"common",
+		"effect":{"socket_spell_add": 1}
+	},
+	{
+		"title":"card_socket_grenade_t",
+		"desc":"card_socket_grenade_d",
+		"rarity":"common",
+		"effect":{"socket_grenade_add": 1}
+	},
+	{
+		"title":"card_augment_overheat_t",
+		"desc":"card_augment_overheat_d",
+		"rarity":"rare",
+		"augment": true,
+		"augment_id": "overheat_lens",
+		"requires_socket": "bullet",
+		"effect":{"augment_overheat_lens": true}
+	},
+	{
+		"title":"card_augment_prism_t",
+		"desc":"card_augment_prism_d",
+		"rarity":"rare",
+		"augment": true,
+		"augment_id": "phase_prism",
+		"requires_socket": "bullet",
+		"effect":{"augment_phase_prism": true}
+	},
+	{
+		"title":"card_augment_manaweave_t",
+		"desc":"card_augment_manaweave_d",
+		"rarity":"rare",
+		"augment": true,
+		"augment_id": "mana_weave",
+		"requires_socket": "spell",
+		"effect":{"augment_mana_weave": true}
+	},
+	{
+		"title":"card_augment_cluster_t",
+		"desc":"card_augment_cluster_d",
+		"rarity":"rare",
+		"augment": true,
+		"augment_id": "cluster_payload",
+		"requires_socket": "grenade",
+		"effect":{"augment_cluster_payload": true}
+	}
 ]
 
 var wave = 0
@@ -172,6 +269,7 @@ var _intermission_left = INTERMISSION_SECONDS
 var _spawn_timer = 0.0
 var _spawn_queue: Array[int] = []
 var _card_choices: Array[Dictionary] = []
+var _mitigation_choices: Array[Dictionary] = []
 var _preview_enemies: Array[Node] = []
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _terrain_seed = 0
@@ -187,6 +285,28 @@ var _objective_trigger_left := 0.0
 var _objective_progress := 0.0
 var _objective_pos := Vector2.ZERO
 var _objective_nodes: Array[Node2D] = []
+var _objective_convoy_hits := 0
+var _wave_elapsed := 0.0
+var _wave_kills_start := 0
+var _wave_enemy_budget := 1
+var _mid_mutation_stage := 0
+var _mutation_time_1 := 0.0
+var _mutation_time_2 := 0.0
+var _directive_pool: Array[String] = []
+var _archetype_meter := {
+	"blade": 0.0,
+	"ballistic": 0.0,
+	"arcane": 0.0,
+	"tactical": 0.0
+}
+var _keystone_ready := {
+	"blade": false,
+	"ballistic": false,
+	"arcane": false,
+	"tactical": false
+}
+var _keystone_picked := false
+var _keystone_school := ""
 var _preview_ecology_summary := ""
 var _anchor_enemy: Node = null
 var _anchor_faction := -1
@@ -196,6 +316,43 @@ var _boss_spawned_this_wave = false
 var _score = 0
 var _kills = 0
 var _game_over = false
+var _choice_mode := "card"
+var _active_affliction := ""
+var _pending_affliction := ""
+var _affliction_start_wave := 0
+var _affliction_mitigation := ""
+var _affliction_tick_left := 0.0
+var _affliction_warning_mul := 1.0
+var _affliction_mana_drain_mul := 1.0
+var _affliction_tide_interval_mul := 1.0
+var _affliction_tide_damage_mul := 1.0
+var _affliction_tide_radius_mul := 1.0
+var _director_level := 0.0
+var _director_spawn_mul := 1.0
+var _director_directive_mul := 1.0
+var _director_elite_bonus := 0.0
+var _director_eval_left := 0.0
+var _director_hint_cd := 0.0
+var _wave_damage_dealt := 0.0
+var _wave_damage_taken := 0.0
+var _wave_hazard_kills := 0
+var _wave_directive_count := 0
+var _wave_position_bins: Dictionary = {}
+var _wave_position_samples := 0
+var _wave_kill_times: Array[float] = []
+var _wave_telemetry_history: Array[Dictionary] = []
+var _card_pick_order: Array[String] = []
+var _archetype_trace: Array[Dictionary] = []
+var _last_hp := 0.0
+var _last_sp := 0.0
+var _pos_sample_left := 0.0
+var _run_objective_success := 0
+var _run_anchor_breaks := 0
+var _run_hazard_kills_total := 0
+var _run_affliction_wave_count := 0
+var _run_director_peak := 0.0
+var _run_relic_id := ""
+var _run_relic_pack: Dictionary = {}
 
 @onready var terrain_root: Node2D = $World/Terrain
 @onready var dynamic_root: Node2D = $World/Dynamic
@@ -255,7 +412,10 @@ func _ready() -> void:
 	player.grenade_scene = grenade_scene
 	if ProgressionManager != null:
 		player.apply_meta_progression(ProgressionManager.get_player_meta())
+	_init_run_relic()
 	player.stats_changed.connect(_on_player_stats_changed)
+	if player.has_signal("damage_dealt"):
+		player.damage_dealt.connect(_on_player_damage_dealt)
 	player.message_sent.connect(_show_message)
 	player.sfx_event.connect(play_sfx)
 	player.died.connect(_on_player_died)
@@ -273,6 +433,8 @@ func _ready() -> void:
 	game_over_shade.visible = false
 	_show_message(Loc.t("msg_controls"))
 	_set_intermission(INTERMISSION_SECONDS)
+	_last_hp = float(player.hp)
+	_last_sp = float(player.sp)
 	_update_ui()
 
 func _process(delta: float) -> void:
@@ -290,10 +452,18 @@ func _process(delta: float) -> void:
 		if _preview_left <= 0.0:
 			_activate_wave_from_preview()
 	elif _wave_active:
+		_wave_elapsed += delta
+		_update_affliction_runtime(delta)
+		_director_eval_left -= delta
+		_director_hint_cd = maxf(0.0, _director_hint_cd - delta)
 		_objective_trigger_left -= delta
 		_spawn_timer -= delta
+		_track_position_entropy(delta)
+		if _director_eval_left <= 0.0:
+			_director_eval_left = 1.0
+			_evaluate_threat_director()
 		if _spawn_timer <= 0.0 and _spawn_queue.size() > 0:
-			_spawn_timer = maxf(0.12, BASE_SPAWN_INTERVAL - wave * 0.005)
+			_spawn_timer = _current_spawn_interval()
 			var enemy_kind: int = int(_spawn_queue.pop_back())
 			_spawn_enemy(enemy_kind, true)
 		_directive_left -= delta
@@ -304,6 +474,7 @@ func _process(delta: float) -> void:
 			_start_wave_objective()
 		if _objective_active:
 			_update_wave_objective(delta)
+		_update_midwave_mutation()
 		_sanitize_enemies()
 		if _spawn_queue.is_empty() and _alive_enemies() == 0:
 			_on_wave_clear()
@@ -413,16 +584,18 @@ func _start_wave_objective() -> void:
 		return
 	_objective_active = true
 	_objective_progress = 0.0
+	_objective_convoy_hits = 0
 	_objective_nodes.clear()
-	if _rng.randf() < 0.56:
+	var roll := _rng.randf()
+	if roll < 0.40:
 		_objective_type = "pylon_capture"
 		_objective_left = 11.0 + minf(4.0, float(wave) * 0.15)
 		_objective_pos = _clamp_to_arena(_random_spawn() + Vector2(_rng.randf_range(-80.0, 80.0), _rng.randf_range(-70.0, 70.0)))
 		var marker := _spawn_objective_marker(_objective_pos, Color(1.0, 0.90, 0.35, 0.88), 96.0)
 		_objective_nodes.append(marker)
 		_spawn_ground_warning(_objective_pos, 105.0, Color(1.0, 0.90, 0.35, 0.88), 1.0)
-		_show_message("波中目标：占领充能塔（站圈累计进度）")
-	else:
+		_show_message(Loc.t("msg_objective_pylon_start"))
+	elif roll < 0.74:
 		_objective_type = "rift_seal"
 		_objective_left = 13.0 + minf(4.0, float(wave) * 0.18)
 		for i in 2:
@@ -432,7 +605,12 @@ func _start_wave_objective() -> void:
 			marker.set_meta("sealed", false)
 			_objective_nodes.append(marker)
 			_spawn_ground_warning(p, 84.0, Color(0.90, 0.40, 1.0, 0.85), 0.9)
-		_show_message("波中目标：封印裂隙（接触裂隙累计进度）")
+		_show_message(Loc.t("msg_objective_rift_start"))
+	else:
+		_objective_type = "convoy_fracture"
+		_objective_left = 12.0 + minf(4.0, float(wave) * 0.16)
+		_start_objective_convoy()
+		_show_message(Loc.t("msg_objective_convoy_start"))
 
 func _update_wave_objective(delta: float) -> void:
 	if not _objective_active:
@@ -443,6 +621,8 @@ func _update_wave_objective(delta: float) -> void:
 		_update_objective_pylon(delta)
 	elif _objective_type == "rift_seal":
 		_update_objective_rift(delta)
+	elif _objective_type == "convoy_fracture":
+		_update_objective_convoy(delta)
 	if _objective_left <= 0.0:
 		_fail_wave_objective()
 
@@ -480,9 +660,57 @@ func _update_objective_rift(delta: float) -> void:
 	if sealed_count >= _objective_nodes.size() and _objective_nodes.size() > 0:
 		_complete_wave_objective()
 
+func _start_objective_convoy() -> void:
+	var dir := Vector2(1.0, _rng.randf_range(-0.36, 0.36)).normalized()
+	var speed := 162.0 + minf(68.0, float(wave) * 2.1)
+	var perp := Vector2(-dir.y, dir.x)
+	var base := _clamp_to_arena(_random_spawn() + perp * _rng.randf_range(-70.0, 70.0))
+	for i in 3:
+		var spacing := 88.0
+		var spawn_pos := _clamp_to_arena(base - dir * (spacing * float(i)))
+		var segment := _spawn_objective_marker(spawn_pos, Color(0.98, 0.44, 0.32, 0.88), 54.0)
+		segment.set_meta("vel", dir * speed)
+		segment.set_meta("fracture", 0.0)
+		segment.set_meta("fractured", false)
+		segment.set_meta("warn_cd", _rng.randf_range(0.40, 0.95))
+		_objective_nodes.append(segment)
+		_spawn_ground_warning(spawn_pos, 62.0, Color(0.98, 0.44, 0.32, 0.80), 0.55)
+
+func _update_objective_convoy(delta: float) -> void:
+	if player == null:
+		return
+	var fractured_count := 0
+	var p := (player as Node2D).global_position
+	for n in _objective_nodes:
+		if not is_instance_valid(n):
+			continue
+		var vel: Vector2 = n.get_meta("vel", Vector2.ZERO)
+		n.global_position = _clamp_to_arena(n.global_position + vel * delta)
+		var warn_cd: float = float(n.get_meta("warn_cd", 0.0)) - delta
+		if warn_cd <= 0.0:
+			_spawn_ground_warning(n.global_position, 54.0, Color(0.98, 0.44, 0.32, 0.65), 0.34)
+			warn_cd = 0.50 + _rng.randf_range(0.0, 0.30)
+		n.set_meta("warn_cd", warn_cd)
+		var fractured: bool = bool(n.get_meta("fractured", false))
+		if fractured:
+			fractured_count += 1
+			continue
+		if p.distance_to(n.global_position) <= 74.0:
+			var fracture: float = float(n.get_meta("fracture", 0.0)) + delta
+			n.set_meta("fracture", fracture)
+			if fracture >= 1.2:
+				n.set_meta("fractured", true)
+				fractured_count += 1
+				_objective_convoy_hits += 1
+				_spawn_radial_volley(n.global_position, 7 + int(wave * 0.04), _rng.randf() * TAU)
+	_objective_progress = float(fractured_count)
+	if fractured_count >= _objective_nodes.size() and _objective_nodes.size() > 0:
+		_complete_wave_objective()
+
 func _complete_wave_objective() -> void:
 	if not _objective_active:
 		return
+	_run_objective_success += 1
 	if _objective_type == "pylon_capture":
 		var trim := mini(_spawn_queue.size(), 4 + int(wave * 0.22))
 		for i in trim:
@@ -491,8 +719,8 @@ func _complete_wave_objective() -> void:
 		_directive_left += 2.4
 		player.heal(10.0 + float(wave) * 0.3)
 		player.restore_sp(14.0 + float(wave) * 0.35)
-		_show_message("目标完成：充能塔稳定，敌方节奏被打断")
-	else:
+		_show_message(Loc.t("msg_objective_pylon_done"))
+	elif _objective_type == "rift_seal":
 		var removed := 0
 		for hz in hazard_root.get_children():
 			if hz == null:
@@ -503,24 +731,40 @@ func _complete_wave_objective() -> void:
 				break
 		_directive_left += 1.8
 		player.restore_sp(16.0 + float(wave) * 0.45)
-		_show_message("目标完成：裂隙封印，场地压力下降")
+		_show_message(Loc.t("msg_objective_rift_done"))
+	else:
+		var trim_convoy := mini(_spawn_queue.size(), 3 + _objective_convoy_hits + int(wave * 0.08))
+		for i in trim_convoy:
+			if not _spawn_queue.is_empty():
+				_spawn_queue.pop_back()
+		player.restore_sp(12.0 + float(wave) * 0.40)
+		_directive_left += 2.0
+		_show_message(Loc.t("msg_objective_convoy_done"))
 	_cleanup_objective_state()
 
 func _fail_wave_objective() -> void:
 	if not _objective_active:
 		return
 	if _objective_type == "pylon_capture":
-		_show_message("目标失败：充能塔过载，触发惩罚弹幕")
+		_show_message(Loc.t("msg_objective_pylon_fail"))
 		_spawn_radial_volley(_objective_pos, 12 + int(wave * 0.06), _rng.randf() * TAU)
 		for i in range(3 + int(wave * 0.08)):
 			_spawn_queue.append(2 if i % 2 == 0 else 8)
-	else:
-		_show_message("目标失败：裂隙失控，虚空增援抵达")
+	elif _objective_type == "rift_seal":
+		_show_message(Loc.t("msg_objective_rift_fail"))
 		for n in _objective_nodes:
 			if is_instance_valid(n):
 				request_void_zone(n.global_position, wave + 1)
 		for i in range(4 + int(wave * 0.10)):
 			_spawn_queue.append(6 if i % 2 == 0 else 7)
+	else:
+		_show_message(Loc.t("msg_objective_convoy_fail"))
+		for n in _objective_nodes:
+			if is_instance_valid(n) and not bool(n.get_meta("fractured", false)):
+				_spawn_radial_volley(n.global_position, 8 + int(wave * 0.06), _rng.randf() * TAU)
+				request_control_zone(n.global_position, wave + 1)
+		for i in range(4 + int(wave * 0.10)):
+			_spawn_queue.append(4 if i % 2 == 0 else 8)
 	_cleanup_objective_state()
 
 func _cleanup_objective_state() -> void:
@@ -534,6 +778,7 @@ func _cleanup_objective_state() -> void:
 	_objective_progress = 0.0
 	_objective_pos = Vector2.ZERO
 	_objective_trigger_left = 0.0
+	_objective_convoy_hits = 0
 
 func _spawn_objective_marker(pos: Vector2, color: Color, radius: float) -> Node2D:
 	var node := Node2D.new()
@@ -575,13 +820,22 @@ func _update_objective_visuals(delta: float) -> void:
 					p.color = Color(0.52, 1.0, 0.86, 0.20)
 				if l != null:
 					l.default_color = Color(0.52, 1.0, 0.86, 0.94)
+		elif _objective_type == "convoy_fracture":
+			var fractured: bool = bool(n.get_meta("fractured", false))
+			if fractured and n.get_child_count() >= 2:
+				var p2 := n.get_child(0) as Polygon2D
+				var l2 := n.get_child(1) as Line2D
+				if p2 != null:
+					p2.color = Color(1.0, 0.74, 0.30, 0.20)
+				if l2 != null:
+					l2.default_color = Color(1.0, 0.74, 0.30, 0.96)
 
 func _spawn_ground_warning(pos: Vector2, radius: float, color: Color, duration: float) -> void:
 	var warn = TelegraphDecal2D.new()
 	warn.global_position = _clamp_to_arena(pos)
 	warn.radius = radius
 	warn.base_color = color
-	warn.duration = duration
+	warn.duration = maxf(0.2, duration * _affliction_warning_mul)
 	dynamic_root.add_child(warn)
 
 func _spawn_radial_volley(pos: Vector2, count: int, angle_offset: float) -> void:
@@ -598,7 +852,10 @@ func _spawn_radial_volley(pos: Vector2, count: int, angle_offset: float) -> void
 func _apply_ui_locale() -> void:
 	var title_label = card_vbox.get_node("Title") as Label
 	if title_label != null:
-		title_label.text = Loc.t("ui_card_title")
+		if _choice_mode == "mitigation":
+			title_label.text = Loc.t("ui_mitigation_title")
+		else:
+			title_label.text = Loc.t("ui_card_title")
 	card_a.text = Loc.t("ui_card_a")
 	card_b.text = Loc.t("ui_card_b")
 	card_c.text = Loc.t("ui_card_c")
@@ -655,6 +912,7 @@ func _setup_spawns() -> void:
 
 func _begin_wave_preview() -> void:
 	wave += 1
+	_activate_pending_affliction_if_any()
 	_boss_spawned_this_wave = false
 	_wave_preview = true
 	_wave_active = false
@@ -667,7 +925,7 @@ func _begin_wave_preview() -> void:
 	var theme_name = Loc.t(str(TERRAIN_THEME_LABEL.get(_terrain_theme, "terrain_theme_ruins")))
 	var mutator_name = Loc.t(str(_wave_mutator.get("label", "mutator_none")))
 	var headline := Loc.t("msg_wave_preview_theme") % [wave, PREVIEW_SECONDS, theme_name, mutator_name]
-	_show_message("%s\n敌群生态：%s" % [headline, _preview_ecology_summary])
+	_show_message("%s\n%s" % [headline, Loc.t("msg_wave_ecology") % _preview_ecology_summary])
 
 func _spawn_preview_enemies() -> void:
 	_preview_enemies.clear()
@@ -681,15 +939,29 @@ func _spawn_preview_enemies() -> void:
 func _activate_wave_from_preview() -> void:
 	_wave_preview = false
 	_wave_active = true
-	_spawn_timer = 0.2
+	_reset_wave_telemetry()
+	_spawn_timer = _current_spawn_interval()
 	_directive_left = 4.4
 	_set_hazards_active(true)
 	for e in _preview_enemies:
 		if is_instance_valid(e) and e.has_method("set_active"):
 			e.set_active(true)
 	_preview_enemies.clear()
+	_wave_elapsed = 0.0
+	_wave_kills_start = _kills
+	_wave_enemy_budget = maxi(1, _spawn_queue.size() + _alive_enemies())
+	_mid_mutation_stage = 0
+	var mutation_mul := float(_run_relic_pack.get("mutation_time_mul", 1.0))
+	_mutation_time_1 = (9.5 + minf(5.0, float(wave) * 0.22)) * mutation_mul
+	_mutation_time_2 = (20.0 + minf(7.0, float(wave) * 0.35)) * mutation_mul
+	_directive_pool = _build_directive_pool(0)
+	_director_eval_left = 0.25
+	_directive_interval *= float(_run_relic_pack.get("directive_interval_mul", 1.0))
 	_try_assign_wave_anchor()
-	_objective_trigger_left = 6.6 + _rng.randf_range(0.0, 2.5)
+	_objective_trigger_left = (6.6 + _rng.randf_range(0.0, 2.5)) * float(_run_relic_pack.get("objective_trigger_mul", 1.0))
+	if bool(_run_relic_pack.get("force_anchor_early", false)):
+		_objective_trigger_left = minf(_objective_trigger_left, 4.2)
+		_try_assign_wave_anchor()
 	_spawn_miniboss_if_needed()
 	_show_message(Loc.t("msg_wave_start") % wave)
 	play_sfx("wave_start")
@@ -773,7 +1045,8 @@ func _spawn_enemy(kind: int, active: bool) -> Node:
 func _try_apply_elite(enemy: Node) -> void:
 	if wave < 3:
 		return
-	if _rng.randf() > clampf(0.08 + wave * 0.012, 0.0, 0.45):
+	var elite_chance := clampf(0.08 + wave * 0.012 + _director_elite_bonus, 0.0, 0.70)
+	if _rng.randf() > elite_chance:
 		return
 	_apply_elite_combo(enemy, false)
 
@@ -783,7 +1056,8 @@ func _apply_elite_combo(enemy: Node, force_double: bool) -> void:
 	var first_idx: int = _rng.randi_range(0, ELITE_MODS.size() - 1)
 	var first: Dictionary = ELITE_MODS[first_idx]
 	enemy.apply_elite_mod(first)
-	var do_double: bool = force_double or (wave >= 8 and _rng.randf() < clampf(0.08 + wave * 0.01, 0.0, 0.55))
+	var double_chance := clampf(0.08 + wave * 0.01 + _director_elite_bonus * 0.85, 0.0, 0.75)
+	var do_double: bool = force_double or (wave >= 8 and _rng.randf() < double_chance)
 	if not do_double:
 		return
 	var second_idx: int = _rng.randi_range(0, ELITE_MODS.size() - 1)
@@ -813,7 +1087,11 @@ func _spawn_miniboss_if_needed() -> void:
 
 func _on_wave_clear() -> void:
 	_wave_active = false
+	_mid_mutation_stage = 0
+	_wave_elapsed = 0.0
+	_directive_pool.clear()
 	_cleanup_objective_state()
+	_commit_wave_telemetry()
 	player.heal(20.0)
 	player.restore_sp(25.0)
 	_show_message(Loc.t("msg_wave_clear") % wave)
@@ -821,6 +1099,8 @@ func _on_wave_clear() -> void:
 	_show_cards()
 
 func _show_cards() -> void:
+	_choice_mode = "card"
+	_apply_ui_locale()
 	_card_choices = _draw_cards(3)
 	_update_card_button(card_a, _card_choices[0])
 	_update_card_button(card_b, _card_choices[1])
@@ -833,14 +1113,30 @@ func _show_cards() -> void:
 func _pick_card(index: int) -> void:
 	if card_a.disabled or card_b.disabled or card_c.disabled:
 		return
+	if _choice_mode == "mitigation":
+		_pick_mitigation(index)
+		return
 	if index < 0 or index >= _card_choices.size():
 		return
 	var card: Dictionary = _card_choices[index]
+	_card_pick_order.append(str(card.get("title", "card_unknown")))
 	player.apply_upgrade(card["effect"])
-	_show_message(Loc.t("msg_card_pick") % Loc.t(str(card["title"])))
+	var ready_list: Array[String] = _apply_archetype_progress(card)
+	var pick_msg := Loc.t("msg_card_pick") % Loc.t(str(card["title"]))
+	for school in ready_list:
+		pick_msg += "\n" + (Loc.t("msg_keystone_ready") % _archetype_name(school))
+	if bool(card.get("keystone", false)):
+		_keystone_picked = true
+		_keystone_school = str(card.get("requires_archetype", ""))
+		pick_msg = "%s\n%s" % [pick_msg, Loc.t("msg_keystone_commit") % _archetype_name(_keystone_school)]
+	_show_message(pick_msg)
 	play_sfx("card_pick")
 	card_shade.visible = false
-	_set_intermission(INTERMISSION_SECONDS)
+	if _should_offer_affliction_for_next_wave():
+		_prepare_next_affliction()
+		_show_mitigation_choices()
+	else:
+		_set_intermission(INTERMISSION_SECONDS)
 
 func _set_intermission(sec: float) -> void:
 	_intermission_left = sec
@@ -850,14 +1146,29 @@ func _set_intermission(sec: float) -> void:
 	_anchor_enemy = null
 	_anchor_faction = -1
 	_anchor_active = false
+	_director_spawn_mul = 1.0
+	_director_directive_mul = 1.0
+	_director_elite_bonus = 0.0
 
 func _draw_cards(count: int) -> Array[Dictionary]:
 	var pool: Array[Dictionary] = []
 	for card in CARD_POOL:
 		if _card_is_available(card):
 			pool.append(card)
+	for card in KEYSTONE_CARD_POOL:
+		if _card_is_available(card):
+			pool.append(card)
+	for card in AUGMENT_CARD_POOL:
+		if _card_is_available(card):
+			pool.append(card)
 	if pool.size() < count:
 		pool = CARD_POOL.duplicate(true)
+		for card in KEYSTONE_CARD_POOL:
+			if _card_is_available(card):
+				pool.append(card)
+		for card in AUGMENT_CARD_POOL:
+			if _card_is_available(card):
+				pool.append(card)
 	pool.shuffle()
 	var result: Array[Dictionary] = []
 	var cap = mini(count, pool.size())
@@ -870,6 +1181,21 @@ func _draw_cards(count: int) -> Array[Dictionary]:
 func _card_is_available(card: Dictionary) -> bool:
 	if player == null:
 		return true
+	if bool(card.get("keystone", false)):
+		var school := str(card.get("requires_archetype", ""))
+		if school == "" or not bool(_keystone_ready.get(school, false)):
+			return false
+		if _keystone_picked:
+			return false
+	if bool(card.get("augment", false)):
+		var augment_id := str(card.get("augment_id", ""))
+		var socket := str(card.get("requires_socket", ""))
+		if augment_id == "" or socket == "":
+			return false
+		if player.has_method("has_augment") and player.has_augment(augment_id):
+			return false
+		if player.has_method("has_free_socket") and not player.has_free_socket(socket):
+			return false
 	var effect: Variant = card.get("effect", {})
 	if not (effect is Dictionary):
 		return true
@@ -920,7 +1246,83 @@ func _card_is_available(card: Dictionary) -> bool:
 		if player.has_method("is_spell_unlocked"):
 			if player.is_spell_unlocked("shot_style_barrage") or player.is_spell_unlocked("shot_style_rail"):
 				return false
+	if e.has("unlock_combo_overdrive"):
+		if player.has_method("has_combo_card") and player.has_combo_card("overdrive_link"):
+			return false
+	if e.has("unlock_combo_shield_empty"):
+		if player.has_method("has_combo_card") and player.has_combo_card("shield_empty_link"):
+			return false
+	if e.has("unlock_combo_dash_chain"):
+		if player.has_method("has_combo_card") and player.has_combo_card("dash_chain_link"):
+			return false
 	return true
+
+func _archetype_name(id: String) -> String:
+	return Loc.t("archetype_" + id)
+
+func _archetype_base_gain(card: Dictionary) -> float:
+	var rarity := str(card.get("rarity", "common"))
+	match rarity:
+		"rare":
+			return 1.6
+		"epic":
+			return 2.3
+		_:
+			return 1.0
+
+func _effect_to_archetype(key: String) -> String:
+	if key.begins_with("sword_"):
+		return "blade"
+	if key.begins_with("shot_"):
+		return "ballistic"
+	if key.begins_with("magic_") or key.begins_with("meteor_") or key.begins_with("resonance_"):
+		return "arcane"
+	if key.begins_with("dash_") or key.begins_with("grenade_") or key.begins_with("shield_"):
+		return "tactical"
+	if key == "move_speed_mul":
+		return "tactical"
+	if key == "unlock_chain_sigil" or key == "unlock_meteor_rain":
+		return "arcane"
+	return ""
+
+func _apply_archetype_progress(card: Dictionary) -> Array[String]:
+	var unlocked: Array[String] = []
+	if bool(card.get("keystone", false)):
+		return unlocked
+	var effect: Variant = card.get("effect", {})
+	if not (effect is Dictionary):
+		return unlocked
+	var e: Dictionary = effect
+	var weights := {
+		"blade": 0.0,
+		"ballistic": 0.0,
+		"arcane": 0.0,
+		"tactical": 0.0
+	}
+	for k in e.keys():
+		var school := _effect_to_archetype(str(k))
+		if school == "":
+			continue
+		weights[school] = float(weights[school]) + 1.0
+	var sum := float(weights["blade"]) + float(weights["ballistic"]) + float(weights["arcane"]) + float(weights["tactical"])
+	if sum <= 0.0:
+		return unlocked
+	var base_gain := _archetype_base_gain(card)
+	for school in ARCHETYPES:
+		var add := base_gain * (float(weights[school]) / sum)
+		_archetype_meter[school] = minf(ARCHETYPE_MAX, float(_archetype_meter[school]) + add)
+		if not bool(_keystone_ready[school]) and float(_archetype_meter[school]) >= ARCHETYPE_THRESHOLD:
+			_keystone_ready[school] = true
+			unlocked.append(school)
+	_archetype_trace.append({
+		"wave": wave,
+		"pick": _card_pick_order.size(),
+		"blade": float(_archetype_meter["blade"]),
+		"ballistic": float(_archetype_meter["ballistic"]),
+		"arcane": float(_archetype_meter["arcane"]),
+		"tactical": float(_archetype_meter["tactical"])
+	})
+	return unlocked
 
 func _update_card_button(btn: Button, card: Dictionary) -> void:
 	var rarity: String = str(card.get("rarity", "common"))
@@ -930,6 +1332,146 @@ func _update_card_button(btn: Button, card: Dictionary) -> void:
 	btn.add_theme_color_override("font_color", c)
 	btn.add_theme_color_override("font_hover_color", c.lightened(0.1))
 	btn.add_theme_color_override("font_pressed_color", c.darkened(0.1))
+
+func _should_offer_affliction_for_next_wave() -> bool:
+	return wave >= AFFLICTION_INTERVAL and wave % AFFLICTION_INTERVAL == 0
+
+func _prepare_next_affliction() -> void:
+	var pool: Array[String] = ["low_visibility", "mana_static", "rupture_tides"]
+	if _active_affliction != "" and pool.has(_active_affliction):
+		pool.erase(_active_affliction)
+	if pool.is_empty():
+		pool.append("low_visibility")
+	_pending_affliction = pool[_rng.randi_range(0, pool.size() - 1)]
+	_mitigation_choices = _build_mitigation_choices(_pending_affliction)
+
+func _show_mitigation_choices() -> void:
+	_choice_mode = "mitigation"
+	_apply_ui_locale()
+	if _mitigation_choices.size() < 3:
+		_mitigation_choices = _build_mitigation_choices(_pending_affliction)
+	_update_choice_button(card_a, _mitigation_choices[0])
+	_update_choice_button(card_b, _mitigation_choices[1])
+	_update_choice_button(card_c, _mitigation_choices[2])
+	_set_card_buttons(false)
+	_prepare_card_intro_visual()
+	card_shade.visible = true
+	_play_card_intro()
+	_show_message(Loc.t("msg_affliction_incoming") % Loc.t("affliction_" + _pending_affliction))
+
+func _update_choice_button(btn: Button, choice: Dictionary) -> void:
+	var rarity: String = str(choice.get("rarity", "rare"))
+	var rarity_text: String = Loc.t(str(RARITY_LABEL.get(rarity, "rarity_rare")))
+	btn.text = "[%s] %s\n%s" % [rarity_text, Loc.t(str(choice.get("title", ""))), Loc.t(str(choice.get("desc", "")))]
+	var c: Color = Color(RARITY_COLOR.get(rarity, Color(0.42, 0.82, 1.0, 1.0)))
+	btn.add_theme_color_override("font_color", c)
+	btn.add_theme_color_override("font_hover_color", c.lightened(0.1))
+	btn.add_theme_color_override("font_pressed_color", c.darkened(0.1))
+
+func _pick_mitigation(index: int) -> void:
+	if index < 0 or index >= _mitigation_choices.size():
+		return
+	var choice: Dictionary = _mitigation_choices[index]
+	var effect: Dictionary = choice.get("effect", {})
+	_apply_mitigation_effect(effect)
+	if choice.has("grant_upgrade"):
+		player.apply_upgrade(choice["grant_upgrade"])
+	_affliction_mitigation = str(choice.get("title", ""))
+	_show_message(Loc.t("msg_affliction_mitigated") % [Loc.t("affliction_" + _pending_affliction), Loc.t(_affliction_mitigation)])
+	play_sfx("card_pick")
+	card_shade.visible = false
+	_set_intermission(INTERMISSION_SECONDS)
+
+func _build_mitigation_choices(affliction_id: String) -> Array[Dictionary]:
+	match affliction_id:
+		"low_visibility":
+			return [
+				{"title":"mitigation_visibility_beacon_t", "desc":"mitigation_visibility_beacon_d", "rarity":"rare", "effect":{"warning_mul_add": 0.22}},
+				{"title":"mitigation_visibility_scout_t", "desc":"mitigation_visibility_scout_d", "rarity":"rare", "effect":{"warning_mul_add": 0.12}, "grant_upgrade":{"move_speed_mul": 1.08}},
+				{"title":"mitigation_visibility_lens_t", "desc":"mitigation_visibility_lens_d", "rarity":"rare", "effect":{"warning_mul_add": 0.08}, "grant_upgrade":{"shot_speed_add": 70.0}}
+			]
+		"mana_static":
+			return [
+				{"title":"mitigation_mana_ground_t", "desc":"mitigation_mana_ground_d", "rarity":"rare", "effect":{"mana_drain_mul_mul": 0.58}},
+				{"title":"mitigation_mana_flux_t", "desc":"mitigation_mana_flux_d", "rarity":"rare", "effect":{"mana_drain_mul_mul": 0.74}, "grant_upgrade":{"magic_haste_mul": 1.08}},
+				{"title":"mitigation_mana_reserve_t", "desc":"mitigation_mana_reserve_d", "rarity":"rare", "effect":{"mana_drain_mul_mul": 0.80}, "grant_upgrade":{"max_sp_add": 20.0, "sp_add": 20.0}}
+			]
+		"rupture_tides":
+			return [
+				{"title":"mitigation_tide_anchor_t", "desc":"mitigation_tide_anchor_d", "rarity":"rare", "effect":{"tide_interval_mul_mul": 1.28}},
+				{"title":"mitigation_tide_weave_t", "desc":"mitigation_tide_weave_d", "rarity":"rare", "effect":{"tide_damage_mul_mul": 0.72}, "grant_upgrade":{"grenade_cd_mul": 0.90}},
+				{"title":"mitigation_tide_kinetic_t", "desc":"mitigation_tide_kinetic_d", "rarity":"rare", "effect":{"tide_radius_mul_mul": 0.82}, "grant_upgrade":{"dash_cd_mul": 0.88}}
+			]
+	return [
+		{"title":"mitigation_visibility_beacon_t", "desc":"mitigation_visibility_beacon_d", "rarity":"rare", "effect":{"warning_mul_add": 0.18}},
+		{"title":"mitigation_mana_ground_t", "desc":"mitigation_mana_ground_d", "rarity":"rare", "effect":{"mana_drain_mul_mul": 0.70}},
+		{"title":"mitigation_tide_anchor_t", "desc":"mitigation_tide_anchor_d", "rarity":"rare", "effect":{"tide_interval_mul_mul": 1.20}}
+	]
+
+func _apply_mitigation_effect(effect: Dictionary) -> void:
+	if effect.has("warning_mul_add"):
+		_affliction_warning_mul += float(effect["warning_mul_add"])
+	if effect.has("mana_drain_mul_mul"):
+		_affliction_mana_drain_mul *= float(effect["mana_drain_mul_mul"])
+	if effect.has("tide_interval_mul_mul"):
+		_affliction_tide_interval_mul *= float(effect["tide_interval_mul_mul"])
+	if effect.has("tide_damage_mul_mul"):
+		_affliction_tide_damage_mul *= float(effect["tide_damage_mul_mul"])
+	if effect.has("tide_radius_mul_mul"):
+		_affliction_tide_radius_mul *= float(effect["tide_radius_mul_mul"])
+
+func _activate_pending_affliction_if_any() -> void:
+	if _pending_affliction == "":
+		return
+	_active_affliction = _pending_affliction
+	_run_affliction_wave_count += 1
+	_pending_affliction = ""
+	_affliction_start_wave = wave
+	match _active_affliction:
+		"low_visibility":
+			_affliction_warning_mul = 0.72
+			_affliction_tick_left = 0.0
+		"mana_static":
+			_affliction_mana_drain_mul = 1.0
+			_affliction_tick_left = 0.45
+		"rupture_tides":
+			_affliction_tide_interval_mul = 1.0
+			_affliction_tide_damage_mul = 1.0
+			_affliction_tide_radius_mul = 1.0
+			_affliction_tick_left = 1.2
+	_show_message(Loc.t("msg_affliction_active") % Loc.t("affliction_" + _active_affliction))
+
+func _update_affliction_runtime(delta: float) -> void:
+	if _active_affliction == "":
+		return
+	_affliction_tick_left -= delta
+	match _active_affliction:
+		"mana_static":
+			if _affliction_tick_left <= 0.0:
+				_affliction_tick_left = 1.0
+				if player != null and player.has_method("drain_sp"):
+					player.drain_sp((6.0 + float(wave) * 0.12) * _affliction_mana_drain_mul)
+		"rupture_tides":
+			if _affliction_tick_left <= 0.0:
+				_affliction_tick_left = maxf(2.4, (5.8 - float(wave) * 0.05) * _affliction_tide_interval_mul)
+				if player != null:
+					var center := _clamp_to_arena((player as Node2D).global_position + Vector2(_rng.randf_range(-120.0, 120.0), _rng.randf_range(-90.0, 90.0)))
+					var radius := (112.0 + float(wave) * 0.7) * _affliction_tide_radius_mul
+					_spawn_ground_warning(center, radius, Color(1.0, 0.34, 0.66, 0.84), 0.66)
+					var damage_val := int(round((8.0 + float(wave) * 0.18) * _affliction_tide_damage_mul))
+					var timer := get_tree().create_timer(0.66)
+					timer.timeout.connect(func() -> void:
+						if not _wave_active or _active_affliction != "rupture_tides":
+							return
+						_spawn_radial_volley(center, 10 + int(wave * 0.08), _rng.randf() * TAU)
+						if player != null and player.has_method("take_damage") and (player as Node2D).global_position.distance_to(center) <= radius:
+							player.take_damage(damage_val)
+					)
+
+func _affliction_summary() -> String:
+	if _active_affliction == "":
+		return Loc.t("affliction_none")
+	return Loc.t("affliction_" + _active_affliction)
 
 func _prepare_card_intro_visual() -> void:
 	var c: Color = card_shade.color
@@ -963,6 +1505,28 @@ func _set_card_buttons(enabled: bool) -> void:
 	card_b.disabled = not enabled
 	card_c.disabled = not enabled
 
+func _init_run_relic() -> void:
+	_run_relic_id = ""
+	_run_relic_pack.clear()
+	if ProgressionManager == null:
+		return
+	if not ProgressionManager.has_method("get_unlocked_relics"):
+		return
+	var relics: Array[String] = ProgressionManager.get_unlocked_relics()
+	if relics.is_empty():
+		return
+	_run_relic_id = relics[_rng.randi_range(0, relics.size() - 1)]
+	if ProgressionManager.has_method("get_relic_rule_pack"):
+		_run_relic_pack = ProgressionManager.get_relic_rule_pack(_run_relic_id)
+	if not _run_relic_pack.is_empty():
+		var relic_title := Loc.t(str(_run_relic_pack.get("title", "relic_none")))
+		_show_message(Loc.t("msg_relic_active") % relic_title)
+
+func _relic_summary() -> String:
+	if _run_relic_pack.is_empty():
+		return Loc.t("relic_none")
+	return Loc.t(str(_run_relic_pack.get("title", "relic_none")))
+
 func _mutate_terrain() -> void:
 	for n in dynamic_root.get_children():
 		n.queue_free()
@@ -984,7 +1548,8 @@ func _mutate_terrain() -> void:
 		var h = _rng.randf_range(28.0, 94.0)
 		_create_world_block(Rect2(x, y, w, h), Color(0.24, 0.29, 0.36), dynamic_root)
 
-	var hazard_count: int = mini(10, 2 + int(wave / 2) + int(_wave_mutator.get("hazard_extra", 0)))
+	var relic_hazard_add := int(_run_relic_pack.get("extra_hazard_add", 0))
+	var hazard_count: int = mini(12, 2 + int(wave / 2) + int(_wave_mutator.get("hazard_extra", 0)) + relic_hazard_add)
 	for i in hazard_count:
 		if hazard_scene == null:
 			continue
@@ -995,7 +1560,7 @@ func _mutate_terrain() -> void:
 		if hz.has_method("set_hazard_kind"):
 			hz.set_hazard_kind(_pick_hazard_kind_for_theme(_terrain_theme))
 		if hz.has_method("configure_for_wave"):
-			hz.configure_for_wave(wave)
+			hz.configure_for_wave(wave + int(_run_relic_pack.get("hazard_extra_wave", 0)))
 
 func _build_terrain_layout(terrain_type: int, theme: int) -> void:
 	var wall_c = Color(0.22, 0.27, 0.34)
@@ -1153,6 +1718,130 @@ func _apply_wave_mutator_to_enemy(enemy: Node) -> void:
 		"color": color
 	})
 
+func _update_midwave_mutation() -> void:
+	if not _wave_active:
+		return
+	if _mid_mutation_stage >= 2:
+		return
+	var kill_progress := float(maxi(0, _kills - _wave_kills_start)) / float(maxi(1, _wave_enemy_budget))
+	if _mid_mutation_stage == 0:
+		if _wave_elapsed >= _mutation_time_1 or kill_progress >= 0.36:
+			_trigger_midwave_mutation(1)
+	elif _mid_mutation_stage == 1:
+		if _wave_elapsed >= _mutation_time_2 or kill_progress >= 0.72:
+			_trigger_midwave_mutation(2)
+
+func _trigger_midwave_mutation(stage: int) -> void:
+	_mid_mutation_stage = clampi(stage, 1, 2)
+	_apply_layout_mutation(_mid_mutation_stage)
+	_rotate_hazards_for_mutation(_mid_mutation_stage)
+	_directive_pool = _build_directive_pool(_mid_mutation_stage)
+	if _mid_mutation_stage == 1:
+		_show_message(Loc.t("msg_mutation_stage1"))
+	else:
+		_show_message(Loc.t("msg_mutation_stage2"))
+	_objective_trigger_left = minf(_objective_trigger_left, 2.2)
+
+func _build_directive_pool(stage: int) -> Array[String]:
+	var pool: Array[String] = []
+	pool.append_array(["surge", "surge", "seismic", "flux"])
+	if wave >= 4:
+		pool.append("beacon_drop")
+	if wave >= 7:
+		pool.append("hellburst")
+	if stage >= 1:
+		pool.append_array(["seismic", "flux", "beacon_drop"])
+	if stage >= 2:
+		pool.append_array(["hellburst", "hellburst", "flux"])
+	if bool(_run_relic_pack.get("force_flux_directive", false)):
+		pool.append("flux")
+		if stage >= 1:
+			pool.append("flux")
+	return pool
+
+func _pick_runtime_directive() -> String:
+	if _directive_pool.is_empty():
+		_directive_pool = _build_directive_pool(_mid_mutation_stage)
+	var idx := _rng.randi_range(0, _directive_pool.size() - 1)
+	return _directive_pool[idx]
+
+func _collect_dynamic_blocks() -> Array[Node2D]:
+	var blocks: Array[Node2D] = []
+	for n in dynamic_root.get_children():
+		if not (n is Node2D):
+			continue
+		var has_world := false
+		for c in n.get_children():
+			if c is StaticBody2D and (c as StaticBody2D).is_in_group("world"):
+				has_world = true
+				break
+		if has_world:
+			blocks.append(n as Node2D)
+	return blocks
+
+func _apply_layout_mutation(stage: int) -> void:
+	var blocks := _collect_dynamic_blocks()
+	if stage == 1:
+		var remove_n := mini(4, blocks.size())
+		for i in remove_n:
+			var best_idx := -1
+			var best_score := INF
+			for j in blocks.size():
+				var p := blocks[j].global_position
+				var score := absf(p.x) + absf(p.y) * 0.85
+				if score < best_score:
+					best_score = score
+					best_idx = j
+			if best_idx >= 0:
+				var pick := blocks[best_idx]
+				if is_instance_valid(pick):
+					pick.queue_free()
+				blocks.remove_at(best_idx)
+	else:
+		var wall_c := Color(0.28, 0.34, 0.42)
+		match _terrain_theme:
+			1:
+				wall_c = Color(0.24, 0.38, 0.48)
+			2:
+				wall_c = Color(0.35, 0.24, 0.42)
+			3:
+				wall_c = Color(0.40, 0.34, 0.24)
+		var rects: Array[Rect2] = []
+		if _rng.randf() < 0.5:
+			rects = [Rect2(-310.0, -120.0, 620.0, 26.0), Rect2(-310.0, 96.0, 620.0, 26.0)]
+		else:
+			rects = [Rect2(-120.0, -250.0, 26.0, 500.0), Rect2(94.0, -250.0, 26.0, 500.0)]
+		for r in rects:
+			_create_world_block(r, wall_c, dynamic_root, true)
+
+func _rotate_hazards_for_mutation(stage: int) -> void:
+	for hz in hazard_root.get_children():
+		if not hz.has_method("set_hazard_kind"):
+			continue
+		if stage == 1:
+			var k1: Array[int] = [_pick_hazard_kind_for_theme(_terrain_theme), _rng.randi_range(0, 3)]
+			hz.set_hazard_kind(k1[_rng.randi_range(0, k1.size() - 1)])
+		else:
+			var k2: Array[int] = [0, 2, 3]
+			hz.set_hazard_kind(k2[_rng.randi_range(0, k2.size() - 1)])
+		if hz.has_method("configure_for_wave"):
+			hz.configure_for_wave(wave + stage)
+		if hz.has_method("receive_chain_pulse"):
+			hz.receive_chain_pulse(3 if stage == 2 else 1, 1.0 + float(stage) * 0.3)
+	if stage >= 2 and hazard_scene != null and _rng.randf() < 0.75:
+		var extra_n := 1 + int(_rng.randf() < 0.45)
+		for i in extra_n:
+			var h: Node = hazard_scene.instantiate()
+			hazard_root.add_child(h)
+			if h is Node2D:
+				(h as Node2D).global_position = Vector2(_rng.randf_range(-620.0, 620.0), _rng.randf_range(-330.0, 330.0))
+			if h.has_method("set_hazard_kind"):
+				h.set_hazard_kind([0, 2, 3][_rng.randi_range(0, 2)])
+			if h.has_method("configure_for_wave"):
+				h.configure_for_wave(wave + 2)
+			if h.has_method("set_gameplay_active"):
+				h.set_gameplay_active(_wave_active)
+
 func _choose_wave_directive() -> String:
 	var roll := _rng.randi_range(1, 100)
 	if wave <= 3:
@@ -1180,6 +1869,8 @@ func _choose_wave_directive() -> String:
 func _trigger_wave_directive() -> void:
 	if not _wave_active:
 		return
+	_wave_directive_count += 1
+	_wave_directive = _pick_runtime_directive()
 	match _wave_directive:
 		"surge":
 			_directive_surge_pack()
@@ -1196,7 +1887,8 @@ func _trigger_wave_directive() -> void:
 
 func _directive_surge_pack() -> void:
 	_show_message(Loc.t("msg_directive_surge"))
-	for i in range(3 + int(wave * 0.08)):
+	var n := int(round((3.0 + float(wave) * 0.08) * _director_directive_mul))
+	for i in range(maxi(2, n)):
 		var kind := 0 if i % 2 == 0 else 8
 		_spawn_queue.append(kind)
 
@@ -1205,10 +1897,12 @@ func _directive_seismic_ring() -> void:
 		return
 	var center := (player as Node2D).global_position
 	_show_message(Loc.t("msg_directive_seismic"))
-	_spawn_ground_warning(center, 132.0, Color(1.0, 0.48, 0.22, 0.82), 0.68)
+	var radius := 132.0 * (0.92 + 0.20 * _director_directive_mul)
+	_spawn_ground_warning(center, radius, Color(1.0, 0.48, 0.22, 0.82), 0.68)
 	var timer := get_tree().create_timer(0.68)
 	await timer.timeout
-	_spawn_radial_volley(center, 14 + int(wave * 0.1), 0.0)
+	var volley_count := int(round((14.0 + float(wave) * 0.1) * _director_directive_mul))
+	_spawn_radial_volley(center, maxi(10, volley_count), 0.0)
 
 func _directive_hazard_flux() -> void:
 	_show_message(Loc.t("msg_directive_flux"))
@@ -1217,17 +1911,22 @@ func _directive_hazard_flux() -> void:
 			hz.set_hazard_kind(_rng.randi_range(0, 3))
 		if hz.has_method("configure_for_wave"):
 			hz.configure_for_wave(wave + 1)
-	if _rng.randf() < 0.6 and hazard_scene != null:
-		var hz: Node = hazard_scene.instantiate()
-		hazard_root.add_child(hz)
-		if hz is Node2D:
-			(hz as Node2D).global_position = Vector2(_rng.randf_range(-600.0, 600.0), _rng.randf_range(-320.0, 320.0))
-		if hz.has_method("set_hazard_kind"):
-			hz.set_hazard_kind(_rng.randi_range(0, 3))
-		if hz.has_method("configure_for_wave"):
-			hz.configure_for_wave(wave + 1)
-		if hz.has_method("set_gameplay_active"):
-			hz.set_gameplay_active(_wave_active)
+	if hazard_scene != null:
+		var extra_chance := clampf(0.45 + (_director_directive_mul - 1.0) * 0.55, 0.25, 0.92)
+		var extra_count := 1 if _rng.randf() < extra_chance else 0
+		if _director_directive_mul >= 1.55 and _rng.randf() < 0.45:
+			extra_count += 1
+		for i in range(extra_count):
+			var hz: Node = hazard_scene.instantiate()
+			hazard_root.add_child(hz)
+			if hz is Node2D:
+				(hz as Node2D).global_position = Vector2(_rng.randf_range(-600.0, 600.0), _rng.randf_range(-320.0, 320.0))
+			if hz.has_method("set_hazard_kind"):
+				hz.set_hazard_kind(_rng.randi_range(0, 3))
+			if hz.has_method("configure_for_wave"):
+				hz.configure_for_wave(wave + 1 + i)
+			if hz.has_method("set_gameplay_active"):
+				hz.set_gameplay_active(_wave_active)
 
 func _directive_beacon_drop() -> void:
 	_show_message(Loc.t("msg_directive_beacon"))
@@ -1235,9 +1934,14 @@ func _directive_beacon_drop() -> void:
 	_spawn_ground_warning(p, 86.0, Color(0.36, 1.0, 0.90, 0.84), 0.72)
 	var timer := get_tree().create_timer(0.72)
 	await timer.timeout
-	var b := _spawn_enemy(7, true)
-	if b is Node2D:
-		(b as Node2D).global_position = p
+	var beacon_count := 1
+	if _director_directive_mul >= 1.45 and _rng.randf() < 0.55:
+		beacon_count = 2
+	for i in range(beacon_count):
+		var b := _spawn_enemy(7, true)
+		if b is Node2D:
+			var jitter := Vector2(_rng.randf_range(-52.0, 52.0), _rng.randf_range(-48.0, 48.0))
+			(b as Node2D).global_position = _clamp_to_arena(p + jitter)
 
 func _directive_hellburst() -> void:
 	if player == null:
@@ -1245,6 +1949,119 @@ func _directive_hellburst() -> void:
 	var pos := (player as Node2D).global_position + Vector2(_rng.randf_range(-110.0, 110.0), _rng.randf_range(-80.0, 80.0))
 	_show_message(Loc.t("msg_directive_hellburst"))
 	await request_bullet_hell(_clamp_to_arena(pos))
+	if _director_directive_mul >= 1.42 and _rng.randf() < 0.42:
+		var pos2 := (player as Node2D).global_position + Vector2(_rng.randf_range(-150.0, 150.0), _rng.randf_range(-120.0, 120.0))
+		await request_bullet_hell(_clamp_to_arena(pos2))
+
+func _current_spawn_interval() -> float:
+	var base := maxf(0.12, BASE_SPAWN_INTERVAL - wave * 0.005)
+	return clampf(base / clampf(_director_spawn_mul, 0.72, 1.9), 0.08, 0.55)
+
+func _track_position_entropy(delta: float) -> void:
+	if player == null:
+		return
+	_pos_sample_left -= delta
+	if _pos_sample_left > 0.0:
+		return
+	_pos_sample_left = 0.24
+	var p := (player as Node2D).global_position
+	var gx := int(floor((p.x - ARENA_RECT.position.x) / 160.0))
+	var gy := int(floor((p.y - ARENA_RECT.position.y) / 120.0))
+	var key := "%d:%d" % [gx, gy]
+	_wave_position_bins[key] = int(_wave_position_bins.get(key, 0)) + 1
+	_wave_position_samples += 1
+
+func _compute_position_entropy() -> float:
+	if _wave_position_samples <= 0 or _wave_position_bins.is_empty():
+		return 0.0
+	var total := float(_wave_position_samples)
+	var entropy := 0.0
+	for c in _wave_position_bins.values():
+		var p := float(c) / total
+		if p > 0.0001:
+			entropy -= p * (log(p) / log(2.0))
+	var max_entropy := maxf(1.0, log(float(maxi(2, _wave_position_bins.size()))) / log(2.0))
+	return clampf(entropy / max_entropy, 0.0, 1.0)
+
+func _evaluate_threat_director() -> void:
+	if not _wave_active:
+		return
+	var elapsed := maxf(1.0, _wave_elapsed)
+	var dps := _wave_damage_dealt / elapsed
+	var intake := _wave_damage_taken / elapsed
+	var entropy := _compute_position_entropy()
+	var kills_now := maxi(1, _wave_kill_times.size())
+	var hazard_eff := float(_wave_hazard_kills) / float(kills_now)
+	var dps_norm := clampf(dps / (42.0 + float(wave) * 2.4), 0.0, 1.8)
+	var intake_norm := clampf(intake / (16.0 + float(wave) * 0.9), 0.0, 1.8)
+	var hazard_norm := clampf(hazard_eff / 0.32, 0.0, 1.5)
+	var raw := 0.46 * dps_norm + 0.20 * entropy + 0.20 * hazard_norm - 0.24 * intake_norm
+	var target_level := clampf(0.5 + (raw - 0.35) * 0.95, 0.0, 1.0)
+	_director_level = lerpf(_director_level, target_level, 0.38)
+	_run_director_peak = maxf(_run_director_peak, _director_level)
+	_director_spawn_mul = lerpf(0.82, 1.62, _director_level)
+	_director_directive_mul = lerpf(0.86, 1.75, _director_level)
+	_director_elite_bonus = lerpf(-0.02, 0.18, _director_level)
+	_directive_interval = clampf(8.6 / _director_directive_mul, 4.2, 11.5)
+	if _director_hint_cd <= 0.0:
+		if _director_level >= 0.78:
+			_show_message(Loc.t("msg_director_rise"))
+			_director_hint_cd = 13.0
+		elif _director_level <= 0.24:
+			_show_message(Loc.t("msg_director_fall"))
+			_director_hint_cd = 13.0
+
+func _is_kill_near_active_hazard(pos: Vector2) -> bool:
+	for hz in hazard_root.get_children():
+		if not (hz is Node2D):
+			continue
+		if hz.has_method("is_hazard_active") and not bool(hz.is_hazard_active()):
+			continue
+		if (hz as Node2D).global_position.distance_to(pos) <= 126.0:
+			return true
+	return false
+
+func _on_player_damage_dealt(amount: float) -> void:
+	if not _wave_active:
+		return
+	_wave_damage_dealt += maxf(0.0, amount)
+
+func _reset_wave_telemetry() -> void:
+	_wave_damage_dealt = 0.0
+	_wave_damage_taken = 0.0
+	_wave_hazard_kills = 0
+	_wave_directive_count = 0
+	_wave_position_bins.clear()
+	_wave_position_samples = 0
+	_wave_kill_times.clear()
+	_pos_sample_left = 0.0
+	_last_hp = float(player.hp)
+	_last_sp = float(player.sp)
+
+func _commit_wave_telemetry() -> void:
+	_run_hazard_kills_total += _wave_hazard_kills
+	var telemetry := {
+		"wave": wave,
+		"clear_time": _wave_elapsed,
+		"kill_time_distribution": _wave_kill_times.duplicate(),
+		"hazard_deaths": _wave_hazard_kills,
+		"directive_trigger_outcome": {
+			"count": _wave_directive_count,
+			"director_level": _director_level,
+			"directive_mul": _director_directive_mul
+		},
+		"damage_source_breakdown": {
+			"player_total": _wave_damage_dealt,
+			"intake_total": _wave_damage_taken
+		},
+		"position_entropy": _compute_position_entropy(),
+		"hazard_efficiency": float(_wave_hazard_kills) / float(maxi(1, _wave_kill_times.size())),
+		"card_pick_order": _card_pick_order.duplicate(),
+		"archetype_meter_trajectory": _archetype_trace.duplicate(true)
+	}
+	_wave_telemetry_history.append(telemetry)
+	if _wave_telemetry_history.size() > 24:
+		_wave_telemetry_history.pop_front()
 
 func _set_hazards_active(active: bool) -> void:
 	for hz in hazard_root.get_children():
@@ -1296,6 +2113,12 @@ func _sanitize_enemies() -> void:
 				e.global_position = _clamp_to_arena(_random_spawn())
 
 func _on_player_stats_changed(hp: float, max_hp: float, sp: float, max_sp: float, bullet_mode: String, dash_cd: float, grenade_cd: float, shield_on: bool) -> void:
+	if _wave_active:
+		var hp_loss := maxf(0.0, _last_hp - hp)
+		var sp_loss := maxf(0.0, _last_sp - sp)
+		_wave_damage_taken += hp_loss + sp_loss * (0.40 if shield_on else 0.18)
+	_last_hp = hp
+	_last_sp = sp
 	hp_bar.max_value = max_hp
 	hp_bar.value = hp
 	sp_bar.max_value = max_sp
@@ -1435,14 +2258,15 @@ func _set_wave_anchor(enemy: Node, faction: int) -> void:
 	if enemy.has_method("set_anchor"):
 		enemy.set_anchor(true)
 	if enemy.has_method("apply_elite_mod"):
+		var anchor_mul := float(_run_relic_pack.get("anchor_buff_mul", 1.0))
 		enemy.apply_elite_mod({
 			"name": "Anchor",
-			"hp_mul": 1.28,
+			"hp_mul": 1.28 * anchor_mul,
 			"dmg_mul": 1.0,
-			"speed_mul": 1.0,
+			"speed_mul": 1.0 + (anchor_mul - 1.0) * 0.35,
 			"color": Color(1.0, 0.90, 0.35, 1.0)
 		})
-	_show_message("指挥锚点出现：%s 阵营核心，击破可扰乱联结" % _faction_name(faction))
+	_show_message(Loc.t("msg_anchor_spawn") % _faction_name(faction))
 
 func _break_faction_links(faction: int, duration: float) -> void:
 	var hit := 0
@@ -1455,7 +2279,39 @@ func _break_faction_links(faction: int, duration: float) -> void:
 			n.apply_faction_break(duration)
 			hit += 1
 	if hit > 0:
-		_show_message("锚点击破：%s 联结失稳 %.1fs" % [_faction_name(faction), duration])
+		_run_anchor_breaks += 1
+		_show_message(Loc.t("msg_anchor_break") % [_faction_name(faction), duration])
+
+func _archetype_meter_summary() -> String:
+	var blade := int(round(float(_archetype_meter["blade"])))
+	var ballistic := int(round(float(_archetype_meter["ballistic"])))
+	var arcane := int(round(float(_archetype_meter["arcane"])))
+	var tactical := int(round(float(_archetype_meter["tactical"])))
+	return "%s:%d %s:%d %s:%d %s:%d" % [
+		Loc.t("archetype_blade_short"), blade,
+		Loc.t("archetype_ballistic_short"), ballistic,
+		Loc.t("archetype_arcane_short"), arcane,
+		Loc.t("archetype_tactical_short"), tactical
+	]
+
+func _socket_summary() -> String:
+	if player == null:
+		return "B0/0 S0/0 G0/0"
+	var bu := 0
+	var bs := 0
+	var su := 0
+	var ss := 0
+	var gu := 0
+	var gs := 0
+	if player.has_method("get_socket_used"):
+		bu = int(player.get_socket_used("bullet"))
+		su = int(player.get_socket_used("spell"))
+		gu = int(player.get_socket_used("grenade"))
+	if player.has_method("get_socket_slots"):
+		bs = int(player.get_socket_slots("bullet"))
+		ss = int(player.get_socket_slots("spell"))
+		gs = int(player.get_socket_slots("grenade"))
+	return "B%d/%d S%d/%d G%d/%d" % [bu, bs, su, ss, gu, gs]
 
 func _update_ui() -> void:
 	wave_label.text = Loc.t("ui_wave") % wave
@@ -1472,19 +2328,32 @@ func _update_ui() -> void:
 		if _objective_active:
 			if _objective_type == "pylon_capture":
 				var pct := int(clampf(_objective_progress / 3.5, 0.0, 1.0) * 100.0)
-				timer_label.text += " | 目标: 占领塔 %d%% %.1fs" % [pct, maxf(0.0, _objective_left)]
+				timer_label.text += " | " + (Loc.t("ui_objective_pylon") % [pct, maxf(0.0, _objective_left)])
 			elif _objective_type == "rift_seal":
 				var total := maxi(1, _objective_nodes.size())
 				var done := int(_objective_progress)
-				timer_label.text += " | 目标: 封印裂隙 %d/%d %.1fs" % [done, total, maxf(0.0, _objective_left)]
+				timer_label.text += " | " + (Loc.t("ui_objective_rift") % [done, total, maxf(0.0, _objective_left)])
+			elif _objective_type == "convoy_fracture":
+				var total_convoy := maxi(1, _objective_nodes.size())
+				var done_convoy := int(_objective_progress)
+				timer_label.text += " | " + (Loc.t("ui_objective_convoy") % [done_convoy, total_convoy, maxf(0.0, _objective_left)])
 	else:
 		status_label.text = Loc.t("ui_status_intermission")
 		timer_label.text = Loc.t("ui_next_wave") % maxf(0.0, _intermission_left)
+	status_label.text += " | " + (Loc.t("ui_archetype_line") % _archetype_meter_summary())
+	status_label.text += " | " + (Loc.t("ui_socket_line") % _socket_summary())
+	status_label.text += " | " + (Loc.t("ui_relic_line") % _relic_summary())
+	status_label.text += " | " + (Loc.t("ui_threat_line") % int(round(_director_level * 100.0)))
+	status_label.text += " | " + (Loc.t("ui_affliction_line") % _affliction_summary())
 
 func _on_enemy_died(score_value: int, enemy: Node = null) -> void:
 	_kills += 1
 	var gained: int = int(round(float(score_value) * _wave_multiplier()))
 	_score += maxi(1, gained)
+	if _wave_active:
+		_wave_kill_times.append(_wave_elapsed)
+		if enemy is Node2D and _is_kill_near_active_hazard((enemy as Node2D).global_position):
+			_wave_hazard_kills += 1
 	if enemy != null and enemy == _anchor_enemy:
 		var faction: int = _anchor_faction
 		_anchor_enemy = null
@@ -1540,19 +2409,36 @@ func _on_player_died() -> void:
 	_game_over = true
 	_wave_active = false
 	_wave_preview = false
+	_commit_wave_telemetry()
 	_cleanup_objective_state()
 	_spawn_queue.clear()
 	card_shade.visible = false
 	pause_shade.visible = false
 	var bank = 0
 	var best = _score
+	var unlocked_relics: Array[String] = []
+	var run_report := {
+		"wave_reached": wave,
+		"director_peak": _run_director_peak,
+		"objective_success": _run_objective_success,
+		"anchor_breaks": _run_anchor_breaks,
+		"hazard_kills": _run_hazard_kills_total,
+		"affliction_waves": _run_affliction_wave_count
+	}
 	if ProgressionManager != null:
+		if ProgressionManager.has_method("register_run_report"):
+			unlocked_relics = ProgressionManager.register_run_report(run_report)
 		ProgressionManager.add_run_score(_score)
 		bank = ProgressionManager.score_bank
 		best = ProgressionManager.best_run_score
 	game_over_title.text = Loc.t("gameover_title")
 	game_over_score.text = Loc.t("gameover_score") % _score
 	game_over_bank.text = Loc.t("gameover_bank") % bank
+	if not unlocked_relics.is_empty():
+		var names: Array[String] = []
+		for relic_id in unlocked_relics:
+			names.append(Loc.t("relic_" + relic_id + "_t"))
+		game_over_bank.text += "\n" + (Loc.t("msg_relic_unlock") % ", ".join(names))
 	game_over_best.text = Loc.t("gameover_best") % best
 	game_over_restart.text = Loc.t("menu_restart")
 	game_over_mainmenu.text = Loc.t("menu_mainmenu")

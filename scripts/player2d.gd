@@ -3,6 +3,7 @@ extends CharacterBody2D
 signal stats_changed(hp: float, max_hp: float, sp: float, max_sp: float, bullet_mode: String, dash_cd: float, grenade_cd: float, shield_on: bool)
 signal message_sent(text: String)
 signal sfx_event(name: String)
+signal damage_dealt(amount: float)
 signal died
 
 const BASE_MOVE_SPEED := 220.0
@@ -127,6 +128,29 @@ var auto_fire_enabled := true
 var _overdrive_charge := 0.0
 var _overdrive_left := 0.0
 var _overdrive_active := false
+var _socket_slots := {"bullet": 0, "spell": 0, "grenade": 0}
+var _socket_used := {"bullet": 0, "spell": 0, "grenade": 0}
+var _augment_state := {
+	"overheat_lens": false,
+	"phase_prism": false,
+	"mana_weave": false,
+	"cluster_payload": false
+}
+var _augment_shot_spread := 0.0
+var _augment_spell_power_mul := 1.0
+var _augment_spell_haste_mul := 1.0
+var _augment_chain_jump := 0
+var _augment_meteor_strike := 0
+var _augment_grenade_cluster := 0
+var _augment_grenade_cluster_dmg := 0.35
+var _augment_grenade_cluster_radius := 0.46
+var _combo_state := {
+	"overdrive_link": false,
+	"shield_empty_link": false,
+	"dash_chain_link": false
+}
+var _combo_dash_times: Array[float] = []
+var _combo_dash_chain_left := 0.0
 
 func _ready() -> void:
 	add_to_group("player")
@@ -142,6 +166,7 @@ func _process(delta: float) -> void:
 	_handle_shield(delta)
 	_handle_magic(delta)
 	_update_overdrive(delta)
+	_update_combo_cards(delta)
 	_shield_fx_phase += delta * 5.2
 	_update_grenade_preview(_get_current_grenade_speed())
 	queue_redraw()
@@ -161,6 +186,7 @@ func _physics_process(delta: float) -> void:
 			_dash_cd_left = BASE_DASH_CD * dash_cd_mul
 			_dash_left = DASH_DURATION * dash_distance_mul
 			_dash_dir = input_vec.normalized()
+			_register_combo_dash()
 			message_sent.emit(Loc.t("msg_dash"))
 			sfx_event.emit("dash")
 			_dash_impact()
@@ -211,6 +237,7 @@ func restore_sp(amount: float) -> void:
 	sp = minf(max_sp, sp + amount)
 
 func on_dealt_damage(amount: float) -> void:
+	damage_dealt.emit(amount)
 	if lifesteal_ratio <= 0.0:
 		pass
 	else:
@@ -329,6 +356,30 @@ func apply_upgrade(effect: Dictionary) -> void:
 			"shot_style_rail":
 				if bool(value):
 					_shot_style = SHOT_STYLE_RAIL
+			"socket_bullet_add":
+				_socket_slots["bullet"] = int(_socket_slots["bullet"]) + maxi(0, int(value))
+			"socket_spell_add":
+				_socket_slots["spell"] = int(_socket_slots["spell"]) + maxi(0, int(value))
+			"socket_grenade_add":
+				_socket_slots["grenade"] = int(_socket_slots["grenade"]) + maxi(0, int(value))
+			"augment_overheat_lens":
+				if bool(value):
+					_attach_augment("bullet", "overheat_lens")
+			"augment_phase_prism":
+				if bool(value):
+					_attach_augment("bullet", "phase_prism")
+			"augment_mana_weave":
+				if bool(value):
+					_attach_augment("spell", "mana_weave")
+			"augment_cluster_payload":
+				if bool(value):
+					_attach_augment("grenade", "cluster_payload")
+			"unlock_combo_overdrive":
+				_combo_state["overdrive_link"] = _combo_state["overdrive_link"] or bool(value)
+			"unlock_combo_shield_empty":
+				_combo_state["shield_empty_link"] = _combo_state["shield_empty_link"] or bool(value)
+			"unlock_combo_dash_chain":
+				_combo_state["dash_chain_link"] = _combo_state["dash_chain_link"] or bool(value)
 	_emit_stats()
 
 func _update_cooldowns(delta: float) -> void:
@@ -418,6 +469,7 @@ func _do_sword_sweep() -> void:
 	var dmg := sword_damage
 	var radius := sword_radius
 	var speed := sword_speed_mul
+	dmg = int(round(float(dmg) * _combo_sword_damage_mul()))
 	if _sword_style == SWORD_STYLE_WHIRL:
 		dmg = int(round(float(dmg) * 0.82))
 		radius *= 1.22
@@ -445,6 +497,7 @@ func _shoot_projectile() -> void:
 		return
 	var to_mouse: Vector2 = _apply_shot_style_spread(_acquire_shot_direction())
 	var profile := _mode_projectile_profile()
+	_apply_bullet_augments(profile)
 	if _shot_style == SHOT_STYLE_RAIL and bullet_mode == BulletMode.BURST:
 		_spawn_projectile(to_mouse, 1 + shot_pierce_bonus, profile)
 		return
@@ -514,7 +567,8 @@ func _throw_grenade(speed: float) -> void:
 	var g := grenade_scene.instantiate()
 	get_tree().current_scene.add_child(g)
 	g.global_position = global_position
-	g.setup(to_mouse * speed, grenade_damage, grenade_radius)
+	var combo_g_dmg := int(round(float(grenade_damage) * _combo_grenade_damage_mul()))
+	g.setup(to_mouse * speed, combo_g_dmg, grenade_radius, _augment_grenade_cluster, _augment_grenade_cluster_dmg, _augment_grenade_cluster_radius)
 
 func _acquire_shot_direction() -> Vector2:
 	var target := _nearest_enemy(940.0)
@@ -617,22 +671,22 @@ func _handle_magic(delta: float) -> void:
 	if _arcane_bolt_unlocked:
 		_arcane_cd -= delta
 		if _arcane_cd <= 0.0:
-			_arcane_cd = maxf(0.35, (2.1 - 0.12 * _magic_power_mul) / _effective_magic_haste())
+			_arcane_cd = maxf(0.35, (2.1 - 0.12 * _effective_spell_power()) / _effective_magic_haste())
 			_fire_arcane_bolt()
 	if _frost_nova_unlocked:
 		_frost_cd -= delta
 		if _frost_cd <= 0.0:
-			_frost_cd = maxf(3.2, (10.0 - 0.3 * _magic_power_mul) / _effective_magic_haste())
+			_frost_cd = maxf(3.2, (10.0 - 0.3 * _effective_spell_power()) / _effective_magic_haste())
 			_cast_frost_nova()
 	if _chain_sigil_unlocked:
 		_chain_cd -= delta
 		if _chain_cd <= 0.0:
-			_chain_cd = maxf(0.95, (4.9 - 0.20 * _magic_power_mul) / _effective_magic_haste())
+			_chain_cd = maxf(0.95, (4.9 - 0.20 * _effective_spell_power()) / _effective_magic_haste())
 			_cast_chain_sigil()
 	if _meteor_rain_unlocked:
 		_meteor_cd -= delta
 		if _meteor_cd <= 0.0:
-			_meteor_cd = maxf(4.0, (12.2 - 0.25 * _magic_power_mul) / _effective_magic_haste())
+			_meteor_cd = maxf(4.0, (12.2 - 0.25 * _effective_spell_power()) / _effective_magic_haste())
 			_cast_meteor_rain()
 
 func _fire_arcane_bolt() -> void:
@@ -641,12 +695,12 @@ func _fire_arcane_bolt() -> void:
 		return
 	_spawn_arcane_fx(target.global_position)
 	if target.has_method("take_damage"):
-		var dmg := int(round(22.0 * _magic_power_mul))
+		var dmg := int(round(22.0 * _effective_spell_power()))
 		target.take_damage(dmg)
 
 func _cast_frost_nova() -> void:
 	var radius := 170.0
-	var dmg := int(round(18.0 * _magic_power_mul))
+	var dmg := int(round(18.0 * _effective_spell_power()))
 	_spawn_nova_fx(radius)
 	for e in get_tree().get_nodes_in_group("enemy"):
 		if e is Node2D:
@@ -666,7 +720,7 @@ func _cast_chain_sigil() -> void:
 		return
 	var resonance_jumps := int(_resonance_stacks / 4)
 	var resonance_bonus := 1.0 + 0.07 * float(_resonance_stacks)
-	var jumps := 3 + int(_magic_power_mul * 0.32) + resonance_jumps
+	var jumps := 3 + int(_effective_spell_power() * 0.32) + resonance_jumps + _augment_chain_jump
 	var current := first
 	var hit: Array[Node] = []
 	var from_pos := global_position
@@ -680,7 +734,7 @@ func _cast_chain_sigil() -> void:
 				var stacks: int = int(current.consume_status_stack("hex_mark"))
 				if stacks > 0:
 					bonus += 0.18 * float(stacks)
-			var dmg := int(round((18.0 + 2.6 * float(jumps)) * _magic_power_mul * bonus * resonance_bonus))
+			var dmg := int(round((18.0 + 2.6 * float(jumps)) * _effective_spell_power() * bonus * resonance_bonus))
 			current.take_damage(dmg)
 			if current.has_method("apply_impulse"):
 				var kick := (current.global_position - from_pos).normalized()
@@ -698,7 +752,7 @@ func _cast_meteor_rain() -> void:
 		focused = false
 	if anchor == null:
 		return
-	var strikes := 3 + _meteor_extra_strikes
+	var strikes := 3 + _meteor_extra_strikes + _augment_meteor_strike
 	if focused and anchor.has_method("consume_status_stack"):
 		var stacks: int = int(anchor.consume_status_stack("hex_mark"))
 		strikes += mini(2, stacks)
@@ -739,7 +793,7 @@ func _spawn_meteor_strike(pos: Vector2, delay_sec: float) -> void:
 	elif _meteor_style == METEOR_STYLE_CATA:
 		radius *= 1.45
 	_spawn_meteor_impact_fx(pos, radius)
-	var base_dmg := int(round((26.0 + float(_meteor_burst_bonus)) * _magic_power_mul))
+	var base_dmg := int(round((26.0 + float(_meteor_burst_bonus)) * _effective_spell_power()))
 	if _meteor_style == METEOR_STYLE_SHOWER:
 		base_dmg = int(round(float(base_dmg) * 0.74))
 	elif _meteor_style == METEOR_STYLE_CATA:
@@ -865,6 +919,9 @@ func is_spell_unlocked(spell_id: String) -> bool:
 			return _shot_style == SHOT_STYLE_RAIL
 	return false
 
+func has_combo_card(combo_id: String) -> bool:
+	return bool(_combo_state.get(combo_id, false))
+
 func _spawn_chain_arc_fx(from: Vector2, to: Vector2) -> void:
 	var scene := get_tree().current_scene
 	if scene == null:
@@ -909,9 +966,13 @@ func _activate_overdrive() -> void:
 	message_sent.emit(Loc.t("msg_overdrive_on"))
 
 func _effective_magic_haste() -> float:
+	var combo_mul := _combo_magic_haste_mul()
 	if _overdrive_active:
-		return _magic_haste_mul * 1.40
-	return _magic_haste_mul
+		return _magic_haste_mul * _augment_spell_haste_mul * combo_mul * 1.40
+	return _magic_haste_mul * _augment_spell_haste_mul * combo_mul
+
+func _effective_spell_power() -> float:
+	return _magic_power_mul * _augment_spell_power_mul
 
 func _current_shot_damage() -> int:
 	var dmg := shot_damage
@@ -921,21 +982,128 @@ func _current_shot_damage() -> int:
 		dmg = int(round(float(dmg) * 1.72))
 	if _overdrive_active:
 		dmg = int(round(float(dmg) * 1.24))
+	dmg = int(round(float(dmg) * _combo_shot_damage_mul()))
 	return maxi(1, dmg)
 
 func _current_shot_speed() -> float:
+	var combo_mul := _combo_shot_speed_mul()
 	if _shot_style == SHOT_STYLE_BARRAGE:
-		return shot_speed * 0.90
+		return shot_speed * 0.90 * combo_mul
 	if _shot_style == SHOT_STYLE_RAIL:
-		return shot_speed * 1.36
-	return shot_speed
+		return shot_speed * 1.36 * combo_mul
+	return shot_speed * combo_mul
+
+func _update_combo_cards(delta: float) -> void:
+	_combo_dash_chain_left = maxf(0.0, _combo_dash_chain_left - delta)
+
+func _register_combo_dash() -> void:
+	if not bool(_combo_state.get("dash_chain_link", false)):
+		return
+	var now := float(Time.get_ticks_msec()) * 0.001
+	_combo_dash_times.append(now)
+	while _combo_dash_times.size() > 0 and (now - _combo_dash_times[0]) > 6.0:
+		_combo_dash_times.pop_front()
+	if _combo_dash_times.size() >= 3:
+		_combo_dash_chain_left = maxf(_combo_dash_chain_left, 4.0)
+		_combo_dash_times.clear()
+		message_sent.emit(Loc.t("msg_combo_dash_chain_on"))
+
+func _combo_overdrive_link_on() -> bool:
+	return bool(_combo_state.get("overdrive_link", false)) and _overdrive_active
+
+func _combo_shield_empty_link_on() -> bool:
+	if not bool(_combo_state.get("shield_empty_link", false)):
+		return false
+	return sp <= maxf(2.0, max_sp * 0.06)
+
+func _combo_dash_chain_on() -> bool:
+	return bool(_combo_state.get("dash_chain_link", false)) and _combo_dash_chain_left > 0.0
+
+func _combo_shot_damage_mul() -> float:
+	var mul := 1.0
+	if _combo_overdrive_link_on():
+		mul *= 1.18
+	if _combo_dash_chain_on():
+		mul *= 1.14
+	return mul
+
+func _combo_sword_damage_mul() -> float:
+	var mul := 1.0
+	if _combo_overdrive_link_on():
+		mul *= 1.10
+	if _combo_shield_empty_link_on():
+		mul *= 1.12
+	return mul
+
+func _combo_shot_speed_mul() -> float:
+	var mul := 1.0
+	if _combo_dash_chain_on():
+		mul *= 1.20
+	return mul
+
+func _combo_magic_haste_mul() -> float:
+	if _combo_shield_empty_link_on():
+		return 1.20
+	return 1.0
+
+func _combo_grenade_damage_mul() -> float:
+	if _combo_dash_chain_on():
+		return 1.16
+	return 1.0
 
 func _apply_shot_style_spread(dir: Vector2) -> Vector2:
+	var aug_spread := _augment_shot_spread
 	if _shot_style == SHOT_STYLE_BARRAGE:
-		return dir.rotated(deg_to_rad(_rng.randf_range(-7.0, 7.0)))
+		return dir.rotated(deg_to_rad(_rng.randf_range(-7.0 - aug_spread, 7.0 + aug_spread)))
 	if _shot_style == SHOT_STYLE_RAIL:
-		return dir.rotated(deg_to_rad(_rng.randf_range(-1.2, 1.2)))
+		return dir.rotated(deg_to_rad(_rng.randf_range(-1.2 - aug_spread * 0.28, 1.2 + aug_spread * 0.28)))
+	if aug_spread > 0.01:
+		return dir.rotated(deg_to_rad(_rng.randf_range(-aug_spread, aug_spread)))
 	return dir
+
+func _attach_augment(domain: String, augment_id: String) -> void:
+	if bool(_augment_state.get(augment_id, false)):
+		return
+	if not has_free_socket(domain):
+		return
+	_socket_used[domain] = int(_socket_used[domain]) + 1
+	_augment_state[augment_id] = true
+	match augment_id:
+		"overheat_lens":
+			_augment_shot_spread += 3.6
+		"phase_prism":
+			pass
+		"mana_weave":
+			_augment_spell_power_mul *= 1.12
+			_augment_spell_haste_mul *= 1.10
+			_augment_chain_jump += 1
+			_augment_meteor_strike += 1
+		"cluster_payload":
+			_augment_grenade_cluster += 3
+			_augment_grenade_cluster_dmg = 0.38
+			_augment_grenade_cluster_radius = 0.48
+
+func _apply_bullet_augments(profile: Dictionary) -> void:
+	if bool(_augment_state.get("overheat_lens", false)):
+		profile["augment_overheat"] = true
+		profile["overheat_tick_damage_mul"] = 0.18
+		profile["overheat_ticks"] = 2
+		profile["overheat_tick_interval"] = 0.28
+	if bool(_augment_state.get("phase_prism", false)):
+		profile["augment_phase_prism"] = true
+		profile["phase_prism_splits"] = 1
+
+func has_free_socket(domain: String) -> bool:
+	return int(_socket_used.get(domain, 0)) < int(_socket_slots.get(domain, 0))
+
+func has_augment(augment_id: String) -> bool:
+	return bool(_augment_state.get(augment_id, false))
+
+func get_socket_slots(domain: String) -> int:
+	return int(_socket_slots.get(domain, 0))
+
+func get_socket_used(domain: String) -> int:
+	return int(_socket_used.get(domain, 0))
 
 func _spawn_whirl_echo(dmg: int, radius: float, speed: float) -> void:
 	var scene := get_tree().current_scene
