@@ -72,9 +72,9 @@ func _set_vec(v: Vector2) -> void:
 
 func _draw() -> void:
 	var center := size * 0.5
-	var base_color := Color(0.10, 0.16, 0.26, 0.34)
-	var ring_color := Color(0.48, 0.72, 1.0, 0.55)
-	var knob_color := Color(0.72, 0.90, 1.0, 0.78)
+	var base_color := Ink.wash(Ink.PAPER, 0.55)
+	var ring_color := Ink.wash(Ink.SUMI, 0.8)
+	var knob_color := Ink.wash(Ink.VERMILION, 0.85)
 	draw_circle(center, stick_radius, base_color)
 	draw_arc(center, stick_radius, 0.0, TAU, 48, ring_color, 3.0)
 	var knob_center := center + _vec * stick_radius

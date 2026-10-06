@@ -23,6 +23,29 @@ const SFX := {
 	"enemy_shoot": preload("res://assets/audio/sfx_enemy_shoot.wav")
 }
 const VirtualStickScript := preload("res://scripts/virtual_stick.gd")
+const DISPLAY_FONT_PATH := "res://assets/fonts/display.tres"
+const WALL_STROKES: Array[Texture2D] = [
+	preload("res://assets/art/brush/stroke_0.png"), preload("res://assets/art/brush/stroke_1.png"),
+	preload("res://assets/art/brush/stroke_2.png"), preload("res://assets/art/brush/stroke_3.png"),
+	preload("res://assets/art/brush/stroke_4.png"), preload("res://assets/art/brush/stroke_5.png"),
+]
+const WALL_DAUBS: Array[Texture2D] = [
+	preload("res://assets/art/brush/daub_0.png"), preload("res://assets/art/brush/daub_1.png"),
+	preload("res://assets/art/brush/daub_2.png"),
+]
+## Blocks longer than this (length / thickness) are cut as one brush stroke, shorter ones as a daub.
+const STROKE_MIN_ASPECT := 2.2
+const DEBUG_SHOT_START_WAVE := 4
+const DEBUG_SHOT_BATTLE_SECONDS := 4.0
+const WALL_PALE_INK := 0.55
+## A cool neutral grey: the print shader keeps neutrals as ink, so pale walls stay grey, not brown.
+const WALL_WASH := Color(0.6, 0.6, 0.62)
+const CARD_MIN_HEIGHT := 200.0
+const CARD_MAX_HEIGHT := 360.0
+const CARD_TEXT_PADDING := 64.0
+const MESSAGE_MIN_SECONDS := 1.8
+const MESSAGE_MAX_SECONDS := 4.5
+const MESSAGE_SECONDS_PER_CHAR := 0.05
 
 const INTERMISSION_SECONDS := 5.0
 const PREVIEW_SECONDS := 3.0
@@ -107,9 +130,9 @@ const RARITY_LABEL := {
 }
 
 const RARITY_COLOR := {
-	"common": Color(0.92, 0.92, 0.92, 1.0),
-	"rare": Color(0.42, 0.82, 1.0, 1.0),
-	"epic": Color(0.94, 0.62, 1.0, 1.0)
+	"common": Ink.SUMI,
+	"rare": Ink.INDIGO,
+	"epic": Ink.VERMILION
 }
 
 const ELITE_MODS: Array[Dictionary] = [
@@ -340,6 +363,7 @@ var _virtual_ui_layer: CanvasLayer = null
 var _virtual_shield_button: Button = null
 var _virtual_dash_button: Button = null
 var _virtual_shield_hold := false
+var _wall_brush_index := 0
 
 @onready var terrain_root: Node2D = $World/Terrain
 @onready var dynamic_root: Node2D = $World/Dynamic
@@ -348,40 +372,46 @@ var _virtual_shield_hold := false
 @onready var spawn_root: Node2D = $World/Spawns
 @onready var player = $World/Player
 
-@onready var wave_label: Label = $HUD/WaveLabel
-@onready var status_label: Label = $HUD/StatusLabel
-@onready var alive_label: Label = $HUD/AliveLabel
-@onready var timer_label: Label = $HUD/TimerLabel
-@onready var score_label: Label = $HUD/ScoreLabel
-@onready var kills_label: Label = $HUD/KillsLabel
-@onready var mul_label: Label = $HUD/MulLabel
-@onready var hp_bar: ProgressBar = $HUD/Vitals/HPBar
-@onready var sp_bar: ProgressBar = $HUD/Vitals/SPBar
-@onready var hp_text: Label = $HUD/Vitals/HPLabel
-@onready var sp_text: Label = $HUD/Vitals/SPLabel
-@onready var mode_text: Label = $HUD/Vitals/ModeLabel
-@onready var cooldown_text: Label = $HUD/Vitals/CooldownLabel
-@onready var msg_label: Label = $HUD/Message
+@onready var hud: CanvasLayer = $HUD
+@onready var wave_caption: Label = $HUD/Ledger/Box/WaveSeal/VBox/WaveCaption
+@onready var wave_label: Label = $HUD/Ledger/Box/WaveSeal/VBox/WaveLabel
+@onready var timer_label: Label = $HUD/Ledger/Box/TimerLabel
+@onready var score_caption: Label = $HUD/Ledger/Box/ScoreCaption
+@onready var score_label: Label = $HUD/Ledger/Box/ScoreLabel
+@onready var threat_caption: Label = $HUD/Threat/ThreatCaption
+@onready var threat_bar: TextureProgressBar = $HUD/Threat/ThreatBar
+@onready var affliction_label: Label = $HUD/AfflictionLabel
+@onready var hp_bar: TextureProgressBar = $HUD/Vitals/Box/HPRow/HPBar
+@onready var sp_bar: TextureProgressBar = $HUD/Vitals/Box/SPRow/SPBar
+@onready var hp_text: Label = $HUD/Vitals/Box/HPRow/HPLabel
+@onready var sp_text: Label = $HUD/Vitals/Box/SPRow/SPLabel
+@onready var mode_text: Label = $HUD/Vitals/Box/ModeLabel
+@onready var cooldown_text: Label = $HUD/Vitals/Box/CooldownLabel
+@onready var msg_box: PanelContainer = $HUD/MessageBox
+@onready var msg_label: Label = $HUD/MessageBox/Message
 
 @onready var card_shade: ColorRect = $CardUI/Shade
-@onready var card_panel: Panel = $CardUI/Shade/Center/Panel
+@onready var card_panel: Control = $CardUI/Shade/Center/Panel
 @onready var card_vbox: VBoxContainer = $CardUI/Shade/Center/Panel/VBox
-@onready var card_a: Button = $CardUI/Shade/Center/Panel/VBox/CardA
-@onready var card_b: Button = $CardUI/Shade/Center/Panel/VBox/CardB
-@onready var card_c: Button = $CardUI/Shade/Center/Panel/VBox/CardC
+@onready var card_a: Button = $CardUI/Shade/Center/Panel/VBox/Cards/CardA
+@onready var card_b: Button = $CardUI/Shade/Center/Panel/VBox/Cards/CardB
+@onready var card_c: Button = $CardUI/Shade/Center/Panel/VBox/Cards/CardC
 @onready var pause_shade: ColorRect = $PauseUI/Shade
 @onready var pause_title: Label = $PauseUI/Shade/Center/Panel/VBox/Title
+@onready var pause_stats: Label = $PauseUI/Shade/Center/Panel/VBox/StatsLabel
+@onready var pause_build: Label = $PauseUI/Shade/Center/Panel/VBox/BuildLabel
 @onready var pause_resume: Button = $PauseUI/Shade/Center/Panel/VBox/ResumeButton
 @onready var pause_restart: Button = $PauseUI/Shade/Center/Panel/VBox/RestartButton
 @onready var pause_mainmenu: Button = $PauseUI/Shade/Center/Panel/VBox/MainMenuButton
 @onready var pause_quit: Button = $PauseUI/Shade/Center/Panel/VBox/QuitButton
 @onready var game_over_shade: ColorRect = $GameOverUI/Shade
-@onready var game_over_title: Label = $GameOverUI/Shade/Center/Panel/VBox/Title
-@onready var game_over_score: Label = $GameOverUI/Shade/Center/Panel/VBox/ScoreLabel
-@onready var game_over_bank: Label = $GameOverUI/Shade/Center/Panel/VBox/BankLabel
-@onready var game_over_best: Label = $GameOverUI/Shade/Center/Panel/VBox/BestLabel
-@onready var game_over_restart: Button = $GameOverUI/Shade/Center/Panel/VBox/RestartButton
-@onready var game_over_mainmenu: Button = $GameOverUI/Shade/Center/Panel/VBox/MainMenuButton
+@onready var game_over_title: Label = $GameOverUI/Shade/Center/Column/Title
+@onready var game_over_score_caption: Label = $GameOverUI/Shade/Center/Column/Seal/VBox/ScoreCaption
+@onready var game_over_score: Label = $GameOverUI/Shade/Center/Column/Seal/VBox/ScoreLabel
+@onready var game_over_bank: Label = $GameOverUI/Shade/Center/Column/Stats/BankLabel
+@onready var game_over_best: Label = $GameOverUI/Shade/Center/Column/Stats/BestLabel
+@onready var game_over_restart: Button = $GameOverUI/Shade/Center/Column/Buttons/RestartButton
+@onready var game_over_mainmenu: Button = $GameOverUI/Shade/Center/Column/Buttons/MainMenuButton
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -394,6 +424,9 @@ func _ready() -> void:
 	_build_static_arena()
 	_setup_spawns()
 	_apply_ui_locale()
+	wave_caption.text = tr("ui_wave_caption")
+	score_caption.text = tr("ui_score_caption")
+	threat_caption.text = tr("ui_threat_caption")
 	player.sword_scene = sword_scene
 	player.projectile_scene = projectile_scene
 	if ProgressionManager != null:
@@ -423,8 +456,27 @@ func _ready() -> void:
 	_last_hp = float(player.hp)
 	_last_sp = float(player.sp)
 	_update_ui()
+	_apply_debug_shot()
+
+## Fast-forwards to a fixed state for headless screenshots (see debug_shot.gd).
+func _apply_debug_shot() -> void:
+	if not DebugShot.is_battle_shot():
+		return
+	wave = DEBUG_SHOT_START_WAVE - 1
+	_set_intermission(0.2)
+	var battle_seconds := DEBUG_SHOT_BATTLE_SECONDS * (3.0 if DebugShot.mode == "gameover" else 1.0)
+	var tm := get_tree().create_timer(PREVIEW_SECONDS + battle_seconds)
+	match DebugShot.mode:
+		"cards":
+			tm.timeout.connect(_show_cards)
+		"gameover":
+			tm.timeout.connect(_on_player_died)
+		_:
+			tm.timeout.connect(func() -> void: get_tree().paused = true)
 
 func _process(delta: float) -> void:
+	# Anchor the print shader's paper grain to the world so the ink texture doesn't swim.
+	(material as ShaderMaterial).set_shader_parameter("grain_origin", get_viewport().get_canvas_transform().origin)
 	_update_virtual_input_state()
 	if _game_over:
 		_update_ui()
@@ -540,7 +592,7 @@ func _create_virtual_action_button(label: String, slot: int) -> Button:
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	btn.add_theme_font_size_override("font_size", 24)
-	btn.modulate = Color(1.0, 1.0, 1.0, 0.92)
+	btn.theme_type_variation = &"TouchButton"
 	return btn
 
 func _on_virtual_shield_down() -> void:
@@ -593,7 +645,7 @@ func _apply_virtual_move_actions(vec: Vector2) -> void:
 	Input.action_press("move_back", maxf(0.0, vec.y))
 
 func play_sfx(name: String) -> void:
-	if not SFX.has(name):
+	if not SFX.has(name) or (AudioManager != null and not AudioManager.can_play()):
 		return
 	var p = AudioStreamPlayer.new()
 	p.stream = SFX[name]
@@ -964,9 +1016,34 @@ func _apply_ui_locale() -> void:
 			title_label.text = tr("ui_mitigation_title")
 		else:
 			title_label.text = tr("ui_card_title")
-	card_a.text = tr("ui_card_a")
-	card_b.text = tr("ui_card_b")
-	card_c.text = tr("ui_card_c")
+	_set_card_body(card_a, tr("ui_card_a"), Ink.SUMI)
+	_set_card_body(card_b, tr("ui_card_b"), Ink.SUMI)
+	_set_card_body(card_c, tr("ui_card_c"), Ink.SUMI)
+
+func _set_card_body(btn: Button, bbcode: String, band: Color) -> void:
+	var body := btn.get_node("Body") as RichTextLabel
+	if body != null:
+		body.text = bbcode
+	var band_rect := btn.get_node("Band") as ColorRect
+	if band_rect != null:
+		band_rect.color = band
+	_fit_cards.call_deferred()
+
+## Cards share one height, just tall enough for the longest text, so short cards aren't empty.
+func _fit_cards() -> void:
+	var text_h := 0.0
+	for btn in [card_a, card_b, card_c]:
+		var body := (btn as Button).get_node("Body") as RichTextLabel
+		text_h = maxf(text_h, float(body.get_content_height()))
+	var card_h := clampf(text_h + CARD_TEXT_PADDING, CARD_MIN_HEIGHT, CARD_MAX_HEIGHT)
+	for btn in [card_a, card_b, card_c]:
+		(btn as Button).custom_minimum_size.y = card_h
+
+## A reward card set like a printed page: rarity in its pigment, brush title, plain description.
+func _card_bbcode(rarity_text: String, title: String, desc: String, c: Color) -> String:
+	return "[center][font_size=15][color=#%s]%s[/color][/font_size]\n[font=%s][font_size=26]%s[/font_size][/font]\n%s[/center]" % [
+		c.to_html(false), rarity_text, DISPLAY_FONT_PATH, title, desc
+	]
 
 func _setup_actions() -> void:
 	_set_key("move_forward", KEY_W)
@@ -1000,11 +1077,11 @@ func _set_mouse(action: StringName, btn: MouseButton) -> void:
 	InputMap.action_add_event(action, ev)
 
 func _build_static_arena() -> void:
-	_create_world_block(Rect2(-860, -500, 1720, 32), Color(0.12, 0.16, 0.21), terrain_root)
-	_create_world_block(Rect2(-860, 468, 1720, 32), Color(0.12, 0.16, 0.21), terrain_root)
-	_create_world_block(Rect2(-860, -500, 32, 1000), Color(0.12, 0.16, 0.21), terrain_root)
-	_create_world_block(Rect2(828, -500, 32, 1000), Color(0.12, 0.16, 0.21), terrain_root)
-	_create_world_block(Rect2(-828, -468, 1656, 936), Color(0.16, 0.20, 0.25), terrain_root, false)
+	# The page edge: solid sumi bars. The paper itself is drawn by Floor/Page (arena_print.gd).
+	_create_world_block(Rect2(-860, -500, 1720, 32), Ink.SUMI, terrain_root)
+	_create_world_block(Rect2(-860, 468, 1720, 32), Ink.SUMI, terrain_root)
+	_create_world_block(Rect2(-860, -500, 32, 1000), Ink.SUMI, terrain_root)
+	_create_world_block(Rect2(828, -500, 32, 1000), Ink.SUMI, terrain_root)
 
 func _setup_spawns() -> void:
 	var points: Array[Vector2] = [
@@ -1434,11 +1511,8 @@ func _apply_archetype_progress(card: Dictionary) -> Array[String]:
 func _update_card_button(btn: Button, card: Dictionary) -> void:
 	var rarity: String = str(card.get("rarity", "common"))
 	var rarity_text: String = tr(str(RARITY_LABEL.get(rarity, "rarity_common")))
-	btn.text = "[%s] %s\n%s" % [rarity_text, tr(str(card["title"])), tr(str(card["desc"]))]
-	var c: Color = Color(RARITY_COLOR.get(rarity, Color(0.92, 0.92, 0.92, 1.0)))
-	btn.add_theme_color_override("font_color", c)
-	btn.add_theme_color_override("font_hover_color", c.lightened(0.1))
-	btn.add_theme_color_override("font_pressed_color", c.darkened(0.1))
+	var c: Color = Color(RARITY_COLOR.get(rarity, Ink.SUMI))
+	_set_card_body(btn, _card_bbcode(rarity_text, tr(str(card["title"])), tr(str(card["desc"])), c), c)
 
 func _should_offer_affliction_for_next_wave() -> bool:
 	return wave >= AFFLICTION_INTERVAL and wave % AFFLICTION_INTERVAL == 0
@@ -1469,11 +1543,8 @@ func _show_mitigation_choices() -> void:
 func _update_choice_button(btn: Button, choice: Dictionary) -> void:
 	var rarity: String = str(choice.get("rarity", "rare"))
 	var rarity_text: String = tr(str(RARITY_LABEL.get(rarity, "rarity_rare")))
-	btn.text = "[%s] %s\n%s" % [rarity_text, tr(str(choice.get("title", ""))), tr(str(choice.get("desc", "")))]
-	var c: Color = Color(RARITY_COLOR.get(rarity, Color(0.42, 0.82, 1.0, 1.0)))
-	btn.add_theme_color_override("font_color", c)
-	btn.add_theme_color_override("font_hover_color", c.lightened(0.1))
-	btn.add_theme_color_override("font_pressed_color", c.darkened(0.1))
+	var c: Color = Color(RARITY_COLOR.get(rarity, Ink.INDIGO))
+	_set_card_body(btn, _card_bbcode(rarity_text, tr(str(choice.get("title", ""))), tr(str(choice.get("desc", ""))), c), c)
 
 func _pick_mitigation(index: int) -> void:
 	if index < 0 or index >= _mitigation_choices.size():
@@ -1653,7 +1724,7 @@ func _mutate_terrain() -> void:
 		var y = _rng.randf_range(-360.0, 360.0)
 		var w = _rng.randf_range(36.0, 112.0)
 		var h = _rng.randf_range(28.0, 94.0)
-		_create_world_block(Rect2(x, y, w, h), Color(0.24, 0.29, 0.36), dynamic_root)
+		_create_world_block(Rect2(x, y, w, h), _theme_wall_color(_terrain_theme), dynamic_root)
 
 	var relic_hazard_add := int(_run_relic_pack.get("extra_hazard_add", 0))
 	var hazard_count: int = mini(12, 2 + int(wave / 2) + int(_wave_mutator.get("hazard_extra", 0)) + relic_hazard_add)
@@ -1670,14 +1741,7 @@ func _mutate_terrain() -> void:
 			hz.configure_for_wave(wave + int(_run_relic_pack.get("hazard_extra_wave", 0)))
 
 func _build_terrain_layout(terrain_type: int, theme: int) -> void:
-	var wall_c = Color(0.22, 0.27, 0.34)
-	match theme:
-		1:
-			wall_c = Color(0.22, 0.34, 0.44)
-		2:
-			wall_c = Color(0.30, 0.21, 0.36)
-		3:
-			wall_c = Color(0.32, 0.30, 0.20)
+	var wall_c := _theme_wall_color(theme)
 	match terrain_type:
 		0:
 			for i in 5:
@@ -1905,14 +1969,7 @@ func _apply_layout_mutation(stage: int) -> void:
 					pick.queue_free()
 				blocks.remove_at(best_idx)
 	else:
-		var wall_c := Color(0.28, 0.34, 0.42)
-		match _terrain_theme:
-			1:
-				wall_c = Color(0.24, 0.38, 0.48)
-			2:
-				wall_c = Color(0.35, 0.24, 0.42)
-			3:
-				wall_c = Color(0.40, 0.34, 0.24)
+		var wall_c := _theme_wall_color(_terrain_theme)
 		var rects: Array[Rect2] = []
 		if _rng.randf() < 0.5:
 			rects = [Rect2(-310.0, -120.0, 620.0, 26.0), Rect2(-310.0, 96.0, 620.0, 26.0)]
@@ -2170,6 +2227,19 @@ func _commit_wave_telemetry() -> void:
 	if _wave_telemetry_history.size() > 24:
 		_wave_telemetry_history.pop_front()
 
+## Walls are sumi ink; each terrain theme only tints the ink slightly (frost indigo, void murasaki, storm ochre).
+## Walls are pale ink (dan-mo), so the fight itself carries the darkest ink on the page.
+func _theme_wall_color(theme: int) -> Color:
+	var ink := Ink.SUMI
+	match theme:
+		1:
+			ink = Ink.SUMI.lerp(Ink.INDIGO, 0.45)
+		2:
+			ink = Ink.SUMI.lerp(Ink.MURASAKI, 0.35)
+		3:
+			ink = Ink.SUMI.lerp(Ink.ROKUSHO, 0.3)
+	return ink.lerp(WALL_WASH, WALL_PALE_INK)
+
 func _set_hazards_active(active: bool) -> void:
 	for hz in hazard_root.get_children():
 		if hz.has_method("set_gameplay_active"):
@@ -2189,10 +2259,32 @@ func _create_world_block(rect: Rect2, color: Color, parent: Node2D, with_collisi
 		cs.shape = shape
 		cs.position = rect.size * 0.5
 		b.add_child(cs)
-	var poly = Polygon2D.new()
-	poly.polygon = PackedVector2Array([Vector2.ZERO, Vector2(rect.size.x, 0.0), Vector2(rect.size.x, rect.size.y), Vector2(0.0, rect.size.y)])
+	n.add_child(_brush_block(rect.size, color))
+
+## A wall printed as one brush stroke (long blocks) or a square daub (short ones); the ragged
+## ink slightly overhangs the collision rect, like a stroke laid over a pencilled box.
+func _brush_block(size: Vector2, color: Color) -> Polygon2D:
+	var horizontal := size.x >= size.y
+	var aspect := maxf(size.x, size.y) / maxf(1.0, minf(size.x, size.y))
+	var is_stroke := aspect >= STROKE_MIN_ASPECT
+	_wall_brush_index += 1
+	var tex: Texture2D = WALL_STROKES[_wall_brush_index % WALL_STROKES.size()] if is_stroke else WALL_DAUBS[_wall_brush_index % WALL_DAUBS.size()]
+	# The brush covers ~60% of its texture across the stroke; a small overhang keeps the ink lean.
+	var grow := size * Vector2(0.06, 0.18)
+	if is_stroke:
+		grow = Vector2(size.x * 0.03, size.y * 0.18) if horizontal else Vector2(size.x * 0.18, size.y * 0.03)
+	var r := Rect2(-grow, size + grow * 2.0)
+	var poly := Polygon2D.new()
+	poly.polygon = PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
+	var ts := tex.get_size()
+	if horizontal or not is_stroke:
+		poly.uv = PackedVector2Array([Vector2.ZERO, Vector2(ts.x, 0.0), ts, Vector2(0.0, ts.y)])
+	else:
+		# Vertical stroke: the brush travels top to bottom.
+		poly.uv = PackedVector2Array([Vector2.ZERO, Vector2(0.0, ts.y), ts, Vector2(ts.x, 0.0)])
+	poly.texture = tex
 	poly.color = color
-	n.add_child(poly)
+	return poly
 
 func _random_spawn() -> Vector2:
 	if spawn_root.get_child_count() == 0:
@@ -2230,17 +2322,23 @@ func _on_player_stats_changed(hp: float, max_hp: float, sp: float, max_sp: float
 	hp_bar.value = hp
 	sp_bar.max_value = max_sp
 	sp_bar.value = sp
-	hp_text.text = "HP %.0f/%.0f" % [hp, max_hp]
-	sp_text.text = "SP %.0f/%.0f" % [sp, max_sp]
-	mode_text.text = tr("ui_mode_line") % [bullet_mode, (tr("ui_on") if shield_on else tr("ui_off"))]
-	cooldown_text.text = tr("ui_cd_line") % [dash_cd]
+	hp_text.text = "%.0f" % hp
+	sp_text.text = "%.0f" % sp
+	# Only the bullet name: the shield already shows as the indigo ring around the mage.
+	mode_text.text = bullet_mode
+	# Dash readiness is only worth ink while it is recharging.
+	cooldown_text.text = tr("ui_cd_line") % [dash_cd] if dash_cd > 0.05 else ""
 
 func _show_message(text: String) -> void:
 	msg_label.text = text
-	var t: SceneTreeTimer = get_tree().create_timer(1.8)
+	msg_box.visible = text != ""
+	msg_box.reset_size()
+	var hold := clampf(float(text.length()) * MESSAGE_SECONDS_PER_CHAR, MESSAGE_MIN_SECONDS, MESSAGE_MAX_SECONDS)
+	var t: SceneTreeTimer = get_tree().create_timer(hold)
 	t.timeout.connect(func() -> void:
 		if msg_label.text == text:
 			msg_label.text = ""
+			msg_box.visible = false
 		)
 
 func _faction_name(id: int) -> String:
@@ -2417,17 +2515,13 @@ func _socket_summary() -> String:
 	return tr("ui_socket_fmt") % [bu, bs, su, ss]
 
 func _update_ui() -> void:
-	wave_label.text = tr("ui_wave") % wave
-	alive_label.text = tr("ui_enemies") % _alive_enemies()
-	score_label.text = tr("ui_score") % _score
-	kills_label.text = tr("ui_kills") % _kills
-	mul_label.text = tr("ui_mul") % _wave_multiplier()
+	wave_label.text = str(wave)
+	score_label.text = str(_score)
 	if _wave_preview:
-		status_label.text = tr("ui_status_preview")
 		timer_label.text = tr("ui_preview_timer") % maxf(0.0, _preview_left)
 	elif _wave_active:
-		status_label.text = tr("ui_status_combat")
-		timer_label.text = tr("ui_spawn_left") % _spawn_queue.size()
+		# In combat the ledger stays quiet: only an active objective is written under the seal.
+		timer_label.text = ""
 		if _objective_active:
 			if _objective_type == "pylon_capture":
 				var pct := int(clampf(_objective_progress / 3.5, 0.0, 1.0) * 100.0)
@@ -2441,13 +2535,34 @@ func _update_ui() -> void:
 				var done_convoy := int(_objective_progress)
 				timer_label.text += " | " + (tr("ui_objective_convoy") % [done_convoy, total_convoy, maxf(0.0, _objective_left)])
 	else:
-		status_label.text = tr("ui_status_intermission")
 		timer_label.text = tr("ui_next_wave") % maxf(0.0, _intermission_left)
-	status_label.text += " | " + (tr("ui_archetype_line") % _archetype_meter_summary())
-	status_label.text += " | " + (tr("ui_socket_line") % _socket_summary())
-	status_label.text += " | " + (tr("ui_relic_line") % _relic_summary())
-	status_label.text += " | " + (tr("ui_threat_line") % int(round(_director_level * 100.0)))
-	status_label.text += " | " + (tr("ui_affliction_line") % _affliction_summary())
+	timer_label.text = timer_label.text.trim_prefix(" | ")
+	threat_bar.value = clampf(_director_level, 0.0, 1.0) * 100.0
+	threat_bar.tint_progress = Ink.SUMI.lerp(Ink.VERMILION, clampf(_director_level, 0.0, 1.0))
+	affliction_label.visible = _active_affliction != ""
+	if affliction_label.visible:
+		affliction_label.text = tr("ui_affliction_line") % _affliction_summary()
+	if pause_shade.visible:
+		_refresh_pause_page()
+
+func _refresh_pause_page() -> void:
+	pause_stats.text = "\n".join([
+		tr("ui_score") % _score,
+		tr("ui_kills") % _kills,
+		tr("ui_enemies") % _alive_enemies(),
+		tr("ui_mul") % _wave_multiplier(),
+		tr("ui_threat_line") % int(round(_director_level * 100.0)),
+	])
+	pause_build.text = _build_summary()
+
+## The run's build, shown on the pause page (schools, sockets, relic, affliction).
+func _build_summary() -> String:
+	return "\n".join([
+		tr("ui_archetype_line") % _archetype_meter_summary(),
+		tr("ui_socket_line") % _socket_summary(),
+		tr("ui_relic_line") % _relic_summary(),
+		tr("ui_affliction_line") % _affliction_summary(),
+	])
 
 func _on_enemy_died(score_value: int, enemy: Node = null) -> void:
 	_kills += 1
@@ -2483,6 +2598,7 @@ func _toggle_pause() -> void:
 	var next_paused: bool = not get_tree().paused
 	get_tree().paused = next_paused
 	pause_shade.visible = next_paused
+	_refresh_pause_page()
 
 func _apply_pause_locale() -> void:
 	pause_title.text = tr("menu_pause")
@@ -2490,6 +2606,7 @@ func _apply_pause_locale() -> void:
 	pause_restart.text = tr("menu_restart")
 	pause_mainmenu.text = tr("menu_mainmenu")
 	pause_quit.text = tr("menu_quit")
+	pause_quit.visible = not OS.has_feature("web")
 
 func _on_pause_resume() -> void:
 	get_tree().paused = false
@@ -2535,7 +2652,8 @@ func _on_player_died() -> void:
 		bank = ProgressionManager.score_bank
 		best = ProgressionManager.best_run_score
 	game_over_title.text = tr("gameover_title")
-	game_over_score.text = tr("gameover_score") % _score
+	game_over_score_caption.text = tr("gameover_score_caption")
+	game_over_score.text = str(_score)
 	game_over_bank.text = tr("gameover_bank") % bank
 	if not unlocked_relics.is_empty():
 		var names: Array[String] = []
@@ -2546,6 +2664,7 @@ func _on_player_died() -> void:
 	game_over_restart.text = tr("menu_restart")
 	game_over_mainmenu.text = tr("menu_mainmenu")
 	game_over_shade.visible = true
+	hud.visible = false
 	get_tree().paused = true
 
 func _on_game_over_restart() -> void:

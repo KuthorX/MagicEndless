@@ -12,9 +12,8 @@ var _ricochet_left := 0
 var _explosion_radius := 0.0
 var _homing_strength := 0.0
 var _chain_left := 0
-var _trail_color := Color(0.44, 0.88, 1.0, 0.85)
-var _core_color := Color(0.72, 0.96, 1.0, 1.0)
-var _glow_color := Color(0.36, 0.84, 1.0, 0.45)
+var _trail_color := Ink.SUMI
+var _core_color := Ink.SUMI
 var _status_name := ""
 var _status_duration := 0.0
 var _status_stacks := 1
@@ -28,7 +27,7 @@ var _phase_prism_splits_left := 0
 var _last_pos := Vector2.ZERO
 
 func _ready() -> void:
-	z_index = 60
+	# No z_index: items with their own z escape the battle's print CanvasGroup; tree order layers them.
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
 	_last_pos = global_position
@@ -57,8 +56,6 @@ func setup(dir: Vector2, speed: float, dmg: int, is_player: bool, pierce: int = 
 		_trail_color = Color(profile["trail_color"])
 	if profile.has("core_color"):
 		_core_color = Color(profile["core_color"])
-	if profile.has("glow_color"):
-		_glow_color = Color(profile["glow_color"])
 
 func _physics_process(delta: float) -> void:
 	if from_player and _homing_strength > 0.0:
@@ -76,14 +73,11 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _draw() -> void:
+	# A short brush flick: thin at the tail, full at the head (no glow; the print shader adds grain).
 	for i in range(_trail.size() - 1):
 		var t: float = float(i + 1) / float(_trail.size())
-		var a := to_local(_trail[i])
-		var b := to_local(_trail[i + 1])
-		var c := Color(_trail_color.r, _trail_color.g, _trail_color.b, 0.20 + 0.65 * t)
-		draw_line(a, b, c, 2.6)
-	draw_circle(Vector2.ZERO, 5.5, _glow_color)
-	draw_circle(Vector2.ZERO, 3.8, _core_color)
+		draw_line(to_local(_trail[i]), to_local(_trail[i + 1]), _trail_color, lerpf(0.8, 4.4, t))
+	draw_circle(Vector2.ZERO, 3.4, _core_color)
 
 func _on_body_entered(body: Node) -> void:
 	if from_player:

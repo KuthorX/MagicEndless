@@ -3,13 +3,19 @@ extends Node2D
 
 var radius := 120.0
 var duration := 0.9
+const BLOT_TEX := preload("res://assets/art/blot.png")
+## The blot texture's ragged edge sits slightly inside its square; overscan so the edge lands on radius.
+const BLOT_OVERSCAN := 1.08
+const ENSO_TEX := preload("res://assets/art/enso.png")
+const ENSO_OVERSCAN := 1.25
+
 var base_color := Color(1.0, 0.35, 0.35, 0.9)
 
 var _left := 0.0
 
 func _ready() -> void:
 	_left = duration
-	z_index = 30
+	# No z_index: items with their own z escape the battle's print CanvasGroup; tree order layers them.
 
 func _process(delta: float) -> void:
 	_left -= delta
@@ -19,10 +25,10 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
+	# A dry enso marks the danger edge; an ink blot spreads from the centre to show the timing.
 	var t: float = 1.0 - clampf(_left / maxf(duration, 0.001), 0.0, 1.0)
-	var flash: float = 0.45 + 0.55 * absf(sin(float(Time.get_ticks_msec()) * 0.02))
-	var ring_color := Color(base_color.r, base_color.g, base_color.b, 0.35 + 0.45 * flash)
-	var fill_color := Color(base_color.r, base_color.g, base_color.b, 0.08 + 0.16 * t)
-	draw_circle(Vector2.ZERO, radius, fill_color)
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, ring_color, 3.0)
-	draw_arc(Vector2.ZERO, radius * (0.62 + 0.30 * t), 0.0, TAU, 64, Color(ring_color.r, ring_color.g, ring_color.b, ring_color.a * 0.7), 2.0)
+	var ink := Color(base_color.r, base_color.g, base_color.b, 1.0)
+	var r := radius * ENSO_OVERSCAN
+	draw_texture_rect(ENSO_TEX, Rect2(-r, -r, r * 2.0, r * 2.0), false, ink)
+	var b := radius * BLOT_OVERSCAN * lerpf(0.08, 1.0, t * t)
+	draw_texture_rect(BLOT_TEX, Rect2(-b, -b, b * 2.0, b * 2.0), false, ink)

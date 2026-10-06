@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.5")
 LocaleSettings="*res://scripts/locale_settings.gd"
 AudioManager="*res://scripts/audio_manager.gd"
 ProgressionManager="*res://scripts/progression_manager.gd"
+DebugShot="*res://scripts/debug_shot.gd"
 
 [display]
 

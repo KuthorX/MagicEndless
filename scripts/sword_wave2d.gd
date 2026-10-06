@@ -8,6 +8,10 @@ var _life_max := 0.18
 var _hit_map := {}
 var _anim_t := 0.0
 
+const ENSO_TEX := preload("res://assets/art/enso.png")
+## The enso ring sits at 0.40 of its texture; scale so the ink lands on the hit radius.
+const ENSO_OVERSCAN := 1.25
+
 @onready var shape: CollisionShape2D = $CollisionShape2D
 
 func _ready() -> void:
@@ -34,27 +38,9 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var alpha := clampf(_life / _life_max, 0.0, 1.0)
-	var ring_color := Color(0.45, 0.92, 1.0, 0.34 * alpha)
-	var core_color := Color(0.88, 1.0, 1.0, 0.52 * alpha)
-	var wedge_color := Color(0.62, 0.95, 1.0, 0.30 * alpha)
-
-	draw_arc(Vector2.ZERO, radius, 0, TAU, 72, ring_color, 4.0)
-	draw_arc(Vector2.ZERO, radius * 0.78, 0, TAU, 72, core_color, 2.0)
-	draw_circle(Vector2.ZERO, 8.0, Color(0.85, 1.0, 1.0, 0.45 * alpha))
-
-	var start_a := _anim_t
-	var end_a := _anim_t + deg_to_rad(85.0)
-	var pts := _sector_points(Vector2.ZERO, radius * 1.04, start_a, end_a, 14)
-	draw_colored_polygon(pts, wedge_color)
-
-func _sector_points(center: Vector2, r: float, from_a: float, to_a: float, seg: int) -> PackedVector2Array:
-	var arr := PackedVector2Array()
-	arr.append(center)
-	for i in range(seg + 1):
-		var t := float(i) / float(seg)
-		var a := lerpf(from_a, to_a, t)
-		arr.append(center + Vector2(cos(a), sin(a)) * r)
-	return arr
+	# The light sword is one vermilion enso, spun by the node's rotation: a single brush sweep.
+	var r := radius * ENSO_OVERSCAN
+	draw_texture_rect(ENSO_TEX, Rect2(-r, -r, r * 2.0, r * 2.0), false, Ink.wash(Ink.VERMILION, alpha))
 
 func _apply_damage(target: Node) -> void:
 	if _hit_map.has(target):

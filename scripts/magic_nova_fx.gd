@@ -1,5 +1,8 @@
 extends Node2D
 
+const ENSO_TEX := preload("res://assets/art/enso.png")
+const ENSO_OVERSCAN := 1.25
+
 var _radius := 0.0
 var _radius_max := 170.0
 var _life := 0.32
@@ -22,7 +25,6 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var a := clampf(_life / _max_life, 0.0, 1.0)
-	var ring := Color(0.66, 0.92, 1.0, 0.72 * a)
-	var fill := Color(0.40, 0.78, 1.0, 0.16 * a)
-	draw_circle(Vector2.ZERO, _radius, fill)
-	draw_arc(Vector2.ZERO, _radius, 0.0, TAU, 72, ring, 4.0)
+	# Frost nova: an indigo enso thrown outward.
+	var r := _radius * ENSO_OVERSCAN
+	draw_texture_rect(ENSO_TEX, Rect2(-r, -r, r * 2.0, r * 2.0), false, Ink.wash(Ink.INDIGO, a))

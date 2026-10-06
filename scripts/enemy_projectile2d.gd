@@ -26,13 +26,12 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _draw() -> void:
+	# An indigo ink drop with a tapering tail, a paper fleck at its heart so it reads at speed.
 	for i in range(_trail.size() - 1):
 		var t := float(i + 1) / float(_trail.size())
-		var a := to_local(_trail[i])
-		var b := to_local(_trail[i + 1])
-		draw_line(a, b, Color(0.50, 1.00, 0.56, 0.26 + 0.70 * t), 2.8)
-	draw_circle(Vector2.ZERO, 6.5, Color(0.40, 1.0, 0.46, 0.42))
-	draw_circle(Vector2.ZERO, 4.6, Color(0.64, 1.0, 0.68, 1.0))
+		draw_line(to_local(_trail[i]), to_local(_trail[i + 1]), Ink.INDIGO, lerpf(0.8, 5.0, t))
+	draw_circle(Vector2.ZERO, 5.6, Ink.INDIGO_DEEP)
+	draw_circle(Vector2(1.2, -1.2), 1.7, Ink.PAPER_LIGHT)
 
 func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("player") and body.has_method("take_damage"):

@@ -25,6 +25,11 @@ func _ready() -> void:
 	_apply_audio_settings()
 	play_menu()
 
+# The headless display pairs with the dummy audio driver, which never mixes, so
+# stopped playbacks are never reclaimed and are reported as leaks at exit.
+func can_play() -> bool:
+	return DisplayServer.get_name() != "headless"
+
 func play_menu() -> void:
 	_target = "menu"
 	_play_target_stream(MENU_BGM)
@@ -39,7 +44,7 @@ func stop_all() -> void:
 		_bgm_player.stop()
 
 func _process(_delta: float) -> void:
-	if _target == "none":
+	if _target == "none" or not can_play():
 		return
 	if _bgm_player == null:
 		_ensure_player()
@@ -60,7 +65,7 @@ func _ensure_player() -> void:
 
 func _play_target_stream(stream: AudioStream) -> void:
 	_ensure_player()
-	if stream == null:
+	if stream == null or not can_play():
 		return
 	if stream is AudioStreamWAV:
 		(stream as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_FORWARD
@@ -184,3 +189,4 @@ func _linear_to_db_safe(value: float) -> float:
 	if value <= 0.0001:
 		return -80.0
 	return linear_to_db(value)
+

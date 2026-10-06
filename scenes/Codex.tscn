@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/codex_menu.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/art/paper.png" id="2"]
 
 [node name="Codex" type="Control"]
 layout_mode = 3
@@ -11,14 +12,15 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.03, 0.05, 0.09, 1)
+texture = ExtResource("2")
+stretch_mode = 1
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -84,7 +86,7 @@ theme_override_constants/separation = 10
 [node name="Swatch" type="ColorRect" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/ChaserRow"]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
-color = Color(0.93, 0.30, 0.23, 1)
+color = Color(0.153, 0.275, 0.42, 1)
 
 [node name="Text" type="Label" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/ChaserRow"]
 layout_mode = 2
@@ -99,7 +101,7 @@ theme_override_constants/separation = 10
 [node name="Swatch" type="ColorRect" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/ShooterRow"]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
-color = Color(0.27, 0.86, 0.36, 1)
+color = Color(0.153, 0.275, 0.42, 1)
 
 [node name="Text" type="Label" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/ShooterRow"]
 layout_mode = 2
@@ -114,7 +116,7 @@ theme_override_constants/separation = 10
 [node name="Swatch" type="ColorRect" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/DasherRow"]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
-color = Color(0.56, 0.40, 0.98, 1)
+color = Color(0.153, 0.275, 0.42, 1)
 
 [node name="Text" type="Label" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/DasherRow"]
 layout_mode = 2
@@ -129,7 +131,7 @@ theme_override_constants/separation = 10
 [node name="Swatch" type="ColorRect" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/SniperRow"]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
-color = Color(0.95, 0.90, 0.28, 1)
+color = Color(0.153, 0.275, 0.42, 1)
 
 [node name="Text" type="Label" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/SniperRow"]
 layout_mode = 2
@@ -144,7 +146,7 @@ theme_override_constants/separation = 10
 [node name="Swatch" type="ColorRect" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/ArtilleryRow"]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
-color = Color(1.0, 0.54, 0.28, 1)
+color = Color(0.153, 0.275, 0.42, 1)
 
 [node name="Text" type="Label" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/ArtilleryRow"]
 layout_mode = 2
@@ -159,7 +161,7 @@ theme_override_constants/separation = 10
 [node name="Swatch" type="ColorRect" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/BossRow"]
 custom_minimum_size = Vector2(18, 18)
 layout_mode = 2
-color = Color(1.0, 0.74, 0.18, 1)
+color = Color(0.153, 0.275, 0.42, 1)
 
 [node name="Text" type="Label" parent="Center/Panel/VBox/Tabs/EnemiesTab/Scroll/VBox/BossRow"]
 layout_mode = 2

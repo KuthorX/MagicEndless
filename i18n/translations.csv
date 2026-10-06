@@ -1,6 +1,8 @@
 keys,zh,en
 menu_title,异世界无尽战斗,Magic Endless
-menu_subtitle,无尽模式,Endless Mode
+menu_title_display,"异世界
+无尽战斗","Magic
+Endless"
 menu_start,开始游戏,Start Game
 menu_codex,百科全书,Codex
 menu_settings,设置,Settings
@@ -25,9 +27,9 @@ settings_backup_import_ok,导入成功：已覆盖本地存档与音频设置,Im
 settings_backup_import_fail,导入失败：备份格式不正确或内容无效,Import failed: invalid backup format or content
 settings_backup_import_empty,请先粘贴备份文本,Paste your backup text first
 gameover_title,战斗结束,Game Over
-gameover_score,本局得分：%d,Run score: %d
-gameover_bank,可用分数：%d,Points available: %d
-gameover_best,历史最高：%d,Best ever: %d
+gameover_score_caption,本局得分,Run score
+gameover_bank,可用分数 %d,Points available %d
+gameover_best,历史最高 %d,Best ever %d
 potential_title,潜能激发,Potential
 potential_bank,可用分数：%d,Points available: %d
 potential_total,累计获得：%d,Total earned: %d
@@ -97,16 +99,14 @@ menu_resume,继续,Resume
 menu_restart,重开本局,Restart Run
 menu_mainmenu,回到主菜单,Main Menu
 menu_pause,已暂停,Paused
-ui_wave,波次：%d,Wave: %d
+ui_wave_caption,波次,Wave
+ui_score_caption,得分,Score
+ui_threat_caption,压力,Threat
 ui_enemies,敌人：%d,Enemies: %d
 ui_score,得分：%d,Score: %d
 ui_kills,击杀：%d,Kills: %d
 ui_mul,乘区：x%.2f,Multiplier: x%.2f
-ui_status_preview,状态：开局观察,Status: Scouting
-ui_status_combat,状态：战斗,Status: Combat
-ui_status_intermission,状态：准备阶段,Status: Intermission
 ui_preview_timer,战斗开始：%.1f,Battle starts: %.1f
-ui_spawn_left,剩余刷怪：%d,Spawns left: %d
 ui_next_wave,下波倒计时：%.1f,Next wave in: %.1f
 ui_archetype_line,流派：%s,Schools: %s
 ui_socket_line,插槽：%s,Sockets: %s
@@ -123,10 +123,7 @@ archetype_blade,剑刺,Blade
 archetype_ballistic,弹道,Ballistic
 archetype_arcane,奥术,Arcane
 archetype_tactical,战术,Tactical
-ui_mode_line,子弹：%s（弹药无限） | 护盾：%s,Bullet: %s | Shield: %s
 ui_cd_line,突进 %.1fs,Dash %.1fs
-ui_on,开启,On
-ui_off,关闭,Off
 ui_touch_shield,护盾,Shield
 ui_touch_dash,闪避,Dodge
 ui_card_title,波次奖励 - 三选一,Wave Reward - Pick One
@@ -211,19 +208,19 @@ msg_combo_dash_chain_on,连续突进：火力增幅已启动,Dash chain: firepow
 msg_miniboss,第 %d 波：小Boss来袭,Wave %d: a mini-boss approaches!
 codex_title,敌人与技能百科,Enemy & Skill Codex
 codex_enemy_title,敌人图鉴,Bestiary
-codex_enemy_intro,预警建议：颜色 + 线型预警对应攻击类型，看到线先走位、再反打。,"Tip: each attack has its own warning color and line shape. When you see a line, move first, then counterattack."
+codex_enemy_intro,预警建议：每种攻击有自己的线型与墨圈，看到线先走位、再反打。,"Tip: each attack has its own line shape and ink ring. When you see a line, move first, then counterattack."
 codex_enemy_1,追击者：近身冲锋，有短距离扑击前摇。,"Chaser: rushes you in melee, with a short wind-up before pouncing."
-codex_enemy_2,射手：保持中距离，发射绿色弹丸。,Shooter: keeps mid range and fires green bolts.
-codex_enemy_3,突袭者：会突进，前摇为紫色直线预警。,Dasher: charges at you; telegraphed by a straight purple line.
-codex_enemy_4,狙击手：远距离黄线错射，伤害高。,Sniper: fires long-range shots along a yellow line. High damage.
-codex_enemy_5,炮击手：三连散射，橙色多条预警。,"Artillery: fires three-shot spreads, telegraphed by several orange lines."
+codex_enemy_2,射手：保持中距离，发射靛蓝墨弹。,Shooter: keeps mid range and fires indigo ink bolts.
+codex_enemy_3,突袭者：会突进，前摇为一道直线加身周墨圈。,Dasher: charges at you; telegraphed by a straight line and an ink ring around it.
+codex_enemy_4,狙击手：远距离长线直射，线端有墨圈，伤害高。,Sniper: fires along a long line that ends in an ink ring. High damage.
+codex_enemy_5,炮击手：三连散射，三道扇形线预警。,"Artillery: fires three-shot spreads, telegraphed by three fanned lines."
 codex_enemy_6,小Boss：带词缀组合，会召唤图腾或进入弹幕阶段。,Mini-boss: carries combos of affixes; summons totems or enters barrage phases.
 codex_legend_title,预警图例,Warning Legend
-codex_legend_shoot,绿线：普通远程射击（射手）,Green line: regular ranged shot (Shooter)
-codex_legend_dash,紫线：冲刺/突进（突袭者）,Purple line: charge / dash (Dasher)
-codex_legend_sniper,黄线：狙击蓄力射击（狙击手）,Yellow line: charged sniper shot (Sniper)
-codex_legend_burst,橙线：扇形三连弹幕（炮击手）,Orange lines: three-shot fan barrage (Artillery)
-codex_legend_totem,金线：图腾蓄力炮击（Boss机制）,Gold line: charged totem blast (boss mechanic)
+codex_legend_shoot,单线加线端小墨圈：普通远程射击（射手）,One line with a small ring at its end: regular ranged shot (Shooter)
+codex_legend_dash,短线加身周墨圈：冲刺/突进（突袭者）,Short line with a ring around the body: charge / dash (Dasher)
+codex_legend_sniper,长线加线端大墨圈：狙击蓄力射击（狙击手）,Long line with a large ring at its end: charged sniper shot (Sniper)
+codex_legend_burst,三道扇形线：扇形三连弹幕（炮击手）,Three fanned lines: three-shot fan barrage (Artillery)
+codex_legend_totem,朱红墨圈中墨渍扩散：图腾蓄力炮击（Boss机制）,Vermilion ring filling with ink: charged totem blast (boss mechanic)
 codex_skill_title,战斗系统,Combat Systems
 codex_systems_title,系统说明,How It Works
 codex_systems_1,"子弹系统：按 1/2/3/4/5 直切模式，Q 循环切换。
@@ -310,13 +307,13 @@ card_meteor_rush_t,炼天急降,Skyfall Rush
 card_meteor_rush_d,流星间隔缩短 14%,Meteor interval -14%
 card_meteor_core_t,星核炼压,Star Core Forge
 card_meteor_core_d,流星基础伤害+9，法强小幅提升,"Meteor base damage +9, slight spell power boost"
-card_meteor_echo_t,余震坐落,Aftershock
+card_meteor_echo_t,余震坠落,Aftershock
 card_meteor_echo_d,每次流星落地后追加1次余震爆炸,Each meteor triggers 1 extra aftershock explosion on landing
 card_resonance_t,星蚀共鸣,Eclipse Resonance
 card_resonance_d,流星命中积累共鸣，强化下一轮连锁法印（伤害+跳转）,Meteor hits build resonance that empowers your next Chain Sigil (damage + jumps)
 card_meteor_style_shower_t,星雨散落,Star Shower
-card_meteor_style_shower_d,流星转为高频散落分支：落点数大幅提升、每发伤害与半径降低（与“砸星坐落”互斥）,"Meteors become a rapid shower: many more strikes, but less damage and radius each (exclusive with ""Star Crash"")"
-card_meteor_style_cata_t,砸星坐落,Star Crash
+card_meteor_style_shower_d,流星转为高频散落分支：落点数大幅提升、每发伤害与半径降低（与“砸星坠落”互斥）,"Meteors become a rapid shower: many more strikes, but less damage and radius each (exclusive with ""Star Crash"")"
+card_meteor_style_cata_t,砸星坠落,Star Crash
 card_meteor_style_cata_d,流星转为巨陨冲击分支：落点数降低但每发爆炸范围与伤害大幅提升（与“星雨散落”互斥）,"Meteors become giant impacts: fewer strikes, but much bigger blasts and damage (exclusive with ""Star Shower"")"
 card_sword_style_whirl_t,风刃舞,Gale Dance
 card_sword_style_whirl_d,光剑转为风刃流：半径与旋速大幅提升，伤害小幅降低，会追加二段旋斩（与“断首式”互斥）,"Light sword becomes a gale blade: much larger radius and spin speed, slightly less damage, adds a second spin slash (exclusive with ""Beheader"")"
@@ -376,7 +373,7 @@ relic_oath_anchor_d,指挥锚点更早出现，目标压力更早进场。,"Comm
 relic_hazard_compact_t,灾害契约,Hazard Compact
 relic_hazard_compact_d,地形灾害节点增多，地脉通量指令强化。,"More terrain hazard nodes, and stronger Ley Flux directives."
 window_title,异世界无尽战斗,Magic Endless
-menu_language,语言 / Language：中文,Language / 语言: English
+menu_language,English,中文
 faction_legion,军团,Legion
 faction_arcane,奥术,Arcane
 faction_void,虚空,Void

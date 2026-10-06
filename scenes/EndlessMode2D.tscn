@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=28 format=3]
 
 [ext_resource type="Script" path="res://scripts/endless_mode_2d.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/player2d.gd" id="2"]
@@ -8,23 +8,90 @@
 [ext_resource type="PackedScene" path="res://scenes/sword_wave2d.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/hazard2d.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/boss_totem2d.tscn" id="9"]
+[ext_resource type="Shader" path="res://assets/art/woodblock_print.gdshader" id="10"]
+[ext_resource type="Script" path="res://scripts/arena_print.gd" id="11"]
+[ext_resource type="Texture2D" path="res://assets/art/player.png" id="12"]
+[ext_resource type="FontVariation" path="res://assets/fonts/display.tres" id="13"]
+[ext_resource type="FontVariation" path="res://assets/fonts/body_bold.tres" id="14"]
+[ext_resource type="Texture2D" path="res://assets/art/stroke.png" id="15"]
+[ext_resource type="Texture2D" path="res://assets/art/paper.png" id="16"]
+[ext_resource type="Texture2D" path="res://assets/art/grain.png" id="17"]
+[ext_resource type="FontVariation" path="res://assets/fonts/numeral.tres" id="18"]
+[ext_resource type="Texture2D" path="res://assets/art/seal.png" id="19"]
+[ext_resource type="Texture2D" path="res://assets/art/slip.png" id="21"]
+
+[sub_resource type="ShaderMaterial" id="print"]
+shader = ExtResource("10")
+shader_parameter/grain_tex = ExtResource("17")
 
 [sub_resource type="RectangleShape2D" id="1"]
 size = Vector2(28, 28)
 
-[sub_resource type="StyleBoxFlat" id="2"]
-bg_color = Color(0.08, 0.11, 0.16, 0.96)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
+[sub_resource type="StyleBoxTexture" id="slip"]
+content_margin_left = 22.0
+content_margin_top = 10.0
+content_margin_right = 22.0
+content_margin_bottom = 12.0
+texture = ExtResource("21")
+texture_margin_left = 16.0
+texture_margin_top = 16.0
+texture_margin_right = 16.0
+texture_margin_bottom = 16.0
+axis_stretch_horizontal = 1
+axis_stretch_vertical = 1
+
+[sub_resource type="StyleBoxEmpty" id="empty"]
+
+[sub_resource type="StyleBoxFlat" id="card_normal"]
+content_margin_left = 18.0
+content_margin_top = 26.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+bg_color = Color(0.929, 0.89, 0.8, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.28, 0.48, 0.66, 1)
+border_color = Color(0.118, 0.106, 0.094, 1)
 
-[node name="EndlessMode2D" type="Node2D"]
+[sub_resource type="StyleBoxFlat" id="card_hover"]
+content_margin_left = 18.0
+content_margin_top = 26.0
+content_margin_right = 18.0
+content_margin_bottom = 18.0
+bg_color = Color(0.957, 0.925, 0.847, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.847, 0.271, 0.169, 1)
+
+[sub_resource type="StyleBoxTexture" id="wave_seal"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+texture = ExtResource("19")
+texture_margin_left = 24.0
+texture_margin_top = 24.0
+texture_margin_right = 24.0
+texture_margin_bottom = 24.0
+modulate_color = Color(0.847, 0.271, 0.169, 1)
+
+[sub_resource type="StyleBoxTexture" id="score_seal"]
+content_margin_left = 26.0
+content_margin_top = 22.0
+content_margin_right = 26.0
+content_margin_bottom = 24.0
+texture = ExtResource("19")
+texture_margin_left = 40.0
+texture_margin_top = 40.0
+texture_margin_right = 40.0
+texture_margin_bottom = 40.0
+modulate_color = Color(0.847, 0.271, 0.169, 1)
+
+[node name="EndlessMode2D" type="CanvasGroup"]
+material = SubResource("print")
 script = ExtResource("1")
 enemy_scene = ExtResource("3")
 projectile_scene = ExtResource("4")
@@ -32,6 +99,13 @@ enemy_projectile_scene = ExtResource("5")
 sword_scene = ExtResource("6")
 hazard_scene = ExtResource("8")
 boss_totem_scene = ExtResource("9")
+
+[node name="Floor" type="CanvasLayer" parent="."]
+layer = -1
+follow_viewport_enabled = true
+
+[node name="Page" type="Node2D" parent="Floor"]
+script = ExtResource("11")
 
 [node name="World" type="Node2D" parent="."]
 
@@ -51,148 +125,251 @@ script = ExtResource("2")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="World/Player"]
 shape = SubResource("1")
 
-[node name="Body" type="Polygon2D" parent="World/Player"]
-polygon = PackedVector2Array(-14, -14, 14, -14, 14, 14, -14, 14)
-color = Color(0.24, 0.82, 0.96, 1)
+[node name="Body" type="Sprite2D" parent="World/Player"]
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("12")
 
 [node name="Camera2D" type="Camera2D" parent="World/Player"]
-zoom = Vector2(1, 1)
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
-current = true
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
-[node name="WaveLabel" type="Label" parent="HUD"]
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -280.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = 44.0
-horizontal_alignment = 2
-text = "Wave: 1"
+[node name="Vitals" type="PanelContainer" parent="HUD"]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 340.0
+offset_bottom = 30.0
+theme_override_styles/panel = SubResource("slip")
 
-[node name="StatusLabel" type="Label" parent="HUD"]
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -280.0
-offset_top = 44.0
-offset_right = -20.0
-offset_bottom = 68.0
-grow_horizontal = 0
-theme_override_font_sizes/font_size = 16
-horizontal_alignment = 2
-text = "Status"
+[node name="Box" type="VBoxContainer" parent="HUD/Vitals"]
+layout_mode = 2
+theme_override_constants/separation = 0
 
-[node name="AliveLabel" type="Label" parent="HUD"]
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -280.0
-offset_top = 68.0
-offset_right = -20.0
-offset_bottom = 92.0
-horizontal_alignment = 2
-text = "Enemies: 0"
+[node name="HPRow" type="HBoxContainer" parent="HUD/Vitals/Box"]
+layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="TimerLabel" type="Label" parent="HUD"]
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -280.0
-offset_top = 92.0
-offset_right = -20.0
-offset_bottom = 116.0
-horizontal_alignment = 2
-text = "Next wave in: 0.0"
-
-[node name="ScoreLabel" type="Label" parent="HUD"]
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -280.0
-offset_top = 124.0
-offset_right = -20.0
-offset_bottom = 148.0
-horizontal_alignment = 2
-text = "Score: 0"
-
-[node name="KillsLabel" type="Label" parent="HUD"]
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -280.0
-offset_top = 148.0
-offset_right = -20.0
-offset_bottom = 172.0
-horizontal_alignment = 2
-text = "Kills: 0"
-
-[node name="MulLabel" type="Label" parent="HUD"]
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -280.0
-offset_top = 172.0
-offset_right = -20.0
-offset_bottom = 196.0
-horizontal_alignment = 2
-text = "x1.00"
-[node name="Vitals" type="Panel" parent="HUD"]
-offset_left = 18.0
-offset_top = 18.0
-offset_right = 360.0
-offset_bottom = 180.0
-
-[node name="HPLabel" type="Label" parent="HUD/Vitals"]
-offset_left = 12.0
-offset_top = 8.0
-offset_right = 180.0
-offset_bottom = 28.0
-text = "HP 140/140"
-
-[node name="HPBar" type="ProgressBar" parent="HUD/Vitals"]
-offset_left = 12.0
-offset_top = 30.0
-offset_right = 330.0
-offset_bottom = 50.0
+[node name="HPBar" type="TextureProgressBar" parent="HUD/Vitals/Box/HPRow"]
+custom_minimum_size = Vector2(250, 26)
+layout_mode = 2
+size_flags_vertical = 4
 max_value = 140.0
 value = 140.0
+nine_patch_stretch = true
+stretch_margin_left = 18
+stretch_margin_right = 40
+texture_under = ExtResource("15")
+texture_progress = ExtResource("15")
+tint_under = Color(0, 0, 0, 0)
+tint_progress = Color(0.847, 0.271, 0.169, 1)
 
-[node name="SPLabel" type="Label" parent="HUD/Vitals"]
-offset_left = 12.0
-offset_top = 56.0
-offset_right = 180.0
-offset_bottom = 76.0
-text = "SP 100/100"
+[node name="HPLabel" type="Label" parent="HUD/Vitals/Box/HPRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.847, 0.271, 0.169, 1)
+theme_override_fonts/font = ExtResource("18")
+theme_override_font_sizes/font_size = 24
+text = "140"
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
 
-[node name="SPBar" type="ProgressBar" parent="HUD/Vitals"]
-offset_left = 12.0
-offset_top = 78.0
-offset_right = 330.0
-offset_bottom = 98.0
+[node name="SPRow" type="HBoxContainer" parent="HUD/Vitals/Box"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SPBar" type="TextureProgressBar" parent="HUD/Vitals/Box/SPRow"]
+custom_minimum_size = Vector2(250, 26)
+layout_mode = 2
+size_flags_vertical = 4
 max_value = 100.0
 value = 100.0
+nine_patch_stretch = true
+stretch_margin_left = 18
+stretch_margin_right = 40
+texture_under = ExtResource("15")
+texture_progress = ExtResource("15")
+tint_under = Color(0, 0, 0, 0)
+tint_progress = Color(0.153, 0.275, 0.42, 1)
 
-[node name="ModeLabel" type="Label" parent="HUD/Vitals"]
-offset_left = 12.0
-offset_top = 106.0
-offset_right = 330.0
-offset_bottom = 126.0
-text = "Bullet: Normal | Shield: Off"
+[node name="SPLabel" type="Label" parent="HUD/Vitals/Box/SPRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.275, 0.42, 1)
+theme_override_fonts/font = ExtResource("18")
+theme_override_font_sizes/font_size = 24
+text = "100"
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
 
-[node name="CooldownLabel" type="Label" parent="HUD/Vitals"]
-offset_left = 12.0
-offset_top = 132.0
-offset_right = 330.0
-offset_bottom = 152.0
-text = "Dash 0.0s"
+[node name="ModeLabel" type="Label" parent="HUD/Vitals/Box"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("13")
+theme_override_font_sizes/font_size = 22
+text = "Normal"
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
+autowrap_mode = 3
 
-[node name="Message" type="Label" parent="HUD"]
-anchors_preset = 10
+[node name="CooldownLabel" type="Label" parent="HUD/Vitals/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.275, 0.42, 1)
+theme_override_font_sizes/font_size = 15
+text = ""
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
+
+[node name="Ledger" type="PanelContainer" parent="HUD"]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -230.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 30.0
+grow_horizontal = 0
+theme_override_styles/panel = SubResource("slip")
+
+[node name="Box" type="VBoxContainer" parent="HUD/Ledger"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="WaveSeal" type="PanelContainer" parent="HUD/Ledger/Box"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+size_flags_horizontal = 8
+theme_override_styles/panel = SubResource("wave_seal")
+
+[node name="VBox" type="VBoxContainer" parent="HUD/Ledger/Box/WaveSeal"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = -8
+
+[node name="WaveCaption" type="Label" parent="HUD/Ledger/Box/WaveSeal/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.925, 0.847, 1)
+theme_override_font_sizes/font_size = 15
+text = "ui_wave_caption"
+horizontal_alignment = 1
+
+[node name="WaveLabel" type="Label" parent="HUD/Ledger/Box/WaveSeal/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.925, 0.847, 1)
+theme_override_fonts/font = ExtResource("18")
+theme_override_font_sizes/font_size = 52
+text = "1"
+horizontal_alignment = 1
+
+[node name="TimerLabel" type="Label" parent="HUD/Ledger/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.847, 0.271, 0.169, 1)
+theme_override_fonts/font = ExtResource("13")
+theme_override_font_sizes/font_size = 20
+text = "Next wave in: 0.0"
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
+horizontal_alignment = 2
+autowrap_mode = 3
+
+[node name="Gap" type="Control" parent="HUD/Ledger/Box"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+
+[node name="ScoreCaption" type="Label" parent="HUD/Ledger/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.275, 0.42, 1)
+theme_override_font_sizes/font_size = 15
+text = "ui_score_caption"
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
+horizontal_alignment = 2
+visible = false
+
+[node name="ScoreLabel" type="Label" parent="HUD/Ledger/Box"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("18")
+theme_override_font_sizes/font_size = 34
+text = "0"
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
+horizontal_alignment = 2
+
+[node name="Threat" type="HBoxContainer" parent="HUD"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -44.0
+offset_right = 200.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 0
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="ThreatCaption" type="Label" parent="HUD/Threat"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.118, 0.106, 0.094, 1)
+theme_override_font_sizes/font_size = 15
+text = "ui_threat_caption"
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
+visible = false
+
+[node name="ThreatBar" type="TextureProgressBar" parent="HUD/Threat"]
+custom_minimum_size = Vector2(300, 18)
+layout_mode = 2
+size_flags_vertical = 4
+value = 0.0
+nine_patch_stretch = true
+stretch_margin_left = 18
+stretch_margin_right = 40
+texture_under = ExtResource("15")
+texture_progress = ExtResource("15")
+tint_under = Color(0.118, 0.106, 0.094, 0.12)
+tint_progress = Color(0.118, 0.106, 0.094, 1)
+
+[node name="AfflictionLabel" type="Label" parent="HUD"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Affliction"
+theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
+theme_override_constants/outline_size = 6
+visible = false
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
 offset_left = -360.0
-offset_top = -120.0
-offset_right = 360.0
-offset_bottom = -84.0
+offset_top = -46.0
+offset_right = -24.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MessageBox" type="PanelContainer" parent="HUD"]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -270.0
+offset_top = 16.0
+offset_right = 270.0
+offset_bottom = 56.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("slip")
+
+[node name="Message" type="Label" parent="HUD/MessageBox"]
+custom_minimum_size = Vector2(496, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.118, 0.106, 0.094, 1)
+theme_override_font_sizes/font_size = 18
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
 
 [node name="CardUI" type="CanvasLayer" parent="."]
 
@@ -203,7 +380,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.58)
+color = Color(0.118, 0.106, 0.094, 0.62)
 
 [node name="Center" type="CenterContainer" parent="CardUI/Shade"]
 anchors_preset = 15
@@ -212,42 +389,148 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="Panel" parent="CardUI/Shade/Center"]
-custom_minimum_size = Vector2(820, 430)
-theme_override_styles/panel = SubResource("2")
+[node name="Panel" type="PanelContainer" parent="CardUI/Shade/Center"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("empty")
 
 [node name="VBox" type="VBoxContainer" parent="CardUI/Shade/Center/Panel"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 20.0
-offset_right = -24.0
-offset_bottom = -20.0
-theme_override_constants/separation = 12
+layout_mode = 2
+theme_override_constants/separation = 26
 
 [node name="Title" type="Label" parent="CardUI/Shade/Center/Panel/VBox"]
-theme_override_font_sizes/font_size = 34
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.925, 0.847, 1)
+theme_override_fonts/font = ExtResource("13")
+theme_override_font_sizes/font_size = 46
 text = "ui_card_title"
 horizontal_alignment = 1
 
-[node name="CardA" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 90)
-theme_override_font_sizes/font_size = 18
-autowrap_mode = 3
-text = "ui_card_a"
+[node name="Cards" type="HBoxContainer" parent="CardUI/Shade/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 30
 
-[node name="CardB" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 90)
-theme_override_font_sizes/font_size = 18
-autowrap_mode = 3
-text = "ui_card_b"
+[node name="CardA" type="Button" parent="CardUI/Shade/Center/Panel/VBox/Cards"]
+custom_minimum_size = Vector2(300, 200)
+layout_mode = 2
+theme_override_styles/normal = SubResource("card_normal")
+theme_override_styles/hover = SubResource("card_hover")
+theme_override_styles/pressed = SubResource("card_hover")
+theme_override_styles/hover_pressed = SubResource("card_hover")
+theme_override_styles/disabled = SubResource("card_normal")
+theme_override_styles/focus = SubResource("empty")
 
-[node name="CardC" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 90)
-theme_override_font_sizes/font_size = 18
-autowrap_mode = 3
-text = "ui_card_c"
+[node name="Band" type="ColorRect" parent="CardUI/Shade/Center/Panel/VBox/Cards/CardA"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 12.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.118, 0.106, 0.094, 1)
+
+[node name="Body" type="RichTextLabel" parent="CardUI/Shade/Center/Panel/VBox/Cards/CardA"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = 18.0
+offset_top = 26.0
+offset_right = -18.0
+offset_bottom = -14.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.118, 0.106, 0.094, 1)
+theme_override_fonts/bold_font = ExtResource("14")
+theme_override_font_sizes/normal_font_size = 16
+theme_override_font_sizes/bold_font_size = 16
+bbcode_enabled = true
+scroll_active = false
+vertical_alignment = 1
+text = "CardA"
+
+[node name="CardB" type="Button" parent="CardUI/Shade/Center/Panel/VBox/Cards"]
+custom_minimum_size = Vector2(300, 200)
+layout_mode = 2
+theme_override_styles/normal = SubResource("card_normal")
+theme_override_styles/hover = SubResource("card_hover")
+theme_override_styles/pressed = SubResource("card_hover")
+theme_override_styles/hover_pressed = SubResource("card_hover")
+theme_override_styles/disabled = SubResource("card_normal")
+theme_override_styles/focus = SubResource("empty")
+
+[node name="Band" type="ColorRect" parent="CardUI/Shade/Center/Panel/VBox/Cards/CardB"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 12.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.118, 0.106, 0.094, 1)
+
+[node name="Body" type="RichTextLabel" parent="CardUI/Shade/Center/Panel/VBox/Cards/CardB"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = 18.0
+offset_top = 26.0
+offset_right = -18.0
+offset_bottom = -14.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.118, 0.106, 0.094, 1)
+theme_override_fonts/bold_font = ExtResource("14")
+theme_override_font_sizes/normal_font_size = 16
+theme_override_font_sizes/bold_font_size = 16
+bbcode_enabled = true
+scroll_active = false
+vertical_alignment = 1
+text = "CardB"
+
+[node name="CardC" type="Button" parent="CardUI/Shade/Center/Panel/VBox/Cards"]
+custom_minimum_size = Vector2(300, 200)
+layout_mode = 2
+theme_override_styles/normal = SubResource("card_normal")
+theme_override_styles/hover = SubResource("card_hover")
+theme_override_styles/pressed = SubResource("card_hover")
+theme_override_styles/hover_pressed = SubResource("card_hover")
+theme_override_styles/disabled = SubResource("card_normal")
+theme_override_styles/focus = SubResource("empty")
+
+[node name="Band" type="ColorRect" parent="CardUI/Shade/Center/Panel/VBox/Cards/CardC"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 12.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0.118, 0.106, 0.094, 1)
+
+[node name="Body" type="RichTextLabel" parent="CardUI/Shade/Center/Panel/VBox/Cards/CardC"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = 18.0
+offset_top = 26.0
+offset_right = -18.0
+offset_bottom = -14.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.118, 0.106, 0.094, 1)
+theme_override_fonts/bold_font = ExtResource("14")
+theme_override_font_sizes/normal_font_size = 16
+theme_override_font_sizes/bold_font_size = 16
+bbcode_enabled = true
+scroll_active = false
+vertical_alignment = 1
+text = "CardC"
 
 [node name="PauseUI" type="CanvasLayer" parent="."]
 
@@ -258,7 +541,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.62)
+color = Color(0.118, 0.106, 0.094, 0.66)
 
 [node name="Center" type="CenterContainer" parent="PauseUI/Shade"]
 anchors_preset = 15
@@ -267,40 +550,62 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="Panel" parent="PauseUI/Shade/Center"]
-custom_minimum_size = Vector2(520, 360)
-theme_override_styles/panel = SubResource("2")
+[node name="Panel" type="PanelContainer" parent="PauseUI/Shade/Center"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
 
 [node name="VBox" type="VBoxContainer" parent="PauseUI/Shade/Center/Panel"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
-theme_override_constants/separation = 12
+layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="PauseUI/Shade/Center/Panel/VBox"]
-theme_override_font_sizes/font_size = 34
+layout_mode = 2
+theme_override_fonts/font = ExtResource("13")
+theme_override_font_sizes/font_size = 48
 text = "Paused"
-horizontal_alignment = 1
+
+[node name="StatsLabel" type="Label" parent="PauseUI/Shade/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Stats"
+custom_minimum_size = Vector2(368, 0)
+autowrap_mode = 3
+
+[node name="BuildLabel" type="Label" parent="PauseUI/Shade/Center/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.275, 0.42, 1)
+theme_override_font_sizes/font_size = 15
+text = "Build"
+custom_minimum_size = Vector2(368, 0)
+autowrap_mode = 3
+
+[node name="Gap" type="Control" parent="PauseUI/Shade/Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
 
 [node name="ResumeButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
 text = "Resume"
+alignment = 0
 
 [node name="RestartButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
 text = "Restart"
+alignment = 0
 
 [node name="MainMenuButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
 text = "Main Menu"
+alignment = 0
 
 [node name="QuitButton" type="Button" parent="PauseUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
 text = "Quit"
+alignment = 0
 
 [node name="GameOverUI" type="CanvasLayer" parent="."]
 process_mode = 3
@@ -312,7 +617,17 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.74)
+color = Color(0.929, 0.89, 0.8, 1)
+
+[node name="Paper" type="TextureRect" parent="GameOverUI/Shade"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("16")
+stretch_mode = 1
 
 [node name="Center" type="CenterContainer" parent="GameOverUI/Shade"]
 anchors_preset = 15
@@ -321,41 +636,83 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Panel" type="Panel" parent="GameOverUI/Shade/Center"]
-custom_minimum_size = Vector2(540, 360)
-theme_override_styles/panel = SubResource("2")
+[node name="Column" type="VBoxContainer" parent="GameOverUI/Shade/Center"]
+layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="VBox" type="VBoxContainer" parent="GameOverUI/Shade/Center/Panel"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
-theme_override_constants/separation = 12
-
-[node name="Title" type="Label" parent="GameOverUI/Shade/Center/Panel/VBox"]
-theme_override_font_sizes/font_size = 36
+[node name="Title" type="Label" parent="GameOverUI/Shade/Center/Column"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("13")
+theme_override_font_sizes/font_size = 88
 text = "Game Over"
 horizontal_alignment = 1
 
-[node name="ScoreLabel" type="Label" parent="GameOverUI/Shade/Center/Panel/VBox"]
-text = "Score: 0"
+[node name="Seal" type="PanelContainer" parent="GameOverUI/Shade/Center/Column"]
+custom_minimum_size = Vector2(300, 300)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_styles/panel = SubResource("score_seal")
+
+[node name="VBox" type="VBoxContainer" parent="GameOverUI/Shade/Center/Column/Seal"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 0
+
+[node name="ScoreCaption" type="Label" parent="GameOverUI/Shade/Center/Column/Seal/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.925, 0.847, 1)
+theme_override_fonts/font = ExtResource("13")
+theme_override_font_sizes/font_size = 28
+text = "Run score"
 horizontal_alignment = 1
 
-[node name="BankLabel" type="Label" parent="GameOverUI/Shade/Center/Panel/VBox"]
+[node name="ScoreLabel" type="Label" parent="GameOverUI/Shade/Center/Column/Seal/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.957, 0.925, 0.847, 1)
+theme_override_fonts/font = ExtResource("18")
+theme_override_font_sizes/font_size = 120
+text = "0"
+horizontal_alignment = 1
+
+[node name="GapA" type="Control" parent="GameOverUI/Shade/Center/Column"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="Stats" type="HBoxContainer" parent="GameOverUI/Shade/Center/Column"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 36
+
+[node name="BankLabel" type="Label" parent="GameOverUI/Shade/Center/Column/Stats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Bank: 0"
-horizontal_alignment = 1
 
-[node name="BestLabel" type="Label" parent="GameOverUI/Shade/Center/Panel/VBox"]
+[node name="BestLabel" type="Label" parent="GameOverUI/Shade/Center/Column/Stats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.153, 0.275, 0.42, 1)
+theme_override_font_sizes/font_size = 18
 text = "Best: 0"
-horizontal_alignment = 1
 
-[node name="RestartButton" type="Button" parent="GameOverUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 52)
+[node name="GapB" type="Control" parent="GameOverUI/Shade/Center/Column"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="GameOverUI/Shade/Center/Column"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 48
+
+[node name="RestartButton" type="Button" parent="GameOverUI/Shade/Center/Column/Buttons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+theme_override_fonts/font = ExtResource("13")
 text = "Restart"
+alignment = 0
 
-[node name="MainMenuButton" type="Button" parent="GameOverUI/Shade/Center/Panel/VBox"]
-custom_minimum_size = Vector2(0, 52)
+[node name="MainMenuButton" type="Button" parent="GameOverUI/Shade/Center/Column/Buttons"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+theme_override_fonts/font = ExtResource("13")
 text = "Main Menu"
+alignment = 0

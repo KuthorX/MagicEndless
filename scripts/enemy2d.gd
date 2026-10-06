@@ -20,6 +20,24 @@ const ROLE_SUPPORT := 2
 const ROLE_CONTROLLER := 3
 const ROLE_SIEGE := 4
 const ARENA_RECT := Rect2(-790.0, -430.0, 1580.0, 860.0)
+## How far an elite/mutator colour tints the base pigment (kept low so each type keeps its pigment).
+const ELITE_TINT := 0.2
+## Every creature is cut from the same indigo block as the title wave; its type pigment shows in its eyes.
+const ENSO_TEX := preload("res://assets/art/enso.png")
+## The enso ring sits inside its texture square; overscan so the ring lands on the radius.
+const ENSO_OVERSCAN := 1.25
+const BODY_INK := Ink.INDIGO
+const EYE_BONE := Ink.PAPER_LIGHT
+## Brushed ink silhouettes, indexed by enemy type (tools/art/gen_creatures.py). Facing +x.
+const CREATURE_TEX: Array[Texture2D] = [
+	preload("res://assets/art/creatures/chaser.png"), preload("res://assets/art/creatures/shooter.png"),
+	preload("res://assets/art/creatures/dasher.png"), preload("res://assets/art/creatures/sniper.png"),
+	preload("res://assets/art/creatures/artillery.png"), preload("res://assets/art/creatures/warden.png"),
+	preload("res://assets/art/creatures/warlock.png"), preload("res://assets/art/creatures/beacon.png"),
+	preload("res://assets/art/creatures/lancer.png"),
+]
+## World size of the 128px creature sheet; a body radius of ~22 texels lands near the old 18px hull.
+const CREATURE_QUAD := 104.0
 
 var enemy_type := TYPE_CHASER
 var max_hp := 60.0
@@ -73,12 +91,16 @@ var _attack_windup := 0.0
 var _attack_windup_total := 0.0
 var _pending_attack := ""
 var _telegraph_dir := Vector2.RIGHT
+var _eye_pigment := Ink.CRIMSON
 
 @onready var body_poly: Polygon2D = $Body
 @onready var muzzle: Marker2D = $Muzzle
 
 func _ready() -> void:
 	add_to_group("enemy")
+	body_poly.color = BODY_INK
+	# The body is drawn behind this node's own _draw so eyes and telegraphs sit on top of it.
+	body_poly.show_behind_parent = true
 
 func set_target(node: Node2D) -> void:
 	target = node
@@ -102,8 +124,7 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			move_speed = 118.0 + wave * 3.0
 			contact_damage = 9 + int(wave * 0.8)
 			lunge_cd = 2.0
-			body_poly.color = Color(0.93, 0.30, 0.23)
-			body_poly.polygon = PackedVector2Array([Vector2(-16, -14), Vector2(14, -16), Vector2(18, 0), Vector2(14, 16), Vector2(-16, 14), Vector2(-12, 0)])
+			_eye_pigment = Ink.CRIMSON
 			_shape_pulse_speed = 2.1
 			_shape_pulse_amp = 0.035
 		TYPE_SHOOTER:
@@ -111,8 +132,7 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			move_speed = 82.0 + wave * 1.8
 			contact_damage = 6 + int(wave * 0.5)
 			shoot_cd = 0.7
-			body_poly.color = Color(0.27, 0.86, 0.36)
-			body_poly.polygon = PackedVector2Array([Vector2(-14, -14), Vector2(14, -14), Vector2(18, 0), Vector2(14, 14), Vector2(-14, 14), Vector2(-18, 0)])
+			_eye_pigment = Ink.ROKUSHO
 			_shape_pulse_speed = 1.9
 			_shape_pulse_amp = 0.03
 		TYPE_DASHER:
@@ -120,8 +140,7 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			move_speed = 104.0 + wave * 2.2
 			contact_damage = 10 + int(wave * 0.8)
 			dash_cd = 1.4
-			body_poly.color = Color(0.56, 0.40, 0.98)
-			body_poly.polygon = PackedVector2Array([Vector2(-14, -12), Vector2(8, -16), Vector2(18, 0), Vector2(8, 16), Vector2(-14, 12), Vector2(-6, 0)])
+			_eye_pigment = Ink.MURASAKI
 			_shape_pulse_speed = 3.2
 			_shape_pulse_amp = 0.06
 		TYPE_SNIPER:
@@ -129,8 +148,7 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			move_speed = 78.0 + wave * 1.5
 			contact_damage = 8 + int(wave * 0.6)
 			shoot_cd = 0.9
-			body_poly.color = Color(0.95, 0.90, 0.28)
-			body_poly.polygon = PackedVector2Array([Vector2(-16, -11), Vector2(6, -16), Vector2(18, -4), Vector2(18, 4), Vector2(6, 16), Vector2(-16, 11), Vector2(-10, 0)])
+			_eye_pigment = Ink.GAMBOGE
 			_shape_pulse_speed = 1.4
 			_shape_pulse_amp = 0.025
 		TYPE_ARTILLERY:
@@ -138,8 +156,7 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			move_speed = 62.0 + wave * 1.2
 			contact_damage = 10 + int(wave * 0.7)
 			shoot_cd = 1.2
-			body_poly.color = Color(1.0, 0.54, 0.28)
-			body_poly.polygon = PackedVector2Array([Vector2(-18, -12), Vector2(12, -16), Vector2(20, 0), Vector2(12, 16), Vector2(-18, 12), Vector2(-10, 0)])
+			_eye_pigment = Ink.PERSIMMON
 			_shape_pulse_speed = 1.2
 			_shape_pulse_amp = 0.022
 		TYPE_WARDEN:
@@ -147,8 +164,7 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			move_speed = 76.0 + wave * 1.6
 			contact_damage = 11 + int(wave * 0.85)
 			shoot_cd = 1.0
-			body_poly.color = Color(0.32, 0.84, 1.0)
-			body_poly.polygon = PackedVector2Array([Vector2(-18, -16), Vector2(16, -16), Vector2(20, 0), Vector2(16, 16), Vector2(-18, 16), Vector2(-22, 0)])
+			_eye_pigment = Ink.INDIGO
 			_shape_pulse_speed = 1.7
 			_shape_pulse_amp = 0.03
 		TYPE_WARLOCK:
@@ -156,8 +172,7 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			move_speed = 84.0 + wave * 1.5
 			contact_damage = 9 + int(wave * 0.7)
 			shoot_cd = 1.2
-			body_poly.color = Color(0.90, 0.44, 1.0)
-			body_poly.polygon = PackedVector2Array([Vector2(-14, -18), Vector2(10, -14), Vector2(18, 0), Vector2(10, 14), Vector2(-14, 18), Vector2(-20, 0)])
+			_eye_pigment = Ink.WISTERIA
 			_shape_pulse_speed = 2.3
 			_shape_pulse_amp = 0.045
 		TYPE_BEACON:
@@ -166,8 +181,7 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			contact_damage = 8 + int(wave * 0.4)
 			shoot_cd = 1.8
 			_support_cd = 1.5
-			body_poly.color = Color(0.34, 1.0, 0.90)
-			body_poly.polygon = PackedVector2Array([Vector2(-20, -20), Vector2(16, -20), Vector2(22, 0), Vector2(16, 20), Vector2(-20, 20), Vector2(-24, 0)])
+			_eye_pigment = Ink.AI_TEAL
 			_shape_pulse_speed = 1.5
 			_shape_pulse_amp = 0.03
 		TYPE_LANCER:
@@ -175,10 +189,10 @@ func configure(kind: int, wave: int, proj_scene: PackedScene) -> void:
 			move_speed = 132.0 + wave * 2.4
 			contact_damage = 12 + int(wave * 0.9)
 			dash_cd = 1.0
-			body_poly.color = Color(0.96, 0.62, 0.30)
-			body_poly.polygon = PackedVector2Array([Vector2(-14, -10), Vector2(4, -14), Vector2(22, 0), Vector2(4, 14), Vector2(-14, 10), Vector2(-8, 0)])
+			_eye_pigment = Ink.PERSIMMON.darkened(0.2)
 			_shape_pulse_speed = 2.8
 			_shape_pulse_amp = 0.05
+	_print_creature()
 	var col := $CollisionShape2D as CollisionShape2D
 	if col != null and col.shape is CircleShape2D:
 		var r := 16.0
@@ -197,7 +211,7 @@ func apply_elite_mod(mod: Dictionary) -> void:
 	move_speed *= float(mod.get("speed_mul", 1.0))
 	contact_damage = int(contact_damage * float(mod.get("dmg_mul", 1.0)))
 	var target_color := Color(mod.get("color", body_poly.color))
-	body_poly.color = body_poly.color.lerp(target_color, 0.55)
+	body_poly.color = body_poly.color.lerp(target_color, ELITE_TINT)
 	var mod_name := str(mod.get("name", ""))
 	if mod_name != "":
 		if elite_name == "":
@@ -367,23 +381,23 @@ func _execute_pending_attack() -> void:
 	_pending_attack = ""
 
 func _draw() -> void:
+	_draw_eyes()
 	if _is_anchor:
 		var ap := 0.72 + 0.28 * sin(_anim_phase * 2.0)
-		draw_arc(Vector2.ZERO, 25.0 + 1.5 * ap, 0.0, TAU, 40, Color(1.0, 0.86, 0.24, 0.90), 2.4)
-		draw_arc(Vector2.ZERO, 31.0 + 2.2 * ap, 0.0, TAU, 44, Color(1.0, 0.95, 0.64, 0.58), 1.8)
+		_draw_enso(Vector2.ZERO, 25.0 + 1.5 * ap, Color(1.0, 0.86, 0.24, 0.90))
 	if _faction_break_t > 0.0:
 		var bp := 0.45 + 0.55 * sin(_anim_phase * 3.2)
-		draw_arc(Vector2.ZERO, 22.0, 0.0, TAU, 32, Color(1.0, 0.35, 0.35, 0.35 + 0.4 * bp), 2.0)
+		_draw_enso(Vector2.ZERO, 22.0, Color(1.0, 0.35, 0.35, 0.35 + 0.4 * bp))
 	if _hex_mark_t > 0.0:
 		var pulse := 0.65 + 0.35 * sin(_anim_phase * 2.2)
-		draw_arc(Vector2.ZERO, 22.0 + 2.0 * pulse, 0.0, TAU, 36, Color(0.92, 0.56, 1.0, 0.48 + 0.28 * pulse), 2.0)
+		_draw_enso(Vector2.ZERO, 22.0 + 2.0 * pulse, Color(0.92, 0.56, 1.0, 0.48 + 0.28 * pulse))
 		for i in _hex_mark_stack:
 			var a := TAU * float(i) / float(maxi(1, _hex_mark_stack)) + _anim_phase
 			var p := Vector2(cos(a), sin(a)) * (13.0 + 2.0 * sin(_anim_phase * 1.8))
 			draw_circle(p, 2.0, Color(0.96, 0.72, 1.0, 0.95))
 	if _chill_t > 0.0:
 		var pulse_c := 0.55 + 0.45 * sin(_anim_phase * 1.7)
-		draw_arc(Vector2.ZERO, 20.0 + 1.6 * pulse_c, 0.0, TAU, 32, Color(0.46, 0.82, 1.0, 0.42 + 0.24 * pulse_c), 2.0)
+		_draw_enso(Vector2.ZERO, 20.0 + 1.6 * pulse_c, Color(0.46, 0.82, 1.0, 0.42 + 0.24 * pulse_c))
 	if _attack_windup <= 0.0 or _attack_windup_total <= 0.0:
 		return
 	var t := clampf(1.0 - _attack_windup / _attack_windup_total, 0.0, 1.0)
@@ -392,34 +406,63 @@ func _draw() -> void:
 	match _pending_attack:
 		"shoot":
 			_draw_telegraph_line(origin, _telegraph_dir, 220.0, Color(0.42, 0.95, 0.42, a))
-			draw_arc(origin + _telegraph_dir * 220.0, 10.0, 0.0, TAU, 24, Color(0.42, 0.95, 0.42, a), 2.0)
+			_draw_enso(origin + _telegraph_dir * 220.0, 10.0, Color(0.42, 0.95, 0.42, a))
 		"sniper":
 			_draw_telegraph_line(origin, _telegraph_dir, 420.0, Color(1.0, 0.92, 0.28, a))
-			draw_arc(origin + _telegraph_dir * 420.0, 16.0, 0.0, TAU, 28, Color(1.0, 0.92, 0.28, a), 2.0)
+			_draw_enso(origin + _telegraph_dir * 420.0, 16.0, Color(1.0, 0.92, 0.28, a))
 		"burst":
 			for ang in [-14.0, 0.0, 14.0]:
 				_draw_telegraph_line(origin, _telegraph_dir.rotated(deg_to_rad(ang)), 270.0, Color(1.0, 0.56, 0.22, a))
 		"dash":
 			_draw_telegraph_line(origin, _telegraph_dir, 160.0, Color(0.72, 0.52, 1.0, a))
-			draw_arc(origin, 22.0 + 10.0 * t, 0.0, TAU, 28, Color(0.72, 0.52, 1.0, a), 2.0)
+			_draw_enso(origin, 22.0 + 10.0 * t, Color(0.72, 0.52, 1.0, a))
 		"lunge":
 			_draw_telegraph_line(origin, _telegraph_dir, 120.0, Color(1.0, 0.36, 0.30, a))
-			draw_arc(origin, 18.0 + 8.0 * t, 0.0, TAU, 24, Color(1.0, 0.36, 0.30, a), 2.0)
+			_draw_enso(origin, 18.0 + 8.0 * t, Color(1.0, 0.36, 0.30, a))
 		"fan":
 			for ang in [-24.0, -12.0, 0.0, 12.0, 24.0]:
 				_draw_telegraph_line(origin, _telegraph_dir.rotated(deg_to_rad(ang)), 260.0, Color(0.38, 0.92, 1.0, a))
 		"hex":
 			_draw_telegraph_line(origin, _telegraph_dir, 260.0, Color(0.88, 0.52, 1.0, a))
-			draw_arc(origin + _telegraph_dir * 120.0, 42.0, 0.0, TAU, 32, Color(0.88, 0.52, 1.0, a), 2.0)
+			_draw_enso(origin + _telegraph_dir * 120.0, 42.0, Color(0.88, 0.52, 1.0, a))
 		"rift":
-			draw_arc(origin, 54.0, 0.0, TAU, 40, Color(0.92, 0.44, 1.0, a), 2.0)
-			draw_arc(origin, 86.0, 0.0, TAU, 44, Color(0.92, 0.44, 1.0, a * 0.82), 2.0)
+			_draw_enso(origin, 54.0, Color(0.92, 0.44, 1.0, a))
+			_draw_enso(origin, 86.0, Color(0.92, 0.44, 1.0, a * 0.82))
 		"pierce_dash":
 			_draw_telegraph_line(origin, _telegraph_dir, 220.0, Color(1.0, 0.66, 0.34, a))
-			draw_arc(origin, 20.0 + 9.0 * t, 0.0, TAU, 26, Color(1.0, 0.66, 0.34, a), 2.0)
+			_draw_enso(origin, 20.0 + 9.0 * t, Color(1.0, 0.66, 0.34, a))
+
+func _print_creature() -> void:
+	var h := CREATURE_QUAD * 0.5
+	body_poly.polygon = PackedVector2Array([Vector2(-h, -h), Vector2(h, -h), Vector2(h, h), Vector2(-h, h)])
+	var tex: Texture2D = CREATURE_TEX[clampi(enemy_type, 0, CREATURE_TEX.size() - 1)]
+	var ts := tex.get_size()
+	body_poly.uv = PackedVector2Array([Vector2.ZERO, Vector2(ts.x, 0.0), ts, Vector2(0.0, ts.y)])
+	body_poly.texture = tex
+
+func _draw_eyes() -> void:
+	var s := 1.35 if _is_miniboss else 1.0
+	for side in [-1.0, 1.0]:
+		var c := Vector2(6.0, 6.0 * side) * s
+		draw_set_transform(c, 0.0, Vector2(1.0, 0.72))
+		draw_circle(Vector2.ZERO, 4.6 * s, EYE_BONE)
+		draw_set_transform(Vector2.ZERO)
+		draw_circle(c + Vector2(1.6, 0.0) * s, 2.3 * s, _eye_pigment)
+	draw_set_transform(Vector2.ZERO)
+
+## Status marks and attack targets are brushed rings (the same enso as the arena), never ruled circles.
+func _draw_enso(center: Vector2, r: float, c: Color) -> void:
+	var h := r * ENSO_OVERSCAN
+	draw_texture_rect(ENSO_TEX, Rect2(center - Vector2(h, h), Vector2(h, h) * 2.0), false, Color(c.r, c.g, c.b, 1.0))
 
 func _draw_telegraph_line(origin: Vector2, dir: Vector2, len: float, c: Color) -> void:
-	draw_line(origin, origin + dir * len, c, 2.0)
+	# A thin brush line that lifts toward its end; solid ink (the print has no translucency).
+	var ink := Color(c.r, c.g, c.b, 1.0)
+	var steps := 8
+	for i in steps:
+		var a := origin + dir * len * float(i) / float(steps)
+		var b := origin + dir * len * float(i + 1) / float(steps)
+		draw_line(a, b, ink, lerpf(3.2, 0.8, float(i) / float(steps - 1)))
 
 func _shoot(dir: Vector2) -> void:
 	if projectile_scene == null:
@@ -506,7 +549,7 @@ func _spawn_tracer(from: Vector2, to: Vector2, color: Color, fade: float, width:
 	var line := Line2D.new()
 	line.default_color = color
 	line.width = width
-	line.z_index = 35
+	# No z_index: items with their own z escape the battle's print CanvasGroup; tree order layers them.
 	line.points = PackedVector2Array([from, to])
 	scene.add_child(line)
 	var tween := line.create_tween()

@@ -10,34 +10,45 @@ var _subtitle_restore_t := 0.0
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	$Center/Panel/VBox/Title.text = tr("menu_title")
-	$Center/Panel/VBox/Subtitle.text = tr("menu_subtitle")
-	_subtitle_default = $Center/Panel/VBox/Subtitle.text
-	$Center/Panel/VBox/StartButton.text = tr("menu_start")
-	$Center/Panel/VBox/CodexButton.text = tr("menu_codex")
-	$Center/Panel/VBox/PotentialButton.text = tr("menu_potential")
-	$Center/Panel/VBox/SettingsButton.text = tr("menu_settings")
-	$Center/Panel/VBox/QuitButton.text = tr("menu_quit")
-	$Center/Panel/VBox/LanguageButton.text = tr("menu_language")
-	$Center/Panel/VBox/StartButton.pressed.connect(_on_start_pressed)
-	$Center/Panel/VBox/CodexButton.pressed.connect(_on_codex_pressed)
-	$Center/Panel/VBox/PotentialButton.pressed.connect(_on_potential_pressed)
-	$Center/Panel/VBox/SettingsButton.pressed.connect(_on_settings_pressed)
-	$Center/Panel/VBox/QuitButton.pressed.connect(_on_quit_pressed)
+	%Title.text = tr("menu_title_display")
+	# The line under the title stays empty; it only carries short feedback (cheat codes).
+	%Subtitle.text = ""
+	_subtitle_default = ""
+	%StartButton.text = tr("menu_start")
+	%CodexButton.text = tr("menu_codex")
+	%PotentialButton.text = tr("menu_potential")
+	%SettingsButton.text = tr("menu_settings")
+	%QuitButton.text = tr("menu_quit")
+	%LanguageButton.text = tr("menu_language")
 	# The web build cannot close its tab, so Quit would do nothing there.
-	$Center/Panel/VBox/QuitButton.visible = not OS.has_feature("web")
-	$Center/Panel/VBox/LanguageButton.pressed.connect(_on_language_pressed)
+	%QuitButton.visible = not OS.has_feature("web")
+	%StartButton.pressed.connect(_on_start_pressed)
+	%CodexButton.pressed.connect(_on_codex_pressed)
+	%PotentialButton.pressed.connect(_on_potential_pressed)
+	%SettingsButton.pressed.connect(_on_settings_pressed)
+	%QuitButton.pressed.connect(_on_quit_pressed)
+	%LanguageButton.pressed.connect(_on_language_pressed)
+	%StartButton.grab_focus.call_deferred()
 	if AudioManager != null:
 		AudioManager.play_menu()
 	else:
 		push_error("AudioManager singleton is null in MainMenu.")
+	if DebugShot.is_battle_shot():
+		_on_start_pressed.call_deferred()
+	match DebugShot.mode:
+		"codex":
+			_on_codex_pressed.call_deferred()
+		"potential":
+			_on_potential_pressed.call_deferred()
+		"settings":
+			_on_settings_pressed.call_deferred()
 
 func _process(delta: float) -> void:
 	if _subtitle_restore_t <= 0.0:
 		return
 	_subtitle_restore_t = maxf(0.0, _subtitle_restore_t - delta)
 	if _subtitle_restore_t <= 0.0:
-		$Center/Panel/VBox/Subtitle.text = _subtitle_default
+		%Subtitle.text = _subtitle_default
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not (event is InputEventKey):
@@ -81,7 +92,7 @@ func _try_apply_score_cheat() -> void:
 	if ProgressionManager == null or not ProgressionManager.has_method("add_cheat_score_from_current"):
 		return
 	var gained: int = int(ProgressionManager.add_cheat_score_from_current(10000))
-	var subtitle: Label = $Center/Panel/VBox/Subtitle
+	var subtitle: Label = %Subtitle
 	if gained > 0:
 		subtitle.text = tr("menu_cheat_ok") % [gained, ProgressionManager.score_bank]
 	else:
@@ -92,7 +103,7 @@ func _try_apply_potential_cheat() -> void:
 	if ProgressionManager == null or not ProgressionManager.has_method("add_cheat_potential_levels"):
 		return
 	var add_lv: int = int(ProgressionManager.add_cheat_potential_levels(1000))
-	var subtitle: Label = $Center/Panel/VBox/Subtitle
+	var subtitle: Label = %Subtitle
 	if add_lv > 0:
 		subtitle.text = tr("menu_potential_cheat_ok") % add_lv
 	else:
