@@ -1,4 +1,4 @@
-[gd_scene load_steps=28 format=3]
+[gd_scene load_steps=29 format=3]
 
 [ext_resource type="Script" path="res://scripts/endless_mode_2d.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/player2d.gd" id="2"]
@@ -58,6 +58,18 @@ border_width_top = 4
 border_width_right = 4
 border_width_bottom = 4
 border_color = Color(0.847, 0.271, 0.169, 1)
+
+[sub_resource type="StyleBoxFlat" id="cartouche"]
+content_margin_left = 18.0
+content_margin_top = 8.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.957, 0.925, 0.847, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.118, 0.106, 0.094, 1)
 
 [sub_resource type="StyleBoxEmpty" id="wave_seal"]
 content_margin_left = 14.0
@@ -217,7 +229,7 @@ theme_override_styles/panel = SubResource("slip")
 
 [node name="Box" type="VBoxContainer" parent="HUD/Ledger"]
 layout_mode = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 8
 
 [node name="WaveSeal" type="PanelContainer" parent="HUD/Ledger/Box"]
 custom_minimum_size = Vector2(96, 96)
@@ -348,7 +360,7 @@ offset_top = 16.0
 offset_right = 270.0
 offset_bottom = 56.0
 grow_horizontal = 2
-theme_override_styles/panel = SubResource("slip")
+theme_override_styles/panel = SubResource("cartouche")
 
 [node name="Message" type="Label" parent="HUD/MessageBox"]
 custom_minimum_size = Vector2(496, 0)
