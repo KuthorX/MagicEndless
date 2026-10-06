@@ -281,7 +281,6 @@ text = "ui_score_caption"
 theme_override_colors/font_outline_color = Color(0.929, 0.89, 0.8, 1)
 theme_override_constants/outline_size = 6
 horizontal_alignment = 2
-visible = false
 
 [node name="ScoreLabel" type="Label" parent="HUD/Ledger/Box"]
 layout_mode = 2

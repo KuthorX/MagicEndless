@@ -1,13 +1,16 @@
 class_name CarvedWall
 extends Node2D
 
-## A wall cut into the woodblock: a heavy sumi keyline whose corners overshoot (the knife runs
-## past the corner, as on a real block), filled with diagonal gouge hatching. Line only, no
-## grey fill, so terrain reads as carved ink on the same paper as the menu.
+## A wall cut into the woodblock: a sumi keyline whose corners overshoot (the knife runs past
+## the corner, as on a real block), with gouge hatching only along the shadow side (bottom and
+## right), so the block reads as carved relief. Line only, no grey fill.
 
 const KEYLINE := 3.0
 const OVERSHOOT := 6.0
-const HATCH_STEP := 9.0
+const HATCH_STEP_MIN := 8.0
+const HATCH_STEP_MAX := 13.0
+## Blocks thinner than this are hatched through; thicker ones only along the shadow band.
+const SHADOW_BAND := 16.0
 const HATCH_WIDTH := 1.4
 const HATCH_INSET := 5.0
 const WOBBLE := 1.2
@@ -55,8 +58,23 @@ func _draw_hatching(rng: RandomNumberGenerator) -> void:
 	var inner := Rect2(Vector2.ONE * HATCH_INSET, size - Vector2.ONE * HATCH_INSET * 2.0)
 	if inner.size.x <= 0.0 or inner.size.y <= 0.0:
 		return
+	# Bottom band, then right band (minus the shared corner): the side away from the light.
+	var bands: Array[Rect2] = [inner]
+	if inner.size.y > SHADOW_BAND * 1.6 or inner.size.x > SHADOW_BAND * 1.6:
+		var band_h := minf(SHADOW_BAND, inner.size.y)
+		var band_w := minf(SHADOW_BAND, inner.size.x)
+		bands = [
+			Rect2(inner.position.x, inner.end.y - band_h, inner.size.x, band_h),
+			Rect2(inner.end.x - band_w, inner.position.y, band_w, inner.size.y - band_h),
+		]
+	var step := rng.randf_range(HATCH_STEP_MIN, HATCH_STEP_MAX)
+	for band in bands:
+		if band.size.x > 1.0 and band.size.y > 1.0:
+			_hatch_rect(band, step, rng)
+
+func _hatch_rect(inner: Rect2, step: float, rng: RandomNumberGenerator) -> void:
 	var span := inner.size.x + inner.size.y
-	var k := 0.0
+	var k := rng.randf_range(0.0, step)
 	while k < span:
 		var seg := _clip_diagonal(inner, k)
 		if seg.size() == 2:
@@ -66,7 +84,7 @@ func _draw_hatching(rng: RandomNumberGenerator) -> void:
 			var p1: Vector2 = seg[1] - d * rng.randf_range(0.0, 3.0)
 			if p0.distance_to(p1) > 2.0:
 				draw_line(p0, p1, ink, HATCH_WIDTH)
-		k += HATCH_STEP
+		k += step * rng.randf_range(0.8, 1.2)
 
 ## The segment of the line x + y = inner.position.x + inner.position.y + k inside `inner`.
 func _clip_diagonal(inner: Rect2, k: float) -> PackedVector2Array:

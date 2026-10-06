@@ -27,10 +27,14 @@ static func carved_ring(ci: CanvasItem, center: Vector2, r: float, c: Color, wid
 	const ARCS := 3
 	const GAP := 0.16
 	const TICKS := 8
+	# Each cut is a little off the last: uneven spans, radii and widths, so it reads cut by hand.
+	const JITTER := [0.0, 0.31, -0.22]
 	var step := TAU / float(ARCS)
 	for i in ARCS:
-		var a0 := float(i) * step + GAP
-		ci.draw_arc(center, r, a0, a0 + step - GAP * 2.0, 18, c, width)
+		var j: float = JITTER[i]
+		var a0 := float(i) * step + GAP + j * 0.4
+		var rr := r * (1.0 + j * 0.08)
+		ci.draw_arc(center, rr, a0, a0 + step - GAP * 2.0 - absf(j) * 0.3, 18, c, width * (1.0 + j))
 	for i in TICKS:
 		var a := (float(i) + 0.5) * TAU / float(TICKS)
 		var d := Vector2.from_angle(a)

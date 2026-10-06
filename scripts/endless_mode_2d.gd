@@ -27,7 +27,7 @@ const DISPLAY_FONT_PATH := "res://assets/fonts/display.tres"
 const DEBUG_SHOT_START_WAVE := 4
 const DEBUG_SHOT_BATTLE_SECONDS := 4.0
 ## Carved walls are line work, so they can take near-full ink; a touch of wash keeps them under the fight.
-const WALL_PALE_INK := 0.12
+const WALL_PALE_INK := 0.35
 const WALL_WASH := Color(0.6, 0.6, 0.62)
 const CARD_MIN_HEIGHT := 200.0
 const CARD_MAX_HEIGHT := 360.0
