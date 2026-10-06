@@ -417,7 +417,7 @@ func _ready() -> void:
 	_apply_pause_locale()
 	pause_shade.visible = false
 	game_over_shade.visible = false
-	_show_message(Loc.t("msg_controls"))
+	_show_message(tr("msg_controls"))
 	_setup_virtual_input()
 	_set_intermission(INTERMISSION_SECONDS)
 	_last_hp = float(player.hp)
@@ -512,8 +512,8 @@ func _update_virtual_input_state() -> void:
 func _setup_virtual_action_buttons() -> void:
 	if _virtual_ui_layer == null:
 		return
-	_virtual_shield_button = _create_virtual_action_button(Loc.t("ui_touch_shield"), 1)
-	_virtual_dash_button = _create_virtual_action_button(Loc.t("ui_touch_dash"), 0)
+	_virtual_shield_button = _create_virtual_action_button(tr("ui_touch_shield"), 1)
+	_virtual_dash_button = _create_virtual_action_button(tr("ui_touch_dash"), 0)
 	_virtual_ui_layer.add_child(_virtual_shield_button)
 	_virtual_ui_layer.add_child(_virtual_dash_button)
 	_virtual_shield_button.button_down.connect(_on_virtual_shield_down)
@@ -674,7 +674,7 @@ func request_control_zone(pos: Vector2, wave_level: int) -> void:
 		return
 	var center := _clamp_to_arena(pos + Vector2(_rng.randf_range(-26.0, 26.0), _rng.randf_range(-26.0, 26.0)))
 	var radius := 100.0 + float(mini(48, wave_level * 2))
-	_show_message(Loc.t("msg_control_zone"))
+	_show_message(tr("msg_control_zone"))
 	_spawn_ground_warning(center, radius, Color(0.96, 0.42, 1.0, 0.82), 0.60)
 	var delay = get_tree().create_timer(0.60)
 	await delay.timeout
@@ -702,7 +702,7 @@ func _start_wave_objective() -> void:
 		var marker := _spawn_objective_marker(_objective_pos, Color(1.0, 0.90, 0.35, 0.88), 96.0)
 		_objective_nodes.append(marker)
 		_spawn_ground_warning(_objective_pos, 105.0, Color(1.0, 0.90, 0.35, 0.88), 1.0)
-		_show_message(Loc.t("msg_objective_pylon_start"))
+		_show_message(tr("msg_objective_pylon_start"))
 	elif roll < 0.74:
 		_objective_type = "rift_seal"
 		_objective_left = 13.0 + minf(4.0, float(wave) * 0.18)
@@ -713,12 +713,12 @@ func _start_wave_objective() -> void:
 			marker.set_meta("sealed", false)
 			_objective_nodes.append(marker)
 			_spawn_ground_warning(p, 84.0, Color(0.90, 0.40, 1.0, 0.85), 0.9)
-		_show_message(Loc.t("msg_objective_rift_start"))
+		_show_message(tr("msg_objective_rift_start"))
 	else:
 		_objective_type = "convoy_fracture"
 		_objective_left = 12.0 + minf(4.0, float(wave) * 0.16)
 		_start_objective_convoy()
-		_show_message(Loc.t("msg_objective_convoy_start"))
+		_show_message(tr("msg_objective_convoy_start"))
 
 func _update_wave_objective(delta: float) -> void:
 	if not _objective_active:
@@ -827,7 +827,7 @@ func _complete_wave_objective() -> void:
 		_directive_left += 2.4
 		player.heal(10.0 + float(wave) * 0.3)
 		player.restore_sp(14.0 + float(wave) * 0.35)
-		_show_message(Loc.t("msg_objective_pylon_done"))
+		_show_message(tr("msg_objective_pylon_done"))
 	elif _objective_type == "rift_seal":
 		var removed := 0
 		for hz in hazard_root.get_children():
@@ -839,7 +839,7 @@ func _complete_wave_objective() -> void:
 				break
 		_directive_left += 1.8
 		player.restore_sp(16.0 + float(wave) * 0.45)
-		_show_message(Loc.t("msg_objective_rift_done"))
+		_show_message(tr("msg_objective_rift_done"))
 	else:
 		var trim_convoy := mini(_spawn_queue.size(), 3 + _objective_convoy_hits + int(wave * 0.08))
 		for i in trim_convoy:
@@ -847,26 +847,26 @@ func _complete_wave_objective() -> void:
 				_spawn_queue.pop_back()
 		player.restore_sp(12.0 + float(wave) * 0.40)
 		_directive_left += 2.0
-		_show_message(Loc.t("msg_objective_convoy_done"))
+		_show_message(tr("msg_objective_convoy_done"))
 	_cleanup_objective_state()
 
 func _fail_wave_objective() -> void:
 	if not _objective_active:
 		return
 	if _objective_type == "pylon_capture":
-		_show_message(Loc.t("msg_objective_pylon_fail"))
+		_show_message(tr("msg_objective_pylon_fail"))
 		_spawn_radial_volley(_objective_pos, 12 + int(wave * 0.06), _rng.randf() * TAU)
 		for i in range(3 + int(wave * 0.08)):
 			_spawn_queue.append(2 if i % 2 == 0 else 8)
 	elif _objective_type == "rift_seal":
-		_show_message(Loc.t("msg_objective_rift_fail"))
+		_show_message(tr("msg_objective_rift_fail"))
 		for n in _objective_nodes:
 			if is_instance_valid(n):
 				request_void_zone(n.global_position, wave + 1)
 		for i in range(4 + int(wave * 0.10)):
 			_spawn_queue.append(6 if i % 2 == 0 else 7)
 	else:
-		_show_message(Loc.t("msg_objective_convoy_fail"))
+		_show_message(tr("msg_objective_convoy_fail"))
 		for n in _objective_nodes:
 			if is_instance_valid(n) and not bool(n.get_meta("fractured", false)):
 				_spawn_radial_volley(n.global_position, 8 + int(wave * 0.06), _rng.randf() * TAU)
@@ -961,12 +961,12 @@ func _apply_ui_locale() -> void:
 	var title_label = card_vbox.get_node("Title") as Label
 	if title_label != null:
 		if _choice_mode == "mitigation":
-			title_label.text = Loc.t("ui_mitigation_title")
+			title_label.text = tr("ui_mitigation_title")
 		else:
-			title_label.text = Loc.t("ui_card_title")
-	card_a.text = Loc.t("ui_card_a")
-	card_b.text = Loc.t("ui_card_b")
-	card_c.text = Loc.t("ui_card_c")
+			title_label.text = tr("ui_card_title")
+	card_a.text = tr("ui_card_a")
+	card_b.text = tr("ui_card_b")
+	card_c.text = tr("ui_card_c")
 
 func _setup_actions() -> void:
 	_set_key("move_forward", KEY_W)
@@ -1029,10 +1029,10 @@ func _begin_wave_preview() -> void:
 	_preview_ecology_summary = _build_ecology_summary(_spawn_queue)
 	_set_hazards_active(false)
 	_spawn_preview_enemies()
-	var theme_name = Loc.t(str(TERRAIN_THEME_LABEL.get(_terrain_theme, "terrain_theme_ruins")))
-	var mutator_name = Loc.t(str(_wave_mutator.get("label", "mutator_none")))
-	var headline := Loc.t("msg_wave_preview_theme") % [wave, PREVIEW_SECONDS, theme_name, mutator_name]
-	_show_message("%s\n%s" % [headline, Loc.t("msg_wave_ecology") % _preview_ecology_summary])
+	var theme_name = tr(str(TERRAIN_THEME_LABEL.get(_terrain_theme, "terrain_theme_ruins")))
+	var mutator_name = tr(str(_wave_mutator.get("label", "mutator_none")))
+	var headline := tr("msg_wave_preview_theme") % [wave, PREVIEW_SECONDS, theme_name, mutator_name]
+	_show_message("%s\n%s" % [headline, tr("msg_wave_ecology") % _preview_ecology_summary])
 
 func _spawn_preview_enemies() -> void:
 	_preview_enemies.clear()
@@ -1070,7 +1070,7 @@ func _activate_wave_from_preview() -> void:
 		_objective_trigger_left = minf(_objective_trigger_left, 4.2)
 		_try_assign_wave_anchor()
 	_spawn_miniboss_if_needed()
-	_show_message(Loc.t("msg_wave_start") % wave)
+	_show_message(tr("msg_wave_start") % wave)
 	play_sfx("wave_start")
 
 func _build_spawn_queue() -> void:
@@ -1190,7 +1190,7 @@ func _spawn_miniboss_if_needed() -> void:
 	_apply_elite_combo(boss, true)
 	if boss.has_method("apply_elite_mod"):
 		boss.apply_elite_mod({"name":"MiniBoss", "hp_mul": 2.8, "dmg_mul": 1.35, "speed_mul": 0.95, "color": Color(1.0, 0.74, 0.18, 1.0)})
-	_show_message(Loc.t("msg_miniboss") % wave)
+	_show_message(tr("msg_miniboss") % wave)
 
 func _on_wave_clear() -> void:
 	_wave_active = false
@@ -1201,7 +1201,7 @@ func _on_wave_clear() -> void:
 	_commit_wave_telemetry()
 	player.heal(20.0)
 	player.restore_sp(25.0)
-	_show_message(Loc.t("msg_wave_clear") % wave)
+	_show_message(tr("msg_wave_clear") % wave)
 	play_sfx("wave_clear")
 	_show_cards()
 
@@ -1229,13 +1229,13 @@ func _pick_card(index: int) -> void:
 	_card_pick_order.append(str(card.get("title", "card_unknown")))
 	player.apply_upgrade(card["effect"])
 	var ready_list: Array[String] = _apply_archetype_progress(card)
-	var pick_msg := Loc.t("msg_card_pick") % Loc.t(str(card["title"]))
+	var pick_msg := tr("msg_card_pick") % tr(str(card["title"]))
 	for school in ready_list:
-		pick_msg += "\n" + (Loc.t("msg_keystone_ready") % _archetype_name(school))
+		pick_msg += "\n" + (tr("msg_keystone_ready") % _archetype_name(school))
 	if bool(card.get("keystone", false)):
 		_keystone_picked = true
 		_keystone_school = str(card.get("requires_archetype", ""))
-		pick_msg = "%s\n%s" % [pick_msg, Loc.t("msg_keystone_commit") % _archetype_name(_keystone_school)]
+		pick_msg = "%s\n%s" % [pick_msg, tr("msg_keystone_commit") % _archetype_name(_keystone_school)]
 	_show_message(pick_msg)
 	play_sfx("card_pick")
 	card_shade.visible = false
@@ -1365,7 +1365,7 @@ func _card_is_available(card: Dictionary) -> bool:
 	return true
 
 func _archetype_name(id: String) -> String:
-	return Loc.t("archetype_" + id)
+	return tr("archetype_" + id)
 
 func _archetype_base_gain(card: Dictionary) -> float:
 	var rarity := str(card.get("rarity", "common"))
@@ -1433,8 +1433,8 @@ func _apply_archetype_progress(card: Dictionary) -> Array[String]:
 
 func _update_card_button(btn: Button, card: Dictionary) -> void:
 	var rarity: String = str(card.get("rarity", "common"))
-	var rarity_text: String = Loc.t(str(RARITY_LABEL.get(rarity, "rarity_common")))
-	btn.text = "[%s] %s\n%s" % [rarity_text, Loc.t(str(card["title"])), Loc.t(str(card["desc"]))]
+	var rarity_text: String = tr(str(RARITY_LABEL.get(rarity, "rarity_common")))
+	btn.text = "[%s] %s\n%s" % [rarity_text, tr(str(card["title"])), tr(str(card["desc"]))]
 	var c: Color = Color(RARITY_COLOR.get(rarity, Color(0.92, 0.92, 0.92, 1.0)))
 	btn.add_theme_color_override("font_color", c)
 	btn.add_theme_color_override("font_hover_color", c.lightened(0.1))
@@ -1464,12 +1464,12 @@ func _show_mitigation_choices() -> void:
 	_prepare_card_intro_visual()
 	card_shade.visible = true
 	_play_card_intro()
-	_show_message(Loc.t("msg_affliction_incoming") % Loc.t("affliction_" + _pending_affliction))
+	_show_message(tr("msg_affliction_incoming") % tr("affliction_" + _pending_affliction))
 
 func _update_choice_button(btn: Button, choice: Dictionary) -> void:
 	var rarity: String = str(choice.get("rarity", "rare"))
-	var rarity_text: String = Loc.t(str(RARITY_LABEL.get(rarity, "rarity_rare")))
-	btn.text = "[%s] %s\n%s" % [rarity_text, Loc.t(str(choice.get("title", ""))), Loc.t(str(choice.get("desc", "")))]
+	var rarity_text: String = tr(str(RARITY_LABEL.get(rarity, "rarity_rare")))
+	btn.text = "[%s] %s\n%s" % [rarity_text, tr(str(choice.get("title", ""))), tr(str(choice.get("desc", "")))]
 	var c: Color = Color(RARITY_COLOR.get(rarity, Color(0.42, 0.82, 1.0, 1.0)))
 	btn.add_theme_color_override("font_color", c)
 	btn.add_theme_color_override("font_hover_color", c.lightened(0.1))
@@ -1484,7 +1484,7 @@ func _pick_mitigation(index: int) -> void:
 	if choice.has("grant_upgrade"):
 		player.apply_upgrade(choice["grant_upgrade"])
 	_affliction_mitigation = str(choice.get("title", ""))
-	_show_message(Loc.t("msg_affliction_mitigated") % [Loc.t("affliction_" + _pending_affliction), Loc.t(_affliction_mitigation)])
+	_show_message(tr("msg_affliction_mitigated") % [tr("affliction_" + _pending_affliction), tr(_affliction_mitigation)])
 	play_sfx("card_pick")
 	card_shade.visible = false
 	_set_intermission(INTERMISSION_SECONDS)
@@ -1546,7 +1546,7 @@ func _activate_pending_affliction_if_any() -> void:
 			_affliction_tide_damage_mul = 1.0
 			_affliction_tide_radius_mul = 1.0
 			_affliction_tick_left = 1.2
-	_show_message(Loc.t("msg_affliction_active") % Loc.t("affliction_" + _active_affliction))
+	_show_message(tr("msg_affliction_active") % tr("affliction_" + _active_affliction))
 
 func _update_affliction_runtime(delta: float) -> void:
 	if _active_affliction == "":
@@ -1577,8 +1577,8 @@ func _update_affliction_runtime(delta: float) -> void:
 
 func _affliction_summary() -> String:
 	if _active_affliction == "":
-		return Loc.t("affliction_none")
-	return Loc.t("affliction_" + _active_affliction)
+		return tr("affliction_none")
+	return tr("affliction_" + _active_affliction)
 
 func _prepare_card_intro_visual() -> void:
 	var c: Color = card_shade.color
@@ -1626,13 +1626,13 @@ func _init_run_relic() -> void:
 	if ProgressionManager.has_method("get_relic_rule_pack"):
 		_run_relic_pack = ProgressionManager.get_relic_rule_pack(_run_relic_id)
 	if not _run_relic_pack.is_empty():
-		var relic_title := Loc.t(str(_run_relic_pack.get("title", "relic_none")))
-		_show_message(Loc.t("msg_relic_active") % relic_title)
+		var relic_title := tr(str(_run_relic_pack.get("title", "relic_none")))
+		_show_message(tr("msg_relic_active") % relic_title)
 
 func _relic_summary() -> String:
 	if _run_relic_pack.is_empty():
-		return Loc.t("relic_none")
-	return Loc.t(str(_run_relic_pack.get("title", "relic_none")))
+		return tr("relic_none")
+	return tr(str(_run_relic_pack.get("title", "relic_none")))
 
 func _mutate_terrain() -> void:
 	for n in dynamic_root.get_children():
@@ -1844,9 +1844,9 @@ func _trigger_midwave_mutation(stage: int) -> void:
 	_rotate_hazards_for_mutation(_mid_mutation_stage)
 	_directive_pool = _build_directive_pool(_mid_mutation_stage)
 	if _mid_mutation_stage == 1:
-		_show_message(Loc.t("msg_mutation_stage1"))
+		_show_message(tr("msg_mutation_stage1"))
 	else:
-		_show_message(Loc.t("msg_mutation_stage2"))
+		_show_message(tr("msg_mutation_stage2"))
 	_objective_trigger_left = minf(_objective_trigger_left, 2.2)
 
 func _build_directive_pool(stage: int) -> Array[String]:
@@ -1993,7 +1993,7 @@ func _trigger_wave_directive() -> void:
 			_directive_surge_pack()
 
 func _directive_surge_pack() -> void:
-	_show_message(Loc.t("msg_directive_surge"))
+	_show_message(tr("msg_directive_surge"))
 	var n := int(round((3.0 + float(wave) * 0.08) * _director_directive_mul))
 	for i in range(maxi(2, n)):
 		var kind := 0 if i % 2 == 0 else 8
@@ -2003,7 +2003,7 @@ func _directive_seismic_ring() -> void:
 	if player == null:
 		return
 	var center := (player as Node2D).global_position
-	_show_message(Loc.t("msg_directive_seismic"))
+	_show_message(tr("msg_directive_seismic"))
 	var radius := 132.0 * (0.92 + 0.20 * _director_directive_mul)
 	_spawn_ground_warning(center, radius, Color(1.0, 0.48, 0.22, 0.82), 0.68)
 	var timer := get_tree().create_timer(0.68)
@@ -2012,7 +2012,7 @@ func _directive_seismic_ring() -> void:
 	_spawn_radial_volley(center, maxi(10, volley_count), 0.0)
 
 func _directive_hazard_flux() -> void:
-	_show_message(Loc.t("msg_directive_flux"))
+	_show_message(tr("msg_directive_flux"))
 	for hz in hazard_root.get_children():
 		if hz.has_method("set_hazard_kind"):
 			hz.set_hazard_kind(_rng.randi_range(0, 3))
@@ -2036,7 +2036,7 @@ func _directive_hazard_flux() -> void:
 				hz.set_gameplay_active(_wave_active)
 
 func _directive_beacon_drop() -> void:
-	_show_message(Loc.t("msg_directive_beacon"))
+	_show_message(tr("msg_directive_beacon"))
 	var p := _clamp_to_arena(_random_spawn())
 	_spawn_ground_warning(p, 86.0, Color(0.36, 1.0, 0.90, 0.84), 0.72)
 	var timer := get_tree().create_timer(0.72)
@@ -2054,7 +2054,7 @@ func _directive_hellburst() -> void:
 	if player == null:
 		return
 	var pos := (player as Node2D).global_position + Vector2(_rng.randf_range(-110.0, 110.0), _rng.randf_range(-80.0, 80.0))
-	_show_message(Loc.t("msg_directive_hellburst"))
+	_show_message(tr("msg_directive_hellburst"))
 	await request_bullet_hell(_clamp_to_arena(pos))
 	if _director_directive_mul >= 1.42 and _rng.randf() < 0.42:
 		var pos2 := (player as Node2D).global_position + Vector2(_rng.randf_range(-150.0, 150.0), _rng.randf_range(-120.0, 120.0))
@@ -2112,10 +2112,10 @@ func _evaluate_threat_director() -> void:
 	_directive_interval = clampf(8.6 / _director_directive_mul, 4.2, 11.5)
 	if _director_hint_cd <= 0.0:
 		if _director_level >= 0.78:
-			_show_message(Loc.t("msg_director_rise"))
+			_show_message(tr("msg_director_rise"))
 			_director_hint_cd = 13.0
 		elif _director_level <= 0.24:
-			_show_message(Loc.t("msg_director_fall"))
+			_show_message(tr("msg_director_fall"))
 			_director_hint_cd = 13.0
 
 func _is_kill_near_active_hazard(pos: Vector2) -> bool:
@@ -2232,8 +2232,8 @@ func _on_player_stats_changed(hp: float, max_hp: float, sp: float, max_sp: float
 	sp_bar.value = sp
 	hp_text.text = "HP %.0f/%.0f" % [hp, max_hp]
 	sp_text.text = "SP %.0f/%.0f" % [sp, max_sp]
-	mode_text.text = Loc.t("ui_mode_line") % [bullet_mode, (Loc.t("ui_on") if shield_on else Loc.t("ui_off"))]
-	cooldown_text.text = Loc.t("ui_cd_line") % [dash_cd]
+	mode_text.text = tr("ui_mode_line") % [bullet_mode, (tr("ui_on") if shield_on else tr("ui_off"))]
+	cooldown_text.text = tr("ui_cd_line") % [dash_cd]
 
 func _show_message(text: String) -> void:
 	msg_label.text = text
@@ -2246,28 +2246,28 @@ func _show_message(text: String) -> void:
 func _faction_name(id: int) -> String:
 	match id:
 		0:
-			return "Legion"
+			return tr("faction_legion")
 		1:
-			return "Arcane"
+			return tr("faction_arcane")
 		2:
-			return "Void"
+			return tr("faction_void")
 		3:
-			return "Storm"
-	return "Unknown"
+			return tr("faction_storm")
+	return tr("faction_unknown")
 
 func _role_name(id: int) -> String:
 	match id:
 		0:
-			return "Frontline"
+			return tr("role_frontline")
 		1:
-			return "Skirmisher"
+			return tr("role_skirmisher")
 		2:
-			return "Support"
+			return tr("role_support")
 		3:
-			return "Controller"
+			return tr("role_controller")
 		4:
-			return "Siege"
-	return "Role?"
+			return tr("role_siege")
+	return tr("role_unknown")
 
 func _build_ecology_summary(queue: Array[int]) -> String:
 	var faction_counts: Dictionary = {}
@@ -2295,9 +2295,9 @@ func _build_ecology_summary(queue: Array[int]) -> String:
 			role_text += ", "
 		role_text += "%s(%d)" % [_role_name(id), c]
 	if fac_text == "":
-		fac_text = "None"
+		fac_text = tr("ecology_none")
 	if role_text == "":
-		role_text = "None"
+		role_text = tr("ecology_none")
 	return "%s | %s" % [fac_text, role_text]
 
 func _pick_top_two_ids(counts: Dictionary) -> Array[int]:
@@ -2373,7 +2373,7 @@ func _set_wave_anchor(enemy: Node, faction: int) -> void:
 			"speed_mul": 1.0 + (anchor_mul - 1.0) * 0.35,
 			"color": Color(1.0, 0.90, 0.35, 1.0)
 		})
-	_show_message(Loc.t("msg_anchor_spawn") % _faction_name(faction))
+	_show_message(tr("msg_anchor_spawn") % _faction_name(faction))
 
 func _break_faction_links(faction: int, duration: float) -> void:
 	var hit := 0
@@ -2387,7 +2387,7 @@ func _break_faction_links(faction: int, duration: float) -> void:
 			hit += 1
 	if hit > 0:
 		_run_anchor_breaks += 1
-		_show_message(Loc.t("msg_anchor_break") % [_faction_name(faction), duration])
+		_show_message(tr("msg_anchor_break") % [_faction_name(faction), duration])
 
 func _archetype_meter_summary() -> String:
 	var blade := int(round(float(_archetype_meter["blade"])))
@@ -2395,15 +2395,15 @@ func _archetype_meter_summary() -> String:
 	var arcane := int(round(float(_archetype_meter["arcane"])))
 	var tactical := int(round(float(_archetype_meter["tactical"])))
 	return "%s:%d %s:%d %s:%d %s:%d" % [
-		Loc.t("archetype_blade_short"), blade,
-		Loc.t("archetype_ballistic_short"), ballistic,
-		Loc.t("archetype_arcane_short"), arcane,
-		Loc.t("archetype_tactical_short"), tactical
+		tr("archetype_blade_short"), blade,
+		tr("archetype_ballistic_short"), ballistic,
+		tr("archetype_arcane_short"), arcane,
+		tr("archetype_tactical_short"), tactical
 	]
 
 func _socket_summary() -> String:
 	if player == null:
-		return "B0/0 S0/0"
+		return tr("ui_socket_fmt") % [0, 0, 0, 0]
 	var bu := 0
 	var bs := 0
 	var su := 0
@@ -2414,40 +2414,40 @@ func _socket_summary() -> String:
 	if player.has_method("get_socket_slots"):
 		bs = int(player.get_socket_slots("bullet"))
 		ss = int(player.get_socket_slots("spell"))
-	return "B%d/%d S%d/%d" % [bu, bs, su, ss]
+	return tr("ui_socket_fmt") % [bu, bs, su, ss]
 
 func _update_ui() -> void:
-	wave_label.text = Loc.t("ui_wave") % wave
-	alive_label.text = Loc.t("ui_enemies") % _alive_enemies()
-	score_label.text = Loc.t("ui_score") % _score
-	kills_label.text = Loc.t("ui_kills") % _kills
-	mul_label.text = Loc.t("ui_mul") % _wave_multiplier()
+	wave_label.text = tr("ui_wave") % wave
+	alive_label.text = tr("ui_enemies") % _alive_enemies()
+	score_label.text = tr("ui_score") % _score
+	kills_label.text = tr("ui_kills") % _kills
+	mul_label.text = tr("ui_mul") % _wave_multiplier()
 	if _wave_preview:
-		status_label.text = Loc.t("ui_status_preview")
-		timer_label.text = Loc.t("ui_preview_timer") % maxf(0.0, _preview_left)
+		status_label.text = tr("ui_status_preview")
+		timer_label.text = tr("ui_preview_timer") % maxf(0.0, _preview_left)
 	elif _wave_active:
-		status_label.text = Loc.t("ui_status_combat")
-		timer_label.text = Loc.t("ui_spawn_left") % _spawn_queue.size()
+		status_label.text = tr("ui_status_combat")
+		timer_label.text = tr("ui_spawn_left") % _spawn_queue.size()
 		if _objective_active:
 			if _objective_type == "pylon_capture":
 				var pct := int(clampf(_objective_progress / 3.5, 0.0, 1.0) * 100.0)
-				timer_label.text += " | " + (Loc.t("ui_objective_pylon") % [pct, maxf(0.0, _objective_left)])
+				timer_label.text += " | " + (tr("ui_objective_pylon") % [pct, maxf(0.0, _objective_left)])
 			elif _objective_type == "rift_seal":
 				var total := maxi(1, _objective_nodes.size())
 				var done := int(_objective_progress)
-				timer_label.text += " | " + (Loc.t("ui_objective_rift") % [done, total, maxf(0.0, _objective_left)])
+				timer_label.text += " | " + (tr("ui_objective_rift") % [done, total, maxf(0.0, _objective_left)])
 			elif _objective_type == "convoy_fracture":
 				var total_convoy := maxi(1, _objective_nodes.size())
 				var done_convoy := int(_objective_progress)
-				timer_label.text += " | " + (Loc.t("ui_objective_convoy") % [done_convoy, total_convoy, maxf(0.0, _objective_left)])
+				timer_label.text += " | " + (tr("ui_objective_convoy") % [done_convoy, total_convoy, maxf(0.0, _objective_left)])
 	else:
-		status_label.text = Loc.t("ui_status_intermission")
-		timer_label.text = Loc.t("ui_next_wave") % maxf(0.0, _intermission_left)
-	status_label.text += " | " + (Loc.t("ui_archetype_line") % _archetype_meter_summary())
-	status_label.text += " | " + (Loc.t("ui_socket_line") % _socket_summary())
-	status_label.text += " | " + (Loc.t("ui_relic_line") % _relic_summary())
-	status_label.text += " | " + (Loc.t("ui_threat_line") % int(round(_director_level * 100.0)))
-	status_label.text += " | " + (Loc.t("ui_affliction_line") % _affliction_summary())
+		status_label.text = tr("ui_status_intermission")
+		timer_label.text = tr("ui_next_wave") % maxf(0.0, _intermission_left)
+	status_label.text += " | " + (tr("ui_archetype_line") % _archetype_meter_summary())
+	status_label.text += " | " + (tr("ui_socket_line") % _socket_summary())
+	status_label.text += " | " + (tr("ui_relic_line") % _relic_summary())
+	status_label.text += " | " + (tr("ui_threat_line") % int(round(_director_level * 100.0)))
+	status_label.text += " | " + (tr("ui_affliction_line") % _affliction_summary())
 
 func _on_enemy_died(score_value: int, enemy: Node = null) -> void:
 	_kills += 1
@@ -2485,11 +2485,11 @@ func _toggle_pause() -> void:
 	pause_shade.visible = next_paused
 
 func _apply_pause_locale() -> void:
-	pause_title.text = Loc.t("menu_pause")
-	pause_resume.text = Loc.t("menu_resume")
-	pause_restart.text = Loc.t("menu_restart")
-	pause_mainmenu.text = Loc.t("menu_mainmenu")
-	pause_quit.text = Loc.t("menu_quit")
+	pause_title.text = tr("menu_pause")
+	pause_resume.text = tr("menu_resume")
+	pause_restart.text = tr("menu_restart")
+	pause_mainmenu.text = tr("menu_mainmenu")
+	pause_quit.text = tr("menu_quit")
 
 func _on_pause_resume() -> void:
 	get_tree().paused = false
@@ -2534,17 +2534,17 @@ func _on_player_died() -> void:
 		ProgressionManager.add_run_score(_score)
 		bank = ProgressionManager.score_bank
 		best = ProgressionManager.best_run_score
-	game_over_title.text = Loc.t("gameover_title")
-	game_over_score.text = Loc.t("gameover_score") % _score
-	game_over_bank.text = Loc.t("gameover_bank") % bank
+	game_over_title.text = tr("gameover_title")
+	game_over_score.text = tr("gameover_score") % _score
+	game_over_bank.text = tr("gameover_bank") % bank
 	if not unlocked_relics.is_empty():
 		var names: Array[String] = []
 		for relic_id in unlocked_relics:
-			names.append(Loc.t("relic_" + relic_id + "_t"))
-		game_over_bank.text += "\n" + (Loc.t("msg_relic_unlock") % ", ".join(names))
-	game_over_best.text = Loc.t("gameover_best") % best
-	game_over_restart.text = Loc.t("menu_restart")
-	game_over_mainmenu.text = Loc.t("menu_mainmenu")
+			names.append(tr("relic_" + relic_id + "_t"))
+		game_over_bank.text += "\n" + (tr("msg_relic_unlock") % ", ".join(names))
+	game_over_best.text = tr("gameover_best") % best
+	game_over_restart.text = tr("menu_restart")
+	game_over_mainmenu.text = tr("menu_mainmenu")
 	game_over_shade.visible = true
 	get_tree().paused = true
 

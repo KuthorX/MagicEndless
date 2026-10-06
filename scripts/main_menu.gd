@@ -10,19 +10,21 @@ var _subtitle_restore_t := 0.0
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	$Center/Panel/VBox/Title.text = Loc.t("menu_title")
-	$Center/Panel/VBox/Subtitle.text = Loc.t("menu_subtitle")
+	$Center/Panel/VBox/Title.text = tr("menu_title")
+	$Center/Panel/VBox/Subtitle.text = tr("menu_subtitle")
 	_subtitle_default = $Center/Panel/VBox/Subtitle.text
-	$Center/Panel/VBox/StartButton.text = Loc.t("menu_start")
-	$Center/Panel/VBox/CodexButton.text = Loc.t("menu_codex")
-	$Center/Panel/VBox/PotentialButton.text = Loc.t("menu_potential")
-	$Center/Panel/VBox/SettingsButton.text = Loc.t("menu_settings")
-	$Center/Panel/VBox/QuitButton.text = Loc.t("menu_quit")
+	$Center/Panel/VBox/StartButton.text = tr("menu_start")
+	$Center/Panel/VBox/CodexButton.text = tr("menu_codex")
+	$Center/Panel/VBox/PotentialButton.text = tr("menu_potential")
+	$Center/Panel/VBox/SettingsButton.text = tr("menu_settings")
+	$Center/Panel/VBox/QuitButton.text = tr("menu_quit")
+	$Center/Panel/VBox/LanguageButton.text = tr("menu_language")
 	$Center/Panel/VBox/StartButton.pressed.connect(_on_start_pressed)
 	$Center/Panel/VBox/CodexButton.pressed.connect(_on_codex_pressed)
 	$Center/Panel/VBox/PotentialButton.pressed.connect(_on_potential_pressed)
 	$Center/Panel/VBox/SettingsButton.pressed.connect(_on_settings_pressed)
 	$Center/Panel/VBox/QuitButton.pressed.connect(_on_quit_pressed)
+	$Center/Panel/VBox/LanguageButton.pressed.connect(_on_language_pressed)
 	if AudioManager != null:
 		AudioManager.play_menu()
 	else:
@@ -79,9 +81,9 @@ func _try_apply_score_cheat() -> void:
 	var gained: int = int(ProgressionManager.add_cheat_score_from_current(10000))
 	var subtitle: Label = $Center/Panel/VBox/Subtitle
 	if gained > 0:
-		subtitle.text = Loc.t("menu_cheat_ok") % [gained, ProgressionManager.score_bank]
+		subtitle.text = tr("menu_cheat_ok") % [gained, ProgressionManager.score_bank]
 	else:
-		subtitle.text = Loc.t("menu_cheat_zero")
+		subtitle.text = tr("menu_cheat_zero")
 	_subtitle_restore_t = 3.0
 
 func _try_apply_potential_cheat() -> void:
@@ -90,9 +92,9 @@ func _try_apply_potential_cheat() -> void:
 	var add_lv: int = int(ProgressionManager.add_cheat_potential_levels(1000))
 	var subtitle: Label = $Center/Panel/VBox/Subtitle
 	if add_lv > 0:
-		subtitle.text = Loc.t("menu_potential_cheat_ok") % add_lv
+		subtitle.text = tr("menu_potential_cheat_ok") % add_lv
 	else:
-		subtitle.text = Loc.t("menu_potential_cheat_zero")
+		subtitle.text = tr("menu_potential_cheat_zero")
 	_subtitle_restore_t = 3.0
 
 func _on_start_pressed() -> void:
@@ -109,3 +111,7 @@ func _on_settings_pressed() -> void:
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()
+
+func _on_language_pressed() -> void:
+	LocaleSettings.toggle_language()
+	get_tree().reload_current_scene()

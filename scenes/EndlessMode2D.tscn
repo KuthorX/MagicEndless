@@ -71,7 +71,7 @@ offset_top = 20.0
 offset_right = -20.0
 offset_bottom = 44.0
 horizontal_alignment = 2
-text = "娉㈡锛?"
+text = "Wave: 1"
 
 [node name="StatusLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
@@ -80,8 +80,10 @@ offset_left = -280.0
 offset_top = 44.0
 offset_right = -20.0
 offset_bottom = 68.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 16
 horizontal_alignment = 2
-text = "鐘舵€侊細鍑嗗闃舵"
+text = "Status"
 
 [node name="AliveLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
@@ -91,7 +93,7 @@ offset_top = 68.0
 offset_right = -20.0
 offset_bottom = 92.0
 horizontal_alignment = 2
-text = "鏁屼汉锛?"
+text = "Enemies: 0"
 
 [node name="TimerLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
@@ -101,7 +103,7 @@ offset_top = 92.0
 offset_right = -20.0
 offset_bottom = 116.0
 horizontal_alignment = 2
-text = "涓嬫尝鍊掕鏃讹細0.0"
+text = "Next wave in: 0.0"
 
 [node name="ScoreLabel" type="Label" parent="HUD"]
 anchor_left = 1.0
@@ -180,7 +182,7 @@ offset_left = 12.0
 offset_top = 132.0
 offset_right = 330.0
 offset_bottom = 152.0
-text = "绐佽繘 0.0s | 鎵嬮浄 0.0s"
+text = "Dash 0.0s"
 
 [node name="Message" type="Label" parent="HUD"]
 anchors_preset = 10
@@ -211,7 +213,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="Panel" parent="CardUI/Shade/Center"]
-custom_minimum_size = Vector2(680, 430)
+custom_minimum_size = Vector2(820, 430)
 theme_override_styles/panel = SubResource("2")
 
 [node name="VBox" type="VBoxContainer" parent="CardUI/Shade/Center/Panel"]
@@ -226,20 +228,26 @@ theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="CardUI/Shade/Center/Panel/VBox"]
 theme_override_font_sizes/font_size = 34
-text = "娉㈡濂栧姳 - 涓夐€変竴"
+text = "ui_card_title"
 horizontal_alignment = 1
 
 [node name="CardA" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 90)
-text = "鍗＄墖 A"
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+text = "ui_card_a"
 
 [node name="CardB" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 90)
-text = "鍗＄墖 B"
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+text = "ui_card_b"
 
 [node name="CardC" type="Button" parent="CardUI/Shade/Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 90)
-text = "鍗＄墖 C"
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+text = "ui_card_c"
 
 [node name="PauseUI" type="CanvasLayer" parent="."]
 

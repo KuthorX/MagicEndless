@@ -41,7 +41,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="Panel" parent="Center"]
-custom_minimum_size = Vector2(460, 480)
+custom_minimum_size = Vector2(460, 560)
 layout_mode = 2
 theme_override_styles/panel = SubResource("1")
 
@@ -59,12 +59,12 @@ theme_override_constants/separation = 14
 [node name="Title" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 42
-text = "JianXia"
+text = "menu_title"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Center/Panel/VBox"]
 layout_mode = 2
-text = "Endless Mode"
+text = "menu_subtitle"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Center/Panel/VBox"]
@@ -74,24 +74,30 @@ layout_mode = 2
 [node name="StartButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-text = "Start"
+text = "menu_start"
 
 [node name="CodexButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-text = "Codex"
+text = "menu_codex"
 
 [node name="PotentialButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-text = "Potential"
+text = "menu_potential"
 
 [node name="SettingsButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-text = "Settings"
+text = "menu_settings"
 
 [node name="QuitButton" type="Button" parent="Center/Panel/VBox"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-text = "Quit"
+text = "menu_quit"
+
+[node name="LanguageButton" type="Button" parent="Center/Panel/VBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "menu_language"

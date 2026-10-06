@@ -23,8 +23,8 @@ var _tooltip_panel: PanelContainer
 var _tooltip_label: Label
 
 func _ready() -> void:
-	title_label.text = Loc.t("potential_title")
-	back_button.text = Loc.t("menu_back")
+	title_label.text = tr("potential_title")
+	back_button.text = tr("menu_back")
 	back_button.pressed.connect(_on_back_pressed)
 	hp_button.pressed.connect(_buy_hp)
 	atk_button.pressed.connect(_buy_atk)
@@ -35,8 +35,8 @@ func _ready() -> void:
 	spell_branch_button.pressed.connect(_buy_spell_branch)
 	arcane_button.pressed.connect(_buy_arcane)
 	frost_button.pressed.connect(_buy_frost)
-	desc_title.text = Loc.t("potential_desc_title")
-	_default_desc = Loc.t("potential_desc_body")
+	desc_title.text = tr("potential_desc_title")
+	_default_desc = tr("potential_desc_body")
 	desc_label.text = _default_desc
 	_init_tooltip()
 	_bind_hover_desc(hp_button, "potential_desc_hp")
@@ -53,32 +53,32 @@ func _ready() -> void:
 func _refresh() -> void:
 	if ProgressionManager == null:
 		return
-	bank_label.text = Loc.t("potential_bank") % ProgressionManager.score_bank
-	total_label.text = Loc.t("potential_total") % ProgressionManager.total_earned
-	best_label.text = Loc.t("potential_best") % ProgressionManager.best_run_score
-	hp_button.text = Loc.t("potential_hp") % [ProgressionManager.hp_level, ProgressionManager.hp_cost()]
-	atk_button.text = Loc.t("potential_atk") % [ProgressionManager.atk_level, ProgressionManager.atk_cost()]
-	speed_button.text = Loc.t("potential_speed") % [ProgressionManager.speed_level, ProgressionManager.speed_cost()]
-	magic_button.text = Loc.t("potential_magic") % [ProgressionManager.magic_level, ProgressionManager.magic_cost()]
-	tree_title.text = Loc.t("potential_tree_title")
-	melee_branch_button.text = Loc.t("potential_tree_melee") % [ProgressionManager.melee_branch_level, ProgressionManager.melee_branch_cost()]
-	ranged_branch_button.text = Loc.t("potential_tree_ranged") % [ProgressionManager.ranged_branch_level, ProgressionManager.ranged_branch_cost()]
-	spell_branch_button.text = Loc.t("potential_tree_spell") % [ProgressionManager.spell_branch_level, ProgressionManager.spell_branch_cost()]
+	bank_label.text = tr("potential_bank") % ProgressionManager.score_bank
+	total_label.text = tr("potential_total") % ProgressionManager.total_earned
+	best_label.text = tr("potential_best") % ProgressionManager.best_run_score
+	hp_button.text = tr("potential_hp") % [ProgressionManager.hp_level, ProgressionManager.hp_cost()]
+	atk_button.text = tr("potential_atk") % [ProgressionManager.atk_level, ProgressionManager.atk_cost()]
+	speed_button.text = tr("potential_speed") % [ProgressionManager.speed_level, ProgressionManager.speed_cost()]
+	magic_button.text = tr("potential_magic") % [ProgressionManager.magic_level, ProgressionManager.magic_cost()]
+	tree_title.text = tr("potential_tree_title")
+	melee_branch_button.text = tr("potential_tree_melee") % [ProgressionManager.melee_branch_level, ProgressionManager.melee_branch_cost()]
+	ranged_branch_button.text = tr("potential_tree_ranged") % [ProgressionManager.ranged_branch_level, ProgressionManager.ranged_branch_cost()]
+	spell_branch_button.text = tr("potential_tree_spell") % [ProgressionManager.spell_branch_level, ProgressionManager.spell_branch_cost()]
 	if ProgressionManager.unlock_arcane_bolt:
-		arcane_button.text = Loc.t("potential_skill_arcane_owned")
+		arcane_button.text = tr("potential_skill_arcane_owned")
 		arcane_button.disabled = true
 	else:
-		arcane_button.text = Loc.t("potential_skill_arcane_locked") % ProgressionManager.arcane_bolt_cost()
+		arcane_button.text = tr("potential_skill_arcane_locked") % ProgressionManager.arcane_bolt_cost()
 		arcane_button.disabled = false
 	if ProgressionManager.unlock_frost_nova:
-		frost_button.text = Loc.t("potential_skill_frost_owned")
+		frost_button.text = tr("potential_skill_frost_owned")
 		frost_button.disabled = true
 	else:
-		frost_button.text = Loc.t("potential_skill_frost_locked") % ProgressionManager.frost_nova_cost()
+		frost_button.text = tr("potential_skill_frost_locked") % ProgressionManager.frost_nova_cost()
 		frost_button.disabled = false
 
 func _set_tip(ok: bool) -> void:
-	tip_label.text = Loc.t("potential_done") if ok else Loc.t("potential_not_enough")
+	tip_label.text = tr("potential_done") if ok else tr("potential_not_enough")
 
 func _buy_hp() -> void:
 	var ok := ProgressionManager != null and ProgressionManager.buy_hp()
@@ -130,7 +130,7 @@ func _on_back_pressed() -> void:
 
 func _bind_hover_desc(btn: BaseButton, desc_key: String) -> void:
 	btn.mouse_entered.connect(func() -> void:
-		_show_tooltip(Loc.t(desc_key))
+		_show_tooltip(tr(desc_key))
 	)
 	btn.mouse_exited.connect(func() -> void:
 		_hide_tooltip()

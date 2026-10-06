@@ -173,7 +173,7 @@ func _physics_process(delta: float) -> void:
 			_dash_left = DASH_DURATION * dash_distance_mul
 			_dash_dir = input_vec.normalized()
 			_register_combo_dash()
-			message_sent.emit(Loc.t("msg_dash"))
+			message_sent.emit(tr("msg_dash"))
 			sfx_event.emit("dash")
 			_dash_impact()
 	move_and_slide()
@@ -355,32 +355,32 @@ func _update_cooldowns(delta: float) -> void:
 func _handle_modes_input() -> void:
 	if Input.is_action_just_pressed("bullet_mode_1"):
 		bullet_mode = BulletMode.NORMAL
-		message_sent.emit(Loc.t("msg_mode_switch") % _bullet_mode_name())
+		message_sent.emit(tr("msg_mode_switch") % _bullet_mode_name())
 		sfx_event.emit("mode_switch")
 		return
 	if Input.is_action_just_pressed("bullet_mode_2"):
 		bullet_mode = BulletMode.PIERCE
-		message_sent.emit(Loc.t("msg_mode_switch") % _bullet_mode_name())
+		message_sent.emit(tr("msg_mode_switch") % _bullet_mode_name())
 		sfx_event.emit("mode_switch")
 		return
 	if Input.is_action_just_pressed("bullet_mode_3"):
 		bullet_mode = BulletMode.BURST
-		message_sent.emit(Loc.t("msg_mode_switch") % _bullet_mode_name())
+		message_sent.emit(tr("msg_mode_switch") % _bullet_mode_name())
 		sfx_event.emit("mode_switch")
 		return
 	if Input.is_action_just_pressed("bullet_mode_4"):
 		bullet_mode = BulletMode.RICOCHET
-		message_sent.emit(Loc.t("msg_mode_switch") % _bullet_mode_name())
+		message_sent.emit(tr("msg_mode_switch") % _bullet_mode_name())
 		sfx_event.emit("mode_switch")
 		return
 	if Input.is_action_just_pressed("bullet_mode_5"):
 		bullet_mode = BulletMode.HEX
-		message_sent.emit(Loc.t("msg_mode_switch") % _bullet_mode_name())
+		message_sent.emit(tr("msg_mode_switch") % _bullet_mode_name())
 		sfx_event.emit("mode_switch")
 		return
 	if Input.is_action_just_pressed("switch_bullet"):
 		bullet_mode = (bullet_mode + 1) % BULLET_MODE_COUNT
-		message_sent.emit(Loc.t("msg_mode_switch") % _bullet_mode_name())
+		message_sent.emit(tr("msg_mode_switch") % _bullet_mode_name())
 		sfx_event.emit("mode_switch")
 
 func _handle_attacks() -> void:
@@ -404,10 +404,10 @@ func _handle_shield(delta: float) -> void:
 
 	if shield_active != _last_shield_active:
 		if shield_active:
-			message_sent.emit(Loc.t("msg_shield_on"))
+			message_sent.emit(tr("msg_shield_on"))
 			sfx_event.emit("shield_on")
 		else:
-			message_sent.emit(Loc.t("msg_shield_off"))
+			message_sent.emit(tr("msg_shield_off"))
 			sfx_event.emit("shield_off")
 		_last_shield_active = shield_active
 
@@ -530,7 +530,7 @@ func _fallback_aim_dir() -> Vector2:
 
 func _bullet_mode_name() -> String:
 	var key: String = str(BULLET_MODE_LABEL.get(bullet_mode, "mode_normal"))
-	return Loc.t(key)
+	return tr(key)
 
 func _current_shot_mode_cd_mul() -> float:
 	var overdrive_mul := 0.74 if _overdrive_active else 1.0
@@ -873,7 +873,7 @@ func _update_overdrive(delta: float) -> void:
 		_overdrive_left = maxf(0.0, _overdrive_left - delta)
 		if _overdrive_left <= 0.0:
 			_overdrive_active = false
-			message_sent.emit(Loc.t("msg_overdrive_off"))
+			message_sent.emit(tr("msg_overdrive_off"))
 		return
 	_overdrive_charge = maxf(0.0, _overdrive_charge - delta * 3.2)
 	_resonance_stacks = maxi(0, _resonance_stacks - int(floor(delta * 1.1)))
@@ -882,7 +882,7 @@ func _activate_overdrive() -> void:
 	_overdrive_active = true
 	_overdrive_left = OVERDRIVE_DURATION
 	_overdrive_charge = 0.0
-	message_sent.emit(Loc.t("msg_overdrive_on"))
+	message_sent.emit(tr("msg_overdrive_on"))
 
 func _effective_magic_haste() -> float:
 	var combo_mul := _combo_magic_haste_mul()
@@ -925,7 +925,7 @@ func _register_combo_dash() -> void:
 	if _combo_dash_times.size() >= 3:
 		_combo_dash_chain_left = maxf(_combo_dash_chain_left, 4.0)
 		_combo_dash_times.clear()
-		message_sent.emit(Loc.t("msg_combo_dash_chain_on"))
+		message_sent.emit(tr("msg_combo_dash_chain_on"))
 
 func _combo_overdrive_link_on() -> bool:
 	return bool(_combo_state.get("overdrive_link", false)) and _overdrive_active

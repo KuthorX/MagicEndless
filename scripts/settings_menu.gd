@@ -20,16 +20,16 @@ extends Control
 const BACKUP_VERSION := 1
 
 func _ready() -> void:
-	title_label.text = Loc.t("settings_title")
-	master_label.text = Loc.t("settings_master")
-	bgm_label.text = Loc.t("settings_bgm")
-	sfx_label.text = Loc.t("settings_sfx")
-	backup_title.text = Loc.t("settings_backup_title")
-	backup_text.placeholder_text = Loc.t("settings_backup_placeholder")
-	export_button.text = Loc.t("settings_backup_export")
-	import_button.text = Loc.t("settings_backup_import")
+	title_label.text = tr("settings_title")
+	master_label.text = tr("settings_master")
+	bgm_label.text = tr("settings_bgm")
+	sfx_label.text = tr("settings_sfx")
+	backup_title.text = tr("settings_backup_title")
+	backup_text.placeholder_text = tr("settings_backup_placeholder")
+	export_button.text = tr("settings_backup_export")
+	import_button.text = tr("settings_backup_import")
 	backup_status.text = ""
-	back_button.text = Loc.t("menu_back")
+	back_button.text = tr("menu_back")
 	back_button.pressed.connect(_on_back_pressed)
 	export_button.pressed.connect(_on_export_pressed)
 	import_button.pressed.connect(_on_import_pressed)
@@ -68,9 +68,9 @@ func _on_sfx_changed(value: float) -> void:
 	_update_value_labels()
 
 func _update_value_labels() -> void:
-	master_value.text = Loc.t("settings_value") % int(round(master_slider.value))
-	bgm_value.text = Loc.t("settings_value") % int(round(bgm_slider.value))
-	sfx_value.text = Loc.t("settings_value") % int(round(sfx_slider.value))
+	master_value.text = tr("settings_value") % int(round(master_slider.value))
+	bgm_value.text = tr("settings_value") % int(round(bgm_slider.value))
+	sfx_value.text = tr("settings_value") % int(round(sfx_slider.value))
 
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/MainMenu.tscn")
@@ -86,16 +86,16 @@ func _on_export_pressed() -> void:
 	if AudioManager != null:
 		payload["audio"] = AudioManager.export_snapshot()
 	backup_text.text = JSON.stringify(payload, "\t")
-	backup_status.text = Loc.t("settings_backup_export_ok")
+	backup_status.text = tr("settings_backup_export_ok")
 
 func _on_import_pressed() -> void:
 	var raw := backup_text.text.strip_edges()
 	if raw == "":
-		backup_status.text = Loc.t("settings_backup_import_empty")
+		backup_status.text = tr("settings_backup_import_empty")
 		return
 	var parsed: Variant = JSON.parse_string(raw)
 	if not (parsed is Dictionary):
-		backup_status.text = Loc.t("settings_backup_import_fail")
+		backup_status.text = tr("settings_backup_import_fail")
 		return
 	var root := parsed as Dictionary
 	var imported_any := false
@@ -106,7 +106,7 @@ func _on_import_pressed() -> void:
 	if audio_data is Dictionary and AudioManager != null:
 		imported_any = AudioManager.import_snapshot(audio_data) or imported_any
 	if not imported_any:
-		backup_status.text = Loc.t("settings_backup_import_fail")
+		backup_status.text = tr("settings_backup_import_fail")
 		return
 	_sync_from_audio()
-	backup_status.text = Loc.t("settings_backup_import_ok")
+	backup_status.text = tr("settings_backup_import_ok")

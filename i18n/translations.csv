@@ -1,0 +1,392 @@
+keys,zh,en
+menu_title,异世界无尽战斗,Magic Endless
+menu_subtitle,无尽模式,Endless Mode
+menu_start,开始游戏,Start Game
+menu_codex,百科全书,Codex
+menu_settings,设置,Settings
+menu_potential,激发潜能,Potential
+menu_quit,退出,Quit
+menu_cheat_ok,秘籍生效：+%d 积分（当前：%d）,Cheat activated: +%d points (now: %d)
+menu_cheat_zero,秘籍失败：当前积分为 0,Cheat failed: you have 0 points
+menu_potential_cheat_ok,秘籍生效：局外潜能全部 +%d 级,Cheat activated: all Potential upgrades +%d levels
+menu_potential_cheat_zero,秘籍失败：潜能增量无效,Cheat failed: no levels could be added
+menu_back,返回,Back
+settings_title,音频设置,Audio Settings
+settings_master,总音量,Master
+settings_bgm,BGM 音量,Music
+settings_sfx,音效音量,Sound FX
+settings_value,%d%%,%d%%
+settings_backup_title,存档备份/迁移,Save Backup / Transfer
+settings_backup_placeholder,点击“导出”生成备份文本，或粘贴已有备份后点击“导入”,"Click ""Export"" to generate backup text, or paste an existing backup and click ""Import"""
+settings_backup_export,导出备份,Export Backup
+settings_backup_import,导入备份,Import Backup
+settings_backup_export_ok,导出成功：上方文本就是完整备份,Exported: the text above is your full backup
+settings_backup_import_ok,导入成功：已覆盖本地存档与音频设置,Imported: local save and audio settings were replaced
+settings_backup_import_fail,导入失败：备份格式不正确或内容无效,Import failed: invalid backup format or content
+settings_backup_import_empty,请先粘贴备份文本,Paste your backup text first
+gameover_title,战斗结束,Game Over
+gameover_score,本局得分：%d,Run score: %d
+gameover_bank,可用分数：%d,Points available: %d
+gameover_best,历史最高：%d,Best ever: %d
+potential_title,潜能激发,Potential
+potential_bank,可用分数：%d,Points available: %d
+potential_total,累计获得：%d,Total earned: %d
+potential_best,历史最高单局：%d,Best single run: %d
+potential_hp,生命强化 Lv.%d（%d）,Vitality Lv.%d (%d)
+potential_atk,攻击强化 Lv.%d（%d）,Attack Lv.%d (%d)
+potential_speed,机动强化 Lv.%d（%d）,Mobility Lv.%d (%d)
+potential_magic,魔力增幅 Lv.%d（%d）,Magic Power Lv.%d (%d)
+potential_tree_title,成长树分支,Growth Branches
+potential_tree_melee,近战流 Lv.%d（%d）,Melee Path Lv.%d (%d)
+potential_tree_ranged,射击流 Lv.%d（%d）,Ranged Path Lv.%d (%d)
+potential_tree_spell,法术流 Lv.%d（%d）,Spell Path Lv.%d (%d)
+potential_skill_arcane_locked,解锁：奥术飞弹（%d）,Unlock: Arcane Missile (%d)
+potential_skill_arcane_owned,奥术飞弹：已解锁,Arcane Missile: Unlocked
+potential_skill_frost_locked,解锁：霜环爆发（%d）,Unlock: Frost Nova (%d)
+potential_skill_frost_owned,霜环爆发：已解锁,Frost Nova: Unlocked
+potential_desc_title,数值解释,Details
+potential_desc_body,鼠标悬停到上方任意升级按钮，可查看该项的详细公式与生效方式。,Hover over any upgrade button above to see its exact formula and effect.
+potential_desc_hp,"生命强化（局外常驻）
+公式：MaxHP = 140 + 14 * 等级
+影响：开局直接增加最大生命值与当前生命值。","Vitality (permanent)
+Formula: MaxHP = 140 + 14 * level
+Effect: start each run with more max HP and current HP."
+potential_desc_atk,"攻击强化（局外常驻）
+公式：子弹基础伤害 = 18 + 3 * 等级
+影响：提升常规射击伤害（不改变光剑伤害）。","Attack (permanent)
+Formula: base bullet damage = 18 + 3 * level
+Effect: boosts regular shot damage (does not affect the light sword)."
+potential_desc_speed,"机动强化（局外常驻）
+公式：移速倍率 = 1.0 + 0.03 * 等级
+影响：提升基础移动速度，冲刺速度本身由其他词条控制。","Mobility (permanent)
+Formula: move speed multiplier = 1.0 + 0.03 * level
+Effect: raises base move speed; dash speed is governed by other upgrades."
+potential_desc_magic,"魔力增幅（局外常驻）
+公式：魔法基础倍率 = 1.0 + 0.12 * 等级
+影响：提升奥术飞弹/霜环爆发的基础伤害系数。","Magic Power (permanent)
+Formula: base magic multiplier = 1.0 + 0.12 * level
+Effect: raises the base damage of Arcane Missile and Frost Nova."
+potential_desc_tree_melee,"近战流分支（光剑定向）
+公式：光剑伤害 += 5 * 等级，光剑半径 += 4 * 等级
+影响：近战扫荒能力更强，清怪圈更大。","Melee Path (light sword focus)
+Formula: sword damage += 5 * level, sword radius += 4 * level
+Effect: stronger melee sweeps with a wider clearing circle."
+potential_desc_tree_ranged,"射击流分支（弹道定向）
+公式：子弹伤害 += 4 * 等级，弹速 += 18 * 等级，射击CD倍率 = max(0.72, 1 - 0.025 * 等级)
+影响：远程火力与命中感提升。","Ranged Path (ballistic focus)
+Formula: bullet damage += 4 * level, bullet speed += 18 * level, fire CD multiplier = max(0.72, 1 - 0.025 * level)
+Effect: more ranged firepower and snappier hits."
+potential_desc_tree_spell,"法术流分支（技能定向）
+公式：法术伤害倍率 *= (1 + 0.14 * 等级)，法术频率倍率 = 1 + 0.08 * 等级
+影响：法术更疼、触发更快，对法术体系提升最直接。","Spell Path (skill focus)
+Formula: spell damage multiplier *= (1 + 0.14 * level), spell rate multiplier = 1 + 0.08 * level
+Effect: spells hit harder and trigger faster - the most direct boost for spell builds."
+potential_desc_arcane,"奥术飞弹（解锁技能）
+触发：自动索敌周期施放
+效果：对最近敌人造成单体魔法伤害，法术分支可进一步强化。","Arcane Missile (unlockable skill)
+Trigger: auto-targets and casts periodically
+Effect: deals single-target magic damage to the nearest enemy; further boosted by the Spell Path."
+potential_desc_frost,"霜环爆发（解锁技能）
+触发：自动周期环形施放
+效果：对身边范围敌人造成伤害并击退，适合解围。","Frost Nova (unlockable skill)
+Trigger: periodic ring cast around you
+Effect: damages and knocks back nearby enemies - great for breaking out of a swarm."
+potential_not_enough,分数不足,Not enough points
+potential_done,升级成功,Upgrade successful
+menu_resume,继续,Resume
+menu_restart,重开本局,Restart Run
+menu_mainmenu,回到主菜单,Main Menu
+menu_pause,已暂停,Paused
+ui_wave,波次：%d,Wave: %d
+ui_enemies,敌人：%d,Enemies: %d
+ui_score,得分：%d,Score: %d
+ui_kills,击杀：%d,Kills: %d
+ui_mul,乘区：x%.2f,Multiplier: x%.2f
+ui_status_preview,状态：开局观察,Status: Scouting
+ui_status_combat,状态：战斗,Status: Combat
+ui_status_intermission,状态：准备阶段,Status: Intermission
+ui_preview_timer,战斗开始：%.1f,Battle starts: %.1f
+ui_spawn_left,剩余刷怪：%d,Spawns left: %d
+ui_next_wave,下波倒计时：%.1f,Next wave in: %.1f
+ui_archetype_line,流派：%s,Schools: %s
+ui_socket_line,插槽：%s,Sockets: %s
+ui_relic_line,遗物：%s,Relic: %s
+ui_threat_line,压力指数：%d%%,Threat: %d%%
+ui_objective_pylon,目标：占领塔 %d%% %.1fs,Objective: Capture Pylon %d%% %.1fs
+ui_objective_rift,目标：封印裂隙 %d/%d %.1fs,Objective: Seal Rifts %d/%d %.1fs
+ui_objective_convoy,目标：裂解车队 %d/%d %.1fs,Objective: Break Convoy %d/%d %.1fs
+archetype_blade_short,刃,Bld
+archetype_ballistic_short,弹,Bal
+archetype_arcane_short,奥,Arc
+archetype_tactical_short,术,Tac
+archetype_blade,剑刺,Blade
+archetype_ballistic,弹道,Ballistic
+archetype_arcane,奥术,Arcane
+archetype_tactical,战术,Tactical
+ui_mode_line,子弹：%s（弹药无限） | 护盾：%s,Bullet: %s | Shield: %s
+ui_cd_line,突进 %.1fs,Dash %.1fs
+ui_on,开启,On
+ui_off,关闭,Off
+ui_touch_shield,护盾,Shield
+ui_touch_dash,闪避,Dodge
+ui_card_title,波次奖励 - 三选一,Wave Reward - Pick One
+ui_mitigation_title,世界灾厄 - 选择缓解,World Affliction - Choose a Mitigation
+ui_card_a,卡片 A,Card A
+ui_card_b,卡片 B,Card B
+ui_card_c,卡片 C,Card C
+ui_affliction_line,灾厄：%s,Affliction: %s
+affliction_none,无,None
+affliction_low_visibility,低能见度,Low Visibility
+affliction_mana_static,魔力静电,Mana Static
+affliction_rupture_tides,裂潮,Rupture Tides
+enemy_chaser,追击者,Chaser
+enemy_shooter,射手,Shooter
+enemy_dasher,突袭者,Dasher
+enemy_sniper,狙击手,Sniper
+enemy_artillery,炮击手,Artillery
+enemy_warden,守卫者,Warden
+enemy_warlock,术士,Warlock
+enemy_beacon,支援信标,Support Beacon
+enemy_lancer,突刺枪骑,Lancer
+terrain_theme_ruins,遗迹堡埒,Ruined Bastion
+terrain_theme_frost,霜境低地,Frost Lowlands
+terrain_theme_void,虚空裂隙,Void Rift
+terrain_theme_storm,雷霾战场,Stormfield
+mutator_none,无,None
+mutator_swarm,虫潮,Swarm
+mutator_fortified,钢化,Fortified
+mutator_hunters,猎手,Hunters
+mutator_cataclysm,灾变,Cataclysm
+rarity_common,普通,Common
+rarity_rare,稀有,Rare
+rarity_epic,史诗,Epic
+mode_normal,普通,Normal
+mode_pierce,刺穿,Pierce
+mode_burst,爆裂,Burst
+mode_ricochet,反弹,Ricochet
+mode_hex,咒弹,Hex
+msg_controls,操作：自动光剑 + 自动射击（优先锁定敌人） | 1/2/3/4/5 切换子弹（Q循环） | 右键护盾 | Shift突进,Controls: auto light sword + auto fire (locks onto enemies) | 1/2/3/4/5 switch bullets (Q to cycle) | Right-click shield | Shift dash
+msg_wave_preview,第 %d 波将在 %.0f 秒后开始,Wave %d starts in %.0f s
+msg_wave_preview_theme,第 %d 波将在 %.0f 秒后开始 | 地形主题：%s | 战局词缀：%s,Wave %d starts in %.0f s | Terrain: %s | Modifier: %s
+msg_wave_ecology,敌群生态：%s,Enemy mix: %s
+msg_wave_start,第 %d 波已开始,Wave %d has begun
+msg_wave_clear,第 %d 波已清除,Wave %d cleared
+msg_card_pick,已选择：%s,Picked: %s
+msg_dash,突进,Dash
+msg_respawn,重生,Respawn
+msg_mode_switch,子弹模式：%s,Bullet mode: %s
+msg_shield_on,护盾开启,Shield on
+msg_shield_off,护盾关闭,Shield off
+msg_overdrive_on,超载启动：射击与法术频率提升,Overdrive! Fire rate and spell rate up
+msg_overdrive_off,超载结束,Overdrive ended
+msg_directive_surge,战场指令：突袭潮汐,Battle directive: Assault Surge
+msg_directive_seismic,战场指令：裂地弹圈,Battle directive: Seismic Rings
+msg_directive_flux,战场指令：地脉通量重置,Battle directive: Ley Flux Reset
+msg_directive_beacon,战场指令：投放支援信标,Battle directive: Support Beacon Drop
+msg_directive_hellburst,战场指令：弹幕冲爆,Battle directive: Hellburst Barrage
+msg_control_zone,虚空控制域：离开危险圈,Void control zone: get out of the danger circle!
+msg_mutation_stage1,地形变异 I：通道重组，灾害节点重排,"Terrain Mutation I: lanes reshuffled, hazard nodes rearranged"
+msg_mutation_stage2,地形变异 II：通道封锁，指令强度提升,"Terrain Mutation II: lanes sealed, directives intensify"
+msg_director_rise,威胁指挥升档：刷怪节奏、指令与精英压力上调,"Threat rising: faster spawns, stronger directives, more elites"
+msg_director_fall,威胁指挥降档：战场压力短时缓和,Threat easing: the pressure lets up for a moment
+msg_objective_pylon_start,波中目标：占领充能塔（站圈积累进度）,Wave objective: Capture the pylon (stand in the circle to charge it)
+msg_objective_rift_start,波中目标：封印裂隙（接触裂隙积累进度）,Wave objective: Seal the rifts (touch a rift to seal it)
+msg_objective_convoy_start,波中目标：裂解危险车队（近距离干扰车节）,Wave objective: Break the hazard convoy (get close to disrupt its cars)
+msg_objective_pylon_done,目标完成：充能塔稳定，敌方节奏被打断,"Objective complete: pylon stabilized, enemy rhythm disrupted"
+msg_objective_rift_done,目标完成：裂隙封印，场地压力下降,"Objective complete: rifts sealed, arena pressure drops"
+msg_objective_convoy_done,目标完成：车队裂解，列阵压迫减弱,"Objective complete: convoy broken, enemy formation weakened"
+msg_objective_pylon_fail,目标失败：充能塔过载，触发惩罚弹幕,"Objective failed: pylon overloaded, punishment barrage incoming"
+msg_objective_rift_fail,目标失败：裂隙失控，虚空增援抵达,"Objective failed: rifts out of control, void reinforcements arrive"
+msg_objective_convoy_fail,目标失败：车队突破，站位压制扩散,"Objective failed: convoy broke through, zone pressure spreads"
+msg_affliction_incoming,世界灾厄即将降临：%s,A world affliction approaches: %s
+msg_affliction_active,世界灾厄生效：%s,World affliction active: %s
+msg_affliction_mitigated,%s 已缓解：%s,%s mitigated: %s
+msg_relic_active,本局遗物生效：%s,Relic active this run: %s
+msg_relic_unlock,解锁新遗物：%s,New relic unlocked: %s
+msg_anchor_spawn,指挥锚点出现：%s 阵营核心，击破可扰乱联结,Command anchor appeared: %s faction core - destroy it to break their links
+msg_anchor_break,锚点击破：%s 联结失稳 %.1fs,Anchor destroyed: %s links destabilized for %.1fs
+msg_keystone_ready,流派队列完成：%s 基石卡已解锁,School track complete: %s keystone card unlocked
+msg_keystone_commit,基石确认：已承诺 %s 流派,Keystone chosen: committed to the %s school
+msg_combo_dash_chain_on,连续突进：火力增幅已启动,Dash chain: firepower boost active
+msg_miniboss,第 %d 波：小Boss来袭,Wave %d: a mini-boss approaches!
+codex_title,敌人与技能百科,Enemy & Skill Codex
+codex_enemy_title,敌人图鉴,Bestiary
+codex_enemy_intro,预警建议：颜色 + 线型预警对应攻击类型，看到线先走位、再反打。,"Tip: each attack has its own warning color and line shape. When you see a line, move first, then counterattack."
+codex_enemy_1,追击者：近身冲锋，有短距离扑击前摇。,"Chaser: rushes you in melee, with a short wind-up before pouncing."
+codex_enemy_2,射手：保持中距离，发射绿色弹丸。,Shooter: keeps mid range and fires green bolts.
+codex_enemy_3,突袭者：会突进，前摇为紫色直线预警。,Dasher: charges at you; telegraphed by a straight purple line.
+codex_enemy_4,狙击手：远距离黄线错射，伤害高。,Sniper: fires long-range shots along a yellow line. High damage.
+codex_enemy_5,炮击手：三连散射，橙色多条预警。,"Artillery: fires three-shot spreads, telegraphed by several orange lines."
+codex_enemy_6,小Boss：带词缀组合，会召唤图腾或进入弹幕阶段。,Mini-boss: carries combos of affixes; summons totems or enters barrage phases.
+codex_legend_title,预警图例,Warning Legend
+codex_legend_shoot,绿线：普通远程射击（射手）,Green line: regular ranged shot (Shooter)
+codex_legend_dash,紫线：冲刺/突进（突袭者）,Purple line: charge / dash (Dasher)
+codex_legend_sniper,黄线：狙击蓄力射击（狙击手）,Yellow line: charged sniper shot (Sniper)
+codex_legend_burst,橙线：扼形三连弹幕（炮击手）,Orange lines: three-shot fan barrage (Artillery)
+codex_legend_totem,金线：图腾蓄力炮击（Boss机制）,Gold line: charged totem blast (boss mechanic)
+codex_skill_title,战斗系统,Combat Systems
+codex_systems_title,系统说明,How It Works
+codex_systems_1,"子弹系统：按 1/2/3/4/5 直切模式，Q 循环切换。
+普通：稳定点射，适合常规清杂。
+刺穿：直线穿透，克制前排堆叠与狭长走廊。
+爆裂：近中距面伤，适合贴脸怪群与转角压制。
+反弹：对机动目标与边角战场更有效，能借地形补刀。
+咒弹：附带追踪与连锁特性，适合打高价值单位与后排。
+建议：开怪先用刺穿压线，近身潮切爆裂，残局改反弹/咒弹追击。","Bullets: press 1/2/3/4/5 to pick a mode directly, or Q to cycle.
+Normal: steady shots, good for general clearing.
+Pierce: passes through enemies in a line; counters packed front lines and narrow corridors.
+Burst: area damage at close-to-mid range; great against swarms in your face and around corners.
+Ricochet: better against mobile targets and in corners; bounces off terrain to finish enemies.
+Hex: homing and chaining; ideal for high-value targets and back lines.
+Tip: open with Pierce to hold the line, swap to Burst when swarmed, then finish with Ricochet/Hex."
+codex_systems_2,防御与位移：右键护盾消耗 SP，Shift 突进可用于规避狙击与弹幕。,Defense & movement: hold right-click for a shield that drains SP; Shift dashes to dodge sniper shots and barrages.
+codex_systems_3,主要输出体系：光剑自动输出 + 子弹模式切换，波次间通过卡片逐渐成型。,Damage sources: the light sword attacks automatically while you switch bullet modes; your build takes shape through cards between waves.
+codex_systems_4,波次节奏：预览 -> 战斗 -> 结算选牌，每 5 波将出现小 Boss 机制。,Wave rhythm: preview -> combat -> pick a card. A mini-boss appears every 5 waves.
+codex_systems_5,局外成长：本局得分转化为可用分数，在“激发潜能”中解锁分支成长与魔法。,"Meta progression: your run score becomes spendable points - use them in ""Potential"" to unlock growth branches and magic."
+codex_skill_1,光剑：自动 360° 扫击，可提升半径/间隔/旋转速度。,"Light sword: auto 360-degree sweep; upgrade its radius, interval and spin speed."
+codex_skill_2,护盾：按住右键开启，消耗 SP；关闭后逐渐回复。,"Shield: hold right-click to raise it, draining SP; SP regenerates when it is down."
+codex_skill_3,突进：Shift 向移动方向位移，可升级距离与冷却。,Dash: Shift dashes in your movement direction; upgrade distance and cooldown.
+codex_skill_4,技能说明：当前版本以子弹/光剑/法术为核心，本条为预留概览说明位。,"Skills: this version centers on bullets, the light sword and spells; this entry is a placeholder overview."
+codex_skill_5,战斗得分：击杀基础分 * 波次乘区（x1 + 波次*0.15）。,Score: base kill points * wave multiplier (x1 + wave * 0.15).
+card_blade_temper_t,刀片状态,Tempered Blade
+card_blade_temper_d,剑伤害+12,Sword damage +12
+card_wide_arc_t,宽弧,Wide Arc
+card_wide_arc_d,剑半径+18,Sword radius +18
+card_rapid_slash_t,快速斩击,Rapid Slash
+card_rapid_slash_d,剑间隔-14%,Sword interval -14%
+card_spin_up_t,旋转起来,Spin Up
+card_spin_up_d,剑旋转速度+22%,Sword spin speed +22%
+card_storm_blade_t,风暴之刃,Storm Blade
+card_storm_blade_d,剑旋转速度+35%,Sword spin speed +35%
+card_impact_core_t,冲击核心,Impact Core
+card_impact_core_d,子弹伤害+8,Bullet damage +8
+card_rail_coil_t,铁路线圈,Rail Coil
+card_rail_coil_d,子弹速度+80,Bullet speed +80
+card_trigger_rhythm_t,触发节奏,Trigger Rhythm
+card_trigger_rhythm_d,射击冷却时间-12%,Fire cooldown -12%
+card_splitshot_t,分裂弹道,Split Shot
+card_splitshot_d,额外发射两发侧向子弹,Fire two extra side bullets
+card_drill_t,钻头弹,Drill Rounds
+card_drill_d,子弹额外穿透 +1,Bullets pierce +1 more
+card_quick_steps_t,快速步骤,Quick Steps
+card_quick_steps_d,移动速度+10%,Move speed +10%
+card_blink_module_t,闪烁模块,Blink Module
+card_blink_module_d,冲刺冷却时间-18%,Dash cooldown -18%
+card_dash_engine_t,冲刺引擎,Dash Engine
+card_dash_engine_d,冲刺速度+90,Dash speed +90
+card_displacement_t,位移框架,Displacement Frame
+card_displacement_d,冲刺距离 +20%,Dash distance +20%
+card_warp_core_t,扭曲核心,Warp Core
+card_warp_core_d,冲刺距离 +35%,Dash distance +35%
+card_impact_dash_t,震荡突进,Shockwave Dash
+card_impact_dash_d,突进触发震荡波（伤害+范围）,Dashing releases a shockwave (damage + radius)
+card_deflect_t,偏转层,Deflector Layer
+card_deflect_d,护盾流失-18%,Shield drain -18%
+card_recharge_t,充电线圈,Recharge Coil
+card_recharge_d,护盾回复 +20%,Shield regen +20%
+card_echo_t,剑意回响,Blade Echo
+card_echo_d,光剑额外触发回响斩击概率 +22%,Light sword echo slash chance +22%
+card_vital_t,生命合金,Vital Alloy
+card_vital_d,最大生命值+30，治疗量+20,"Max HP +30, heal +20"
+card_shield_t,护盾矩阵,Shield Matrix
+card_shield_d,最大SP +25、SP +20,"Max SP +25, SP +20"
+card_blood_t,血回声,Blood Echo
+card_blood_d,吸血+5%,Lifesteal +5%
+card_ricochet_t,折射内核,Ricochet Core
+card_ricochet_d,反弹模式可额外反射 +1 次,Ricochet mode bounces +1 more time
+card_hex_amplifier_t,咒核增幅,Hex Amplifier
+card_hex_amplifier_d,咒弹爆炸半径+14，连锁+1,"Hex explosion radius +14, chains +1"
+card_hex_guidance_t,妖星导航,Hexstar Guidance
+card_hex_guidance_d,咒弹追踪能力增强,Hex bullets home in more strongly
+card_chain_sigil_t,连锁法印,Chain Sigil
+card_chain_sigil_d,解锁连锁法印：自动在敌人间跳转造成多段伤害；优先锁定“咒印”目标，并消耗咒印提升伤害。,Unlocks Chain Sigil: automatically jumps between enemies for multi-hit damage; prioritizes Hex-marked targets and consumes the mark for bonus damage.
+card_meteor_rain_t,降星术式,Starfall Rite
+card_meteor_rain_d,解锁陈星雨：自动连续降下多次冲击，优先锁定“咒印”目标，并消耗咒印增加落点与伤害。,Unlocks Starfall: automatically rains down a series of impacts; prioritizes Hex-marked targets and consumes the mark for more strikes and damage.
+card_meteor_shards_t,流星碎裂,Meteor Shards
+card_meteor_shards_d,每次陈星雨额外+1次落点,Each Starfall gains +1 extra strike
+card_meteor_crater_t,燃铁陷坑,Molten Crater
+card_meteor_crater_d,流星冲击半径 +10,Meteor impact radius +10
+card_meteor_rush_t,炼天急降,Skyfall Rush
+card_meteor_rush_d,流星间隔缩短 14%,Meteor interval -14%
+card_meteor_core_t,星核炼压,Star Core Forge
+card_meteor_core_d,流星基础伤害+9，法强小幅提升,"Meteor base damage +9, slight spell power boost"
+card_meteor_echo_t,余震坐落,Aftershock
+card_meteor_echo_d,每次流星落地后追加1次余震爆炸,Each meteor triggers 1 extra aftershock explosion on landing
+card_resonance_t,星蚀共鸣,Eclipse Resonance
+card_resonance_d,流星命中积累共鸣，强化下一轮连锁法印（伤害+跳转）,Meteor hits build resonance that empowers your next Chain Sigil (damage + jumps)
+card_meteor_style_shower_t,星雨散落,Star Shower
+card_meteor_style_shower_d,流星转为高频散落分支：落点数大幅提升、每发伤害与半径降低（与“砸星坐落”互斥）,"Meteors become a rapid shower: many more strikes, but less damage and radius each (exclusive with ""Star Crash"")"
+card_meteor_style_cata_t,砸星坐落,Star Crash
+card_meteor_style_cata_d,流星转为巨陨冲击分支：落点数降低但每发爆炸范围与伤害大幅提升（与“星雨散落”互斥）,"Meteors become giant impacts: fewer strikes, but much bigger blasts and damage (exclusive with ""Star Shower"")"
+card_sword_style_whirl_t,风刃舞,Gale Dance
+card_sword_style_whirl_d,光剑转为风刃流：半径与旋速大幅提升，伤害小幅降低，会追加二段旋斩（与“断首式”互斥）,"Light sword becomes a gale blade: much larger radius and spin speed, slightly less damage, adds a second spin slash (exclusive with ""Beheader"")"
+card_sword_style_exec_t,断首式,Beheader
+card_sword_style_exec_d,光剑转为斩杀流：单次伤害大幅提升，对低血敌人追加处决伤害（与“风刃舞”互斥）,"Light sword becomes an executioner: much higher hit damage, plus bonus execute damage to low-HP enemies (exclusive with ""Gale Dance"")"
+card_shot_style_barrage_t,弹幕压制,Suppressing Barrage
+card_shot_style_barrage_d,射击转为高频弹幕：射速提升、伤害降低，额外随机追发一发压制弹（与“轨道贯穿”互斥）,"Shooting becomes a rapid barrage: higher fire rate, lower damage, plus a random extra suppression shot (exclusive with ""Rail Pierce"")"
+card_shot_style_rail_t,轨道贯穿,Rail Pierce
+card_shot_style_rail_d,射击转为轨道炉心：弹速与单发伤害大幅提升，射速下降，Burst模式压缩为高能单发（与“弹幕压制”互斥）,"Shooting becomes a rail core: much higher bullet speed and per-shot damage, lower fire rate; Burst mode fires a single high-energy shot (exclusive with ""Suppressing Barrage"")"
+card_keystone_blade_t,基石：断罪之刃,Keystone: Judgment Blade
+card_keystone_blade_d,剑伤害/规模/转速大幅提升，但射击节奏变慢（流派互斥）,"Huge boost to sword damage/size/spin speed, but slower shooting (locks your school)"
+card_keystone_ballistic_t,基石：钢心弹幕,Keystone: Steelheart Barrage
+card_keystone_ballistic_d,射击伤害/弹速/频率提升，但近战与护盾效率下降（流派互斥）,"Boosts shot damage/bullet speed/fire rate, but weaker melee and shield (locks your school)"
+card_keystone_arcane_t,基石：裂界法印,Keystone: Riftbreaker Sigil
+card_keystone_arcane_d,直接解锁连锁/降星且强化法术，但常规火力下降（流派互斥）,"Instantly unlocks Chain Sigil/Starfall and empowers spells, but lowers regular firepower (locks your school)"
+card_keystone_tactical_t,基石：机动词缀,Keystone: Mobility Affix
+card_keystone_tactical_d,冲刺与手雷体系爆发，但光剑伤害降低（流派互斥）,"Dash and grenade builds explode in power, but light sword damage drops (locks your school)"
+card_socket_bullet_t,弹道槽位,Bullet Socket
+card_socket_bullet_d,获得 1 个弹道插槽（可安装子弹增幅）,Gain 1 bullet socket (holds a bullet augment)
+card_socket_spell_t,法术槽位,Spell Socket
+card_socket_spell_d,获得 1 个法术插槽（可安装法术增幅）,Gain 1 spell socket (holds a spell augment)
+card_augment_overheat_t,增幅：过热透镜,Augment: Overheat Lens
+card_augment_overheat_d,子弹附带余烬灼烧伤害，但散布轻度上升（占用弹道槽位）,"Bullets deal ember burn damage, but spread slightly more (uses a bullet socket)"
+card_augment_prism_t,增幅：相位棱镜,Augment: Phase Prism
+card_augment_prism_d,子弹穿过灾害边缘时分裂（占用弹道槽位）,Bullets split when crossing hazard edges (uses a bullet socket)
+card_augment_manaweave_t,增幅：魔纹编织,Augment: Manaweave
+card_augment_manaweave_d,法术威力与频率提升，连锁/降星触发次数增加（占用法术槽位）,More spell power and spell rate; Chain Sigil/Starfall trigger more times (uses a spell socket)
+card_combo_overdrive_t,组合：超载回路,Combo: Overdrive Circuit
+card_combo_overdrive_d,在超载期间，射击与近战伤害额外提升,"During Overdrive, shot and melee damage are further increased"
+card_combo_shield_empty_t,组合：空盾共振,Combo: Empty Shield Resonance
+card_combo_shield_empty_d,护盾见底时，法术频率与光剑伤害提升,"While your shield is empty, spell rate and light sword damage go up"
+card_combo_dash_chain_t,组合：动能连步,Combo: Kinetic Chain
+card_combo_dash_chain_d,6秒内3次突进触发增幅：射击弹速/伤害与手雷伤害提升,Dash 3 times within 6s to trigger a boost: bullet speed/damage and grenade damage up
+mitigation_visibility_beacon_t,缓解：侦测信标清扫,Mitigation: Scanner Beacon Sweep
+mitigation_visibility_beacon_d,低能见度下大幅恢复预警清晰度。,Greatly restores warning clarity under Low Visibility.
+mitigation_visibility_scout_t,缓解：侦察刺激,Mitigation: Scout Stimulant
+mitigation_visibility_scout_d,部分恢复预警清晰度，并提升移速。,Partially restores warning clarity and boosts move speed.
+mitigation_visibility_lens_t,缓解：自适应透镜,Mitigation: Adaptive Lens
+mitigation_visibility_lens_d,部分恢复预警清晰度，并提升弹速。,Partially restores warning clarity and boosts bullet speed.
+mitigation_mana_ground_t,缓解：接地法印,Mitigation: Grounding Sigil
+mitigation_mana_ground_d,大幅降低“魔力静电”对 SP 的抽取。,Greatly reduces SP drained by Mana Static.
+mitigation_mana_flux_t,缓解：涌流电容,Mitigation: Surge Capacitor
+mitigation_mana_flux_d,降低 SP 流失，并提升法术频率。,Reduces SP loss and boosts spell rate.
+mitigation_mana_reserve_t,缓解：储备电池,Mitigation: Reserve Cell
+mitigation_mana_reserve_d,降低 SP 流失，并提高最大 SP。,Reduces SP loss and raises max SP.
+mitigation_tide_anchor_t,缓解：锚钉阵列,Mitigation: Anchor Array
+mitigation_tide_anchor_d,“裂潮”触发频率降低。,Rupture Tides trigger less often.
+mitigation_tide_weave_t,缓解：抗爆编织,Mitigation: Blastproof Weave
+mitigation_tide_weave_d,降低潮汐伤害，并提升突进节奏。,Reduces tide damage and speeds up your dash rhythm.
+mitigation_tide_kinetic_t,缓解：动能调校,Mitigation: Kinetic Tuning
+mitigation_tide_kinetic_d,降低潮汐范围，并加快突进冷却。,Shrinks tide radius and shortens dash cooldown.
+relic_none,无,None
+relic_entropy_dial_t,熵值转盘,Entropy Dial
+relic_entropy_dial_d,地形变异更早到来，指令节奏加速。,Terrain mutations arrive sooner and directives come faster.
+relic_oath_anchor_t,锚点誓约,Anchor Oath
+relic_oath_anchor_d,指挥锚点更早出现，目标压力更早进场。,"Command anchors appear sooner, bringing objective pressure earlier."
+relic_hazard_compact_t,灾害契约,Hazard Compact
+relic_hazard_compact_d,地形灾害节点增多，地脉通量指令强化。,"More terrain hazard nodes, and stronger Ley Flux directives."
+window_title,异世界无尽战斗,Magic Endless
+menu_language,语言 / Language：中文,Language / 语言: English
+faction_legion,军团,Legion
+faction_arcane,奥术,Arcane
+faction_void,虚空,Void
+faction_storm,风暴,Storm
+faction_unknown,未知,Unknown
+role_frontline,前排,Frontline
+role_skirmisher,游击,Skirmisher
+role_support,支援,Support
+role_controller,控场,Controller
+role_siege,攻城,Siege
+role_unknown,未知,Unknown
+ecology_none,无,None
+ui_socket_fmt,弹%d/%d 法%d/%d,B%d/%d S%d/%d
