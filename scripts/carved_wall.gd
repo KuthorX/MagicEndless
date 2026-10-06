@@ -21,9 +21,13 @@ var ink := Ink.SUMI
 ## Arena edges print as solid sumi beyond the page; inner walls are carved.
 var solid := false
 
+## Cuts print just under full coverage: the print shader then grains them like dry ink on wood
+## and skips its misregistered keyline, which would double every cut into a sketchy outline.
+const CUT_COVERAGE := 0.8
+
 func setup(block_size: Vector2, color: Color, is_solid: bool) -> CarvedWall:
 	size = block_size
-	ink = color
+	ink = color if is_solid else Ink.wash(color, CUT_COVERAGE)
 	solid = is_solid
 	return self
 
