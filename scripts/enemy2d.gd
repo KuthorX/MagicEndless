@@ -23,9 +23,6 @@ const ARENA_RECT := Rect2(-790.0, -430.0, 1580.0, 860.0)
 ## How far an elite/mutator colour tints the base pigment (kept low so each type keeps its pigment).
 const ELITE_TINT := 0.2
 ## Every creature is cut from the same indigo block as the title wave; its type pigment shows in its eyes.
-const ENSO_TEX := preload("res://assets/art/enso.png")
-## The enso ring sits inside its texture square; overscan so the ring lands on the radius.
-const ENSO_OVERSCAN := 1.25
 const BODY_INK := Ink.INDIGO
 const EYE_BONE := Ink.PAPER_LIGHT
 ## Brushed ink silhouettes, indexed by enemy type (tools/art/gen_creatures.py). Facing +x.
@@ -384,20 +381,20 @@ func _draw() -> void:
 	_draw_eyes()
 	if _is_anchor:
 		var ap := 0.72 + 0.28 * sin(_anim_phase * 2.0)
-		_draw_enso(Vector2.ZERO, 25.0 + 1.5 * ap, Color(1.0, 0.86, 0.24, 0.90))
+		_draw_ring(Vector2.ZERO, 25.0 + 1.5 * ap, Color(1.0, 0.86, 0.24, 0.90))
 	if _faction_break_t > 0.0:
 		var bp := 0.45 + 0.55 * sin(_anim_phase * 3.2)
-		_draw_enso(Vector2.ZERO, 22.0, Color(1.0, 0.35, 0.35, 0.35 + 0.4 * bp))
+		_draw_ring(Vector2.ZERO, 22.0, Color(1.0, 0.35, 0.35, 0.35 + 0.4 * bp))
 	if _hex_mark_t > 0.0:
 		var pulse := 0.65 + 0.35 * sin(_anim_phase * 2.2)
-		_draw_enso(Vector2.ZERO, 22.0 + 2.0 * pulse, Color(0.92, 0.56, 1.0, 0.48 + 0.28 * pulse))
+		_draw_ring(Vector2.ZERO, 22.0 + 2.0 * pulse, Color(0.92, 0.56, 1.0, 0.48 + 0.28 * pulse))
 		for i in _hex_mark_stack:
 			var a := TAU * float(i) / float(maxi(1, _hex_mark_stack)) + _anim_phase
 			var p := Vector2(cos(a), sin(a)) * (13.0 + 2.0 * sin(_anim_phase * 1.8))
 			draw_circle(p, 2.0, Color(0.96, 0.72, 1.0, 0.95))
 	if _chill_t > 0.0:
 		var pulse_c := 0.55 + 0.45 * sin(_anim_phase * 1.7)
-		_draw_enso(Vector2.ZERO, 20.0 + 1.6 * pulse_c, Color(0.46, 0.82, 1.0, 0.42 + 0.24 * pulse_c))
+		_draw_ring(Vector2.ZERO, 20.0 + 1.6 * pulse_c, Color(0.46, 0.82, 1.0, 0.42 + 0.24 * pulse_c))
 	if _attack_windup <= 0.0 or _attack_windup_total <= 0.0:
 		return
 	var t := clampf(1.0 - _attack_windup / _attack_windup_total, 0.0, 1.0)
@@ -406,31 +403,31 @@ func _draw() -> void:
 	match _pending_attack:
 		"shoot":
 			_draw_telegraph_line(origin, _telegraph_dir, 220.0, Color(0.42, 0.95, 0.42, a))
-			_draw_enso(origin + _telegraph_dir * 220.0, 10.0, Color(0.42, 0.95, 0.42, a))
+			_draw_ring(origin + _telegraph_dir * 220.0, 10.0, Color(0.42, 0.95, 0.42, a))
 		"sniper":
 			_draw_telegraph_line(origin, _telegraph_dir, 420.0, Color(1.0, 0.92, 0.28, a))
-			_draw_enso(origin + _telegraph_dir * 420.0, 16.0, Color(1.0, 0.92, 0.28, a))
+			_draw_ring(origin + _telegraph_dir * 420.0, 16.0, Color(1.0, 0.92, 0.28, a))
 		"burst":
 			for ang in [-14.0, 0.0, 14.0]:
 				_draw_telegraph_line(origin, _telegraph_dir.rotated(deg_to_rad(ang)), 270.0, Color(1.0, 0.56, 0.22, a))
 		"dash":
 			_draw_telegraph_line(origin, _telegraph_dir, 160.0, Color(0.72, 0.52, 1.0, a))
-			_draw_enso(origin, 22.0 + 10.0 * t, Color(0.72, 0.52, 1.0, a))
+			_draw_ring(origin, 22.0 + 10.0 * t, Color(0.72, 0.52, 1.0, a))
 		"lunge":
 			_draw_telegraph_line(origin, _telegraph_dir, 120.0, Color(1.0, 0.36, 0.30, a))
-			_draw_enso(origin, 18.0 + 8.0 * t, Color(1.0, 0.36, 0.30, a))
+			_draw_ring(origin, 18.0 + 8.0 * t, Color(1.0, 0.36, 0.30, a))
 		"fan":
 			for ang in [-24.0, -12.0, 0.0, 12.0, 24.0]:
 				_draw_telegraph_line(origin, _telegraph_dir.rotated(deg_to_rad(ang)), 260.0, Color(0.38, 0.92, 1.0, a))
 		"hex":
 			_draw_telegraph_line(origin, _telegraph_dir, 260.0, Color(0.88, 0.52, 1.0, a))
-			_draw_enso(origin + _telegraph_dir * 120.0, 42.0, Color(0.88, 0.52, 1.0, a))
+			_draw_ring(origin + _telegraph_dir * 120.0, 42.0, Color(0.88, 0.52, 1.0, a))
 		"rift":
-			_draw_enso(origin, 54.0, Color(0.92, 0.44, 1.0, a))
-			_draw_enso(origin, 86.0, Color(0.92, 0.44, 1.0, a * 0.82))
+			_draw_ring(origin, 54.0, Color(0.92, 0.44, 1.0, a))
+			_draw_ring(origin, 86.0, Color(0.92, 0.44, 1.0, a * 0.82))
 		"pierce_dash":
 			_draw_telegraph_line(origin, _telegraph_dir, 220.0, Color(1.0, 0.66, 0.34, a))
-			_draw_enso(origin, 20.0 + 9.0 * t, Color(1.0, 0.66, 0.34, a))
+			_draw_ring(origin, 20.0 + 9.0 * t, Color(1.0, 0.66, 0.34, a))
 
 func _print_creature() -> void:
 	var h := CREATURE_QUAD * 0.5
@@ -450,10 +447,9 @@ func _draw_eyes() -> void:
 		draw_circle(c + Vector2(1.6, 0.0) * s, 2.3 * s, _eye_pigment)
 	draw_set_transform(Vector2.ZERO)
 
-## Status marks and attack targets are brushed rings (the same enso as the arena), never ruled circles.
-func _draw_enso(center: Vector2, r: float, c: Color) -> void:
-	var h := r * ENSO_OVERSCAN
-	draw_texture_rect(ENSO_TEX, Rect2(center - Vector2(h, h), Vector2(h, h) * 2.0), false, Color(c.r, c.g, c.b, 1.0))
+## Status marks and attack targets are carved rings (the enso belongs to the menu), never ruled circles.
+func _draw_ring(center: Vector2, r: float, c: Color) -> void:
+	Ink.carved_ring(self, center, r, Color(c.r, c.g, c.b, 1.0), 2.0)
 
 func _draw_telegraph_line(origin: Vector2, dir: Vector2, len: float, c: Color) -> void:
 	# A thin brush line that lifts toward its end; solid ink (the print has no translucency).

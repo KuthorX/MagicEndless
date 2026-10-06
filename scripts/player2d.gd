@@ -181,12 +181,8 @@ func _physics_process(delta: float) -> void:
 func _draw() -> void:
 	if not shield_active:
 		return
-	var pulse := 0.84 + 0.16 * sin(_shield_fx_phase)
-	var outer_r := 22.0 + 1.8 * sin(_shield_fx_phase * 1.2)
-	var inner_r := 15.0 + 1.0 * sin(_shield_fx_phase * 1.7)
-	draw_arc(Vector2.ZERO, outer_r, 0.0, TAU, 48, Ink.wash(Ink.INDIGO, 0.85 * pulse), 3.0)
-	draw_arc(Vector2.ZERO, inner_r, 0.0, TAU, 48, Ink.wash(Ink.INDIGO, 0.55 * pulse), 2.0)
-	draw_circle(Vector2.ZERO, outer_r, Ink.wash(Ink.INDIGO, 0.12 * pulse))
+	# One quiet indigo ring: the shield is a state, not a firework.
+	Ink.carved_ring(self, Vector2.ZERO, 24.0 + 1.2 * sin(_shield_fx_phase), Ink.INDIGO, 2.5)
 
 func take_damage(amount: int) -> void:
 	if _dead:

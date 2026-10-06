@@ -24,21 +24,10 @@ const SFX := {
 }
 const VirtualStickScript := preload("res://scripts/virtual_stick.gd")
 const DISPLAY_FONT_PATH := "res://assets/fonts/display.tres"
-const WALL_STROKES: Array[Texture2D] = [
-	preload("res://assets/art/brush/stroke_0.png"), preload("res://assets/art/brush/stroke_1.png"),
-	preload("res://assets/art/brush/stroke_2.png"), preload("res://assets/art/brush/stroke_3.png"),
-	preload("res://assets/art/brush/stroke_4.png"), preload("res://assets/art/brush/stroke_5.png"),
-]
-const WALL_DAUBS: Array[Texture2D] = [
-	preload("res://assets/art/brush/daub_0.png"), preload("res://assets/art/brush/daub_1.png"),
-	preload("res://assets/art/brush/daub_2.png"),
-]
-## Blocks longer than this (length / thickness) are cut as one brush stroke, shorter ones as a daub.
-const STROKE_MIN_ASPECT := 2.2
 const DEBUG_SHOT_START_WAVE := 4
 const DEBUG_SHOT_BATTLE_SECONDS := 4.0
-const WALL_PALE_INK := 0.55
-## A cool neutral grey: the print shader keeps neutrals as ink, so pale walls stay grey, not brown.
+## Carved walls are line work, so they can take near-full ink; a touch of wash keeps them under the fight.
+const WALL_PALE_INK := 0.12
 const WALL_WASH := Color(0.6, 0.6, 0.62)
 const CARD_MIN_HEIGHT := 200.0
 const CARD_MAX_HEIGHT := 360.0
@@ -363,7 +352,6 @@ var _virtual_ui_layer: CanvasLayer = null
 var _virtual_shield_button: Button = null
 var _virtual_dash_button: Button = null
 var _virtual_shield_hold := false
-var _wall_brush_index := 0
 
 @onready var terrain_root: Node2D = $World/Terrain
 @onready var dynamic_root: Node2D = $World/Dynamic
@@ -1078,10 +1066,10 @@ func _set_mouse(action: StringName, btn: MouseButton) -> void:
 
 func _build_static_arena() -> void:
 	# The page edge: solid sumi bars. The paper itself is drawn by Floor/Page (arena_print.gd).
-	_create_world_block(Rect2(-860, -500, 1720, 32), Ink.SUMI, terrain_root)
-	_create_world_block(Rect2(-860, 468, 1720, 32), Ink.SUMI, terrain_root)
-	_create_world_block(Rect2(-860, -500, 32, 1000), Ink.SUMI, terrain_root)
-	_create_world_block(Rect2(828, -500, 32, 1000), Ink.SUMI, terrain_root)
+	_create_world_block(Rect2(-860, -500, 1720, 32), Ink.SUMI, terrain_root, true, true)
+	_create_world_block(Rect2(-860, 468, 1720, 32), Ink.SUMI, terrain_root, true, true)
+	_create_world_block(Rect2(-860, -500, 32, 1000), Ink.SUMI, terrain_root, true, true)
+	_create_world_block(Rect2(828, -500, 32, 1000), Ink.SUMI, terrain_root, true, true)
 
 func _setup_spawns() -> void:
 	var points: Array[Vector2] = [
@@ -2227,8 +2215,7 @@ func _commit_wave_telemetry() -> void:
 	if _wave_telemetry_history.size() > 24:
 		_wave_telemetry_history.pop_front()
 
-## Walls are sumi ink; each terrain theme only tints the ink slightly (frost indigo, void murasaki, storm ochre).
-## Walls are pale ink (dan-mo), so the fight itself carries the darkest ink on the page.
+## Walls are carved sumi line work; each terrain theme only tints the ink slightly (frost indigo, void murasaki, storm rokusho).
 func _theme_wall_color(theme: int) -> Color:
 	var ink := Ink.SUMI
 	match theme:
@@ -2245,7 +2232,7 @@ func _set_hazards_active(active: bool) -> void:
 		if hz.has_method("set_gameplay_active"):
 			hz.set_gameplay_active(active)
 
-func _create_world_block(rect: Rect2, color: Color, parent: Node2D, with_collision: bool = true) -> void:
+func _create_world_block(rect: Rect2, color: Color, parent: Node2D, with_collision: bool = true, solid: bool = false) -> void:
 	var n = Node2D.new()
 	n.position = rect.position
 	parent.add_child(n)
@@ -2259,32 +2246,7 @@ func _create_world_block(rect: Rect2, color: Color, parent: Node2D, with_collisi
 		cs.shape = shape
 		cs.position = rect.size * 0.5
 		b.add_child(cs)
-	n.add_child(_brush_block(rect.size, color))
-
-## A wall printed as one brush stroke (long blocks) or a square daub (short ones); the ragged
-## ink slightly overhangs the collision rect, like a stroke laid over a pencilled box.
-func _brush_block(size: Vector2, color: Color) -> Polygon2D:
-	var horizontal := size.x >= size.y
-	var aspect := maxf(size.x, size.y) / maxf(1.0, minf(size.x, size.y))
-	var is_stroke := aspect >= STROKE_MIN_ASPECT
-	_wall_brush_index += 1
-	var tex: Texture2D = WALL_STROKES[_wall_brush_index % WALL_STROKES.size()] if is_stroke else WALL_DAUBS[_wall_brush_index % WALL_DAUBS.size()]
-	# The brush covers ~60% of its texture across the stroke; a small overhang keeps the ink lean.
-	var grow := size * Vector2(0.06, 0.18)
-	if is_stroke:
-		grow = Vector2(size.x * 0.03, size.y * 0.18) if horizontal else Vector2(size.x * 0.18, size.y * 0.03)
-	var r := Rect2(-grow, size + grow * 2.0)
-	var poly := Polygon2D.new()
-	poly.polygon = PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
-	var ts := tex.get_size()
-	if horizontal or not is_stroke:
-		poly.uv = PackedVector2Array([Vector2.ZERO, Vector2(ts.x, 0.0), ts, Vector2(0.0, ts.y)])
-	else:
-		# Vertical stroke: the brush travels top to bottom.
-		poly.uv = PackedVector2Array([Vector2.ZERO, Vector2(0.0, ts.y), ts, Vector2(ts.x, 0.0)])
-	poly.texture = tex
-	poly.color = color
-	return poly
+	n.add_child(CarvedWall.new().setup(rect.size, color, solid))
 
 func _random_spawn() -> Vector2:
 	if spawn_root.get_child_count() == 0:

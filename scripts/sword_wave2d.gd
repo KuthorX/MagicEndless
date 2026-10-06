@@ -8,9 +8,9 @@ var _life_max := 0.18
 var _hit_map := {}
 var _anim_t := 0.0
 
-const ENSO_TEX := preload("res://assets/art/enso.png")
-## The enso ring sits at 0.40 of its texture; scale so the ink lands on the hit radius.
-const ENSO_OVERSCAN := 1.25
+## One carved crescent sweeps the hit radius; the node's spin turns it into a single cut.
+const SLASH_SWEEP := PI * 1.15
+const SLASH_THICKNESS := 14.0
 
 @onready var shape: CollisionShape2D = $CollisionShape2D
 
@@ -38,9 +38,10 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var alpha := clampf(_life / _life_max, 0.0, 1.0)
-	# The light sword is one vermilion enso, spun by the node's rotation: a single brush sweep.
-	var r := radius * ENSO_OVERSCAN
-	draw_texture_rect(ENSO_TEX, Rect2(-r, -r, r * 2.0, r * 2.0), false, Ink.wash(Ink.VERMILION, alpha))
+	if alpha < 0.08:
+		return
+	# Printed solid (the print has no translucency): the cut thins out instead of fading.
+	Ink.carved_crescent(self, radius, SLASH_SWEEP * lerpf(0.5, 1.0, alpha), SLASH_THICKNESS * alpha, Ink.VERMILION)
 
 func _apply_damage(target: Node) -> void:
 	if _hit_map.has(target):

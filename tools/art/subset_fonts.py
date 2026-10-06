@@ -4,10 +4,11 @@
 Source fonts (OFL, not committed at full size) are read from FONT_SRC (default /tmp/me-art/fonts):
   NotoSerifSC-Regular.otf, NotoSerifSC-Bold.otf  (github.com/notofonts/noto-cjk, Serif/SubsetOTF/SC)
   MaShanZheng-Regular.ttf                        (github.com/google/fonts, ofl/mashanzheng)
-Character set = every character in i18n/translations.csv + printable ASCII + common CJK punctuation.
+Character set = every character in i18n/translations.csv, scripts/*.gd, scenes/*.tscn + printable ASCII + common CJK punctuation.
 Re-run after adding new translated text:  FONT_SRC=/path python3 tools/art/subset_fonts.py
-Any character missing from a subset still renders through the NotoSansCJK fallback.
+There is no fallback font (the game ships exactly two faces), so a missing character renders as tofu.
 """
+import glob
 import os
 import string
 
@@ -26,8 +27,13 @@ JOBS = [
 
 
 def used_text():
-    with open(os.path.join(ROOT, "i18n", "translations.csv"), encoding="utf-8") as f:
-        return f.read() + EXTRA
+    paths = [os.path.join(ROOT, "i18n", "translations.csv")]
+    paths += glob.glob(os.path.join(ROOT, "scripts", "*.gd")) + glob.glob(os.path.join(ROOT, "scenes", "*.tscn"))
+    text = ""
+    for p in paths:
+        with open(p, encoding="utf-8") as f:
+            text += f.read()
+    return text + EXTRA
 
 
 def main():

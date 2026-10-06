@@ -18,7 +18,7 @@
 [ext_resource type="Texture2D" path="res://assets/art/grain.png" id="17"]
 [ext_resource type="FontVariation" path="res://assets/fonts/numeral.tres" id="18"]
 [ext_resource type="Texture2D" path="res://assets/art/seal.png" id="19"]
-[ext_resource type="Texture2D" path="res://assets/art/slip.png" id="21"]
+[ext_resource type="Script" path="res://scripts/seal_stamp.gd" id="21"]
 
 [sub_resource type="ShaderMaterial" id="print"]
 shader = ExtResource("10")
@@ -27,18 +27,11 @@ shader_parameter/grain_tex = ExtResource("17")
 [sub_resource type="RectangleShape2D" id="1"]
 size = Vector2(28, 28)
 
-[sub_resource type="StyleBoxTexture" id="slip"]
+[sub_resource type="StyleBoxEmpty" id="slip"]
 content_margin_left = 22.0
 content_margin_top = 10.0
 content_margin_right = 22.0
 content_margin_bottom = 12.0
-texture = ExtResource("21")
-texture_margin_left = 16.0
-texture_margin_top = 16.0
-texture_margin_right = 16.0
-texture_margin_bottom = 16.0
-axis_stretch_horizontal = 1
-axis_stretch_vertical = 1
 
 [sub_resource type="StyleBoxEmpty" id="empty"]
 
@@ -66,17 +59,11 @@ border_width_right = 4
 border_width_bottom = 4
 border_color = Color(0.847, 0.271, 0.169, 1)
 
-[sub_resource type="StyleBoxTexture" id="wave_seal"]
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 10.0
-texture = ExtResource("19")
-texture_margin_left = 24.0
-texture_margin_top = 24.0
-texture_margin_right = 24.0
-texture_margin_bottom = 24.0
-modulate_color = Color(0.847, 0.271, 0.169, 1)
+[sub_resource type="StyleBoxEmpty" id="wave_seal"]
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
 
 [sub_resource type="StyleBoxTexture" id="score_seal"]
 content_margin_left = 26.0
@@ -237,6 +224,7 @@ custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
 size_flags_horizontal = 8
 theme_override_styles/panel = SubResource("wave_seal")
+script = ExtResource("21")
 
 [node name="VBox" type="VBoxContainer" parent="HUD/Ledger/Box/WaveSeal"]
 layout_mode = 2

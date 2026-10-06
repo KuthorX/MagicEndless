@@ -29,9 +29,8 @@ var _reaction_t := 0.0
 var _decay_level := 0.0
 var _reignite_boost_t := 0.0
 
-const ENSO_TEX := preload("res://assets/art/enso.png")
-## Enso drawn so its ring (0.40 of the texture) lands on the 46px trigger radius.
-const ENSO_HALF := 58.0
+## The carved ring lands on the 46px trigger radius.
+const RING_RADIUS := 46.0
 const HAZARD_IDLE_INK := 0.72
 
 @onready var poly: Polygon2D = $Polygon2D
@@ -40,11 +39,11 @@ func _ready() -> void:
 	add_to_group("hazard")
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
-	_print_as_enso()
+	_print_as_ring()
 	_update_visual()
 
-## Hazards are printed as one dry enso stroke; the Polygon2D only carries the colour (it is not drawn).
-func _print_as_enso() -> void:
+## Hazards are printed as one carved ring; the Polygon2D only carries the colour (it is not drawn).
+func _print_as_ring() -> void:
 	poly.visible = false
 
 func configure_for_wave(wave: int) -> void:
@@ -284,4 +283,4 @@ func _update_visual() -> void:
 func _draw() -> void:
 	# Printed, not translucent: an active zone is solid ink, an idle one a drier impression.
 	var ink := Color(poly.color.r, poly.color.g, poly.color.b, 1.0 if _active else HAZARD_IDLE_INK)
-	draw_texture_rect(ENSO_TEX, Rect2(-ENSO_HALF, -ENSO_HALF, ENSO_HALF * 2.0, ENSO_HALF * 2.0), false, ink)
+	Ink.carved_ring(self, Vector2.ZERO, RING_RADIUS, ink, 3.0)

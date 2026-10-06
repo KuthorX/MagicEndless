@@ -6,8 +6,6 @@ var duration := 0.9
 const BLOT_TEX := preload("res://assets/art/blot.png")
 ## The blot texture's ragged edge sits slightly inside its square; overscan so the edge lands on radius.
 const BLOT_OVERSCAN := 1.08
-const ENSO_TEX := preload("res://assets/art/enso.png")
-const ENSO_OVERSCAN := 1.25
 
 var base_color := Color(1.0, 0.35, 0.35, 0.9)
 
@@ -25,10 +23,9 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	# A dry enso marks the danger edge; an ink blot spreads from the centre to show the timing.
+	# A carved ring marks the danger edge; an ink blot spreads from the centre to show the timing.
 	var t: float = 1.0 - clampf(_left / maxf(duration, 0.001), 0.0, 1.0)
 	var ink := Color(base_color.r, base_color.g, base_color.b, 1.0)
-	var r := radius * ENSO_OVERSCAN
-	draw_texture_rect(ENSO_TEX, Rect2(-r, -r, r * 2.0, r * 2.0), false, ink)
+	Ink.carved_ring(self, Vector2.ZERO, radius, ink)
 	var b := radius * BLOT_OVERSCAN * lerpf(0.08, 1.0, t * t)
 	draw_texture_rect(BLOT_TEX, Rect2(-b, -b, b * 2.0, b * 2.0), false, ink)
