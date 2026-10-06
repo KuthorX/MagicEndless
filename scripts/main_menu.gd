@@ -24,6 +24,8 @@ func _ready() -> void:
 	$Center/Panel/VBox/PotentialButton.pressed.connect(_on_potential_pressed)
 	$Center/Panel/VBox/SettingsButton.pressed.connect(_on_settings_pressed)
 	$Center/Panel/VBox/QuitButton.pressed.connect(_on_quit_pressed)
+	# The web build cannot close its tab, so Quit would do nothing there.
+	$Center/Panel/VBox/QuitButton.visible = not OS.has_feature("web")
 	$Center/Panel/VBox/LanguageButton.pressed.connect(_on_language_pressed)
 	if AudioManager != null:
 		AudioManager.play_menu()

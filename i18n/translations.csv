@@ -68,7 +68,7 @@ Formula: base magic multiplier = 1.0 + 0.12 * level
 Effect: raises the base damage of Arcane Missile and Frost Nova."
 potential_desc_tree_melee,"近战流分支（光剑定向）
 公式：光剑伤害 += 5 * 等级，光剑半径 += 4 * 等级
-影响：近战扫荒能力更强，清怪圈更大。","Melee Path (light sword focus)
+影响：近战扫荡能力更强，清怪圈更大。","Melee Path (light sword focus)
 Formula: sword damage += 5 * level, sword radius += 4 * level
 Effect: stronger melee sweeps with a wider clearing circle."
 potential_desc_tree_ranged,"射击流分支（弹道定向）
@@ -148,7 +148,7 @@ enemy_warden,守卫者,Warden
 enemy_warlock,术士,Warlock
 enemy_beacon,支援信标,Support Beacon
 enemy_lancer,突刺枪骑,Lancer
-terrain_theme_ruins,遗迹堡埒,Ruined Bastion
+terrain_theme_ruins,遗迹堡垒,Ruined Bastion
 terrain_theme_frost,霜境低地,Frost Lowlands
 terrain_theme_void,虚空裂隙,Void Rift
 terrain_theme_storm,雷霾战场,Stormfield
@@ -222,7 +222,7 @@ codex_legend_title,预警图例,Warning Legend
 codex_legend_shoot,绿线：普通远程射击（射手）,Green line: regular ranged shot (Shooter)
 codex_legend_dash,紫线：冲刺/突进（突袭者）,Purple line: charge / dash (Dasher)
 codex_legend_sniper,黄线：狙击蓄力射击（狙击手）,Yellow line: charged sniper shot (Sniper)
-codex_legend_burst,橙线：扼形三连弹幕（炮击手）,Orange lines: three-shot fan barrage (Artillery)
+codex_legend_burst,橙线：扇形三连弹幕（炮击手）,Orange lines: three-shot fan barrage (Artillery)
 codex_legend_totem,金线：图腾蓄力炮击（Boss机制）,Gold line: charged totem blast (boss mechanic)
 codex_skill_title,战斗系统,Combat Systems
 codex_systems_title,系统说明,How It Works
@@ -301,9 +301,9 @@ card_hex_guidance_d,咒弹追踪能力增强,Hex bullets home in more strongly
 card_chain_sigil_t,连锁法印,Chain Sigil
 card_chain_sigil_d,解锁连锁法印：自动在敌人间跳转造成多段伤害；优先锁定“咒印”目标，并消耗咒印提升伤害。,Unlocks Chain Sigil: automatically jumps between enemies for multi-hit damage; prioritizes Hex-marked targets and consumes the mark for bonus damage.
 card_meteor_rain_t,降星术式,Starfall Rite
-card_meteor_rain_d,解锁陈星雨：自动连续降下多次冲击，优先锁定“咒印”目标，并消耗咒印增加落点与伤害。,Unlocks Starfall: automatically rains down a series of impacts; prioritizes Hex-marked targets and consumes the mark for more strikes and damage.
+card_meteor_rain_d,解锁降星雨：自动连续降下多次冲击，优先锁定“咒印”目标，并消耗咒印增加落点与伤害。,Unlocks Starfall: automatically rains down a series of impacts; prioritizes Hex-marked targets and consumes the mark for more strikes and damage.
 card_meteor_shards_t,流星碎裂,Meteor Shards
-card_meteor_shards_d,每次陈星雨额外+1次落点,Each Starfall gains +1 extra strike
+card_meteor_shards_d,每次降星雨额外+1次落点,Each Starfall gains +1 extra strike
 card_meteor_crater_t,燃铁陷坑,Molten Crater
 card_meteor_crater_d,流星冲击半径 +10,Meteor impact radius +10
 card_meteor_rush_t,炼天急降,Skyfall Rush
