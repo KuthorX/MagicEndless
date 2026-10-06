@@ -10,6 +10,9 @@ config_version=5
 
 [application]
 
+boot_splash/bg_color=Color(0.929, 0.89, 0.8, 1)
+boot_splash/show_image=false
+
 config/name="2D Rogue Endless"
 run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.5")
@@ -40,4 +43,4 @@ locale/fallback="en"
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_clear_color=Color(0.06, 0.08, 0.11, 1)
+environment/defaults/default_clear_color=Color(0.929, 0.89, 0.8, 1)

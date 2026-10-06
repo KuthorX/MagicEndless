@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<meta name="theme-color" content="#EDE3CC">
+		<title>$GODOT_PROJECT_NAME</title>
+		<style>
+/* Loading page for "War Grimoire": kozo paper, sumi ink, one vermilion seal (see docs/art-direction.md).
+   Everything is inline: no external fonts, images or scripts besides the engine itself. */
+@font-face {
+	font-family: 'MEBrush';
+	src: url(data:font/woff2;base64,__BRUSH_WOFF2__) format('woff2');
+	font-display: block;
+}
+
+:root {
+	--paper: #EDE3CC;
+	--sumi: #1E1B18;
+	--vermilion: #D8452B;
+	--indigo: #27466B;
+}
+
+html, body, #canvas {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+html, body {
+	background-color: var(--paper);
+}
+
+body {
+	color: var(--sumi);
+	overflow: hidden;
+	touch-action: none;
+}
+
+#canvas {
+	display: block;
+	background-color: var(--paper);
+}
+
+#canvas:focus {
+	outline: none;
+}
+
+#status {
+	position: absolute;
+	inset: 0;
+	background-color: var(--paper);
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	padding: 0 0 0 max(8vw, 1.5rem);
+	box-sizing: border-box;
+	z-index: 1;
+	transition: opacity 240ms ease-out;
+}
+
+#status.done {
+	opacity: 0;
+}
+
+/* Kento registration marks, as on the corner of a printing block. */
+#status::before, #status::after {
+	content: '';
+	position: absolute;
+	width: 2.6rem;
+	height: 1.6rem;
+	bottom: 1.4rem;
+	border-bottom: 2px solid rgba(30, 27, 24, 0.55);
+}
+
+#status::before {
+	left: 1.4rem;
+	border-left: 2px solid rgba(30, 27, 24, 0.55);
+}
+
+#status::after {
+	right: 1.4rem;
+	height: 0;
+}
+
+#status-splash {
+	display: none;
+}
+
+.sheet {
+	display: flex;
+	align-items: flex-start;
+	gap: clamp(1rem, 3vw, 2.2rem);
+	width: min(34rem, 84vw);
+}
+
+.seal {
+	flex: none;
+	width: clamp(3.2rem, 7vw, 4.6rem);
+	aspect-ratio: 1;
+	background: var(--vermilion);
+	color: var(--paper);
+	font-family: 'MEBrush', serif;
+	font-size: clamp(1.25rem, 2.8vw, 1.8rem);
+	line-height: 1;
+	display: grid;
+	place-items: center;
+	writing-mode: vertical-rl;
+	box-shadow: inset 0 0 0 0.32rem var(--vermilion), inset 0 0 0 0.48rem var(--paper);
+	clip-path: polygon(0 2%, 31% 0, 64% 1%, 100% 0, 99% 38%, 100% 71%, 98% 100%, 58% 99%, 22% 100%, 1% 98%, 0 62%, 1% 30%);
+	transform: rotate(-2deg);
+	margin-top: 0.4rem;
+}
+
+.column {
+	flex: 1;
+	min-width: 0;
+}
+
+h1 {
+	font-family: 'MEBrush', serif;
+	font-weight: normal;
+	font-size: clamp(2.4rem, 7.5vw, 4.6rem);
+	line-height: 1.02;
+	margin: 0 0 clamp(1rem, 3.5vh, 2rem);
+	letter-spacing: 0.01em;
+}
+
+.track {
+	position: relative;
+	height: 0.5rem;
+	border-bottom: 2px solid var(--sumi);
+	overflow: hidden;
+}
+
+.fill {
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	height: 0.38rem;
+	width: 0;
+	background: var(--vermilion);
+	transition: width 160ms linear;
+}
+
+.indeterminate .fill {
+	width: 28%;
+	animation: slide 1.4s ease-in-out infinite alternate;
+	transition: none;
+}
+
+@keyframes slide {
+	from { left: 0; }
+	to { left: 72%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.indeterminate .fill { animation: none; width: 100%; opacity: 0.35; }
+}
+
+.meta {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 1rem;
+	margin-top: 0.55rem;
+	font-family: 'MEBrush', serif;
+	font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.meta .size {
+	color: var(--indigo);
+}
+
+#status-notice {
+	display: none;
+	margin-top: 1rem;
+	padding-left: 0.8rem;
+	border-left: 4px solid var(--vermilion);
+	font-family: 'Noto Serif', 'Noto Serif SC', 'Songti SC', Georgia, serif;
+	font-size: 0.95rem;
+	line-height: 1.45;
+	white-space: pre-line;
+	overflow-wrap: anywhere;
+}
+
+#status-retry {
+	display: none;
+	margin-top: 0.9rem;
+	padding: 0.35rem 0.9rem;
+	font: inherit;
+	font-family: 'MEBrush', serif;
+	font-size: 1.15rem;
+	color: var(--paper);
+	background: var(--sumi);
+	border: 0;
+	cursor: pointer;
+}
+
+.failed .track, .failed .meta .size { display: none; }
+.failed #status-notice, .failed #status-retry { display: block; }
+.failed .meta .label { color: var(--vermilion); }
+		</style>
+		$GODOT_HEAD_INCLUDE
+	</head>
+	<body>
+		<canvas id="canvas">
+			Your browser does not support the canvas tag.
+		</canvas>
+
+		<noscript>
+			Your browser does not support JavaScript.
+		</noscript>
+
+		<div id="status" role="status" aria-live="polite">
+			<img id="status-splash" class="$GODOT_SPLASH_CLASSES" src="$GODOT_SPLASH" alt="">
+			<div class="sheet indeterminate" id="status-sheet">
+				<div class="seal" aria-hidden="true">无尽</div>
+				<div class="column">
+					<h1 id="status-title">Magic<br>Endless</h1>
+					<div class="track"><div class="fill" id="status-fill"></div></div>
+					<div class="meta">
+						<span class="label" id="status-label">Loading…</span>
+						<span class="size" id="status-size"></span>
+					</div>
+					<div id="status-notice"></div>
+					<button id="status-retry" type="button">Reload</button>
+				</div>
+			</div>
+		</div>
+
+		<script>
+// Runs before the engine script downloads, so the loader is the first thing painted.
+const ME_ZH = /^zh\b/i.test(navigator.language || '');
+const ME_TEXT = ME_ZH
+	? { title: '异世界<br>无尽战斗', loading: '加载中…', failed: '加载失败', retry: '重新加载', unknown: '发生未知错误。' }
+	: { title: 'Magic<br>Endless', loading: 'Loading…', failed: 'Loading failed', retry: 'Reload', unknown: 'An unknown error occurred.' };
+document.documentElement.lang = ME_ZH ? 'zh' : 'en';
+document.getElementById('status-title').innerHTML = ME_TEXT.title;
+document.getElementById('status-label').textContent = ME_TEXT.loading;
+document.getElementById('status-retry').textContent = ME_TEXT.retry;
+document.getElementById('status-retry').addEventListener('click', () => window.location.reload());
+		</script>
+		<script src="$GODOT_URL"></script>
+		<script>
+const GODOT_CONFIG = $GODOT_CONFIG;
+const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const MB = 1024 * 1024;
+	const statusOverlay = document.getElementById('status');
+	const statusSheet = document.getElementById('status-sheet');
+	const statusFill = document.getElementById('status-fill');
+	const statusLabel = document.getElementById('status-label');
+	const statusSize = document.getElementById('status-size');
+	const statusNotice = document.getElementById('status-notice');
+
+	let initializing = true;
+
+	function hideStatus() {
+		if (!initializing) {
+			return;
+		}
+		initializing = false;
+		statusOverlay.classList.add('done');
+		setTimeout(() => statusOverlay.remove(), 260);
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		let text = ME_TEXT.unknown;
+		if (err instanceof Error) {
+			text = err.message;
+		} else if (typeof err === 'string') {
+			text = err;
+		}
+		statusNotice.textContent = text;
+		statusLabel.textContent = ME_TEXT.failed;
+		statusSheet.classList.remove('indeterminate');
+		statusSheet.classList.add('failed');
+		initializing = false;
+	}
+
+	function setProgress(current, total) {
+		if (current > 0 && total > 0) {
+			const ratio = Math.min(1, current / total);
+			statusSheet.classList.remove('indeterminate');
+			statusFill.style.width = (ratio * 100).toFixed(1) + '%';
+			statusLabel.textContent = ME_TEXT.loading + ' ' + Math.floor(ratio * 100) + '%';
+			statusSize.textContent = (current / MB).toFixed(1) + ' / ' + (total / MB).toFixed(1) + ' MB';
+		} else {
+			// Size unknown (e.g. no Content-Length): keep the sliding mark, still show what arrived.
+			statusSheet.classList.add('indeterminate');
+			statusLabel.textContent = ME_TEXT.loading;
+			statusSize.textContent = current > 0 ? (current / MB).toFixed(1) + ' MB' : '';
+		}
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			let serviceWorkerRegistrationPromise;
+			try {
+				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
+			} catch (err) {
+				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			}
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				serviceWorkerRegistrationPromise.then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).then(() => {
+				// Reload if there was no error.
+				window.location.reload();
+			}).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			});
+		} else {
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		engine.startGame({
+			'onProgress': setProgress,
+		}).then(hideStatus, displayFailureNotice);
+	}
+}());
+		</script>
+	</body>
+</html>

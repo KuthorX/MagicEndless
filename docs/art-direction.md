@@ -13,7 +13,7 @@ What the string's patterns suggested:
 
 Derived palette: kozo paper `#EDE3CC`, sumi ink `#1E1B18`, vermilion seal `#D8452B` (the only hot accent), with indigo `#27466B` as the second printing block.
 Layout skeleton: an asymmetric page. A heavy left illustration sits against a narrow right column of entries, like a grimoire margin.
-Type: brush calligraphy for the Chinese display text, 17th-century printing type (IM Fell) for the Latin display text, and Noto Serif for body text.
+Type: one brush face (Ma Shan Zheng) for all display text in both languages, and one serif (Noto Serif SC) for all body text.
 Material and metaphor: a woodblock print. That means a sumi keyline, flat pigment blocks, slight misregistration, kento registration marks and paper fibre.
 
 ## 15 shallow directions
@@ -46,8 +46,8 @@ It fits the seed best: carved edges, circles, hatching and one hot accent. It is
 
 **Layout.** The menu is an asymmetric print. A big illustration with a vermilion sun sits on the left, and a vertical entry column sits on the right. The HUD uses rectangular title cartouches (the boxes on Hiroshige prints) at the page corners.
 
-**Type.** Ma Shan Zheng brush and IM Fell for display text. Noto Serif SC for body text. Numerals are large and set in a ledger.
+**Type.** Exactly two faces ship, on the menu and in the HUD alike. Display: Ma Shan Zheng (brush; its Latin is used for English titles too). Body: Noto Serif SC, Regular and Bold. Both are subset to the shipped strings; there is no fallback font. Numerals are large, set in the display face, in a ledger.
 
-**Material.** Paper fibre, sumi keylines offset 2px from the colour block (misregistration), crosshatched walls, kento corner marks and ensō circles.
+**Material.** Paper fibre, sumi keylines offset 2px from the colour block (misregistration), kento corner marks. The ensō is the menu's sign only. In battle everything is cut, not brushed: walls are keylines with diagonal gouge hatching, rings are carved (three arcs with chipped gaps and gouge ticks), the sword is a single vermilion crescent, and the wave counter is a white-character (白文) seal with a chipped edge and a broken carved border.
 
 **Forbidden.** Gradients without a woodblock reason (bokashi is allowed), glows, glassmorphism, rounded cards, neon cyan, floating geometric confetti and centred-panel menus.
