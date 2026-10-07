@@ -1,6 +1,6 @@
 #!/bin/sh
 # Prints duration, integrated LUFS and true peak for each audio file given (no playback).
-# Usage: tools/audio/analyze.sh assets/audio/music/*.mp3 assets/audio/sfx/*.wav
+# Usage: tools/audio/analyze.sh assets/audio/music/*.ogg assets/audio/sfx/*.ogg assets/audio/sfx/*.wav
 for f in "$@"; do
   dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f")
   # pad short files with silence so the 400 ms gating window sees the whole sound

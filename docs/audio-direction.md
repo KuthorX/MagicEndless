@@ -13,7 +13,7 @@ The music and SFX were composed programmatically by AI (Claude), as code in `too
 were rendered offline with Vital, Serum 2 and the MS Basic soundfont through the shared audiokit
 renderer (`/tmp/audiokit/render.py`). Sources and licences are listed in `assets/audio/LICENSE.md`.
 
-## Music (assets/audio/music, MP3 128 kbps, seamless loops)
+## Music (assets/audio/music, Ogg Vorbis ~110 kbps, seamless loops)
 
 | Cue | Use | Tempo / length | Loudness | Parts (preset) |
 |---|---|---|---|---|
@@ -31,11 +31,11 @@ waves crossfade (1.2 s) to `boss`, and clearing the wave crossfades back. Death 
 
 **Loops.** Each cue is rendered once, then the renderer's loop option folds everything that rings
 past the loop end (release and reverb tails) back onto the loop start. The seam therefore sounds
-like the next pass. The decoded MP3 length equals the musical length to the sample
+like the next pass. The decoded Ogg Vorbis length equals the musical length to the sample
 (`tools/audio/check_loops.py`), and the import files set `bpm`/`beat_count` so Godot loops on the
 bar line.
 
-## Sound effects (assets/audio/sfx, 16-bit mono WAV, layered preset hits + synthesis)
+## Sound effects (assets/audio/sfx, 16-bit mono WAV; effects over 0.5 s as mono Ogg Vorbis; layered preset hits + synthesis)
 
 Each effect layers single preset hits with synthesised noise, drum and FM layers. The hits are
 guzheng, temple bell, gong, ceramic tick, bianqing, xiao, taiko and woodblock, rendered once into
@@ -88,8 +88,8 @@ Everything renders offline and never plays audio. It needs the audiokit toolchai
 ```
 tools/audio/render_all.sh                    # compose.py + SFX hit list -> render every spec
 arch -arm64 /tmp/audiokit/venv/bin/python tools/audio/remix.py   # optional: new gains, no re-render
-arch -arm64 /tmp/audiokit/venv/bin/python tools/audio/finish_music.py   # balance, master, MP3
+arch -arm64 /tmp/audiokit/venv/bin/python tools/audio/finish_music.py   # balance, master, Ogg Vorbis
 arch -arm64 /tmp/audiokit/venv/bin/python tools/audio/gen_sfx.py build  # layer the SFX
-python3 tools/audio/check_loops.py assets/audio/music/{menu,battle_base,battle_war,boss}.mp3
-tools/audio/analyze.sh assets/audio/music/*.mp3 assets/audio/sfx/*.wav
+python3 tools/audio/check_loops.py assets/audio/music/{menu,battle_base,battle_war,boss}.ogg
+tools/audio/analyze.sh assets/audio/music/*.ogg assets/audio/sfx/*.ogg assets/audio/sfx/*.wav
 ```

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Loop seam check without listening: decodes each MP3 (ffmpeg honours the LAME gapless tag),
+"""Loop seam check without listening: decodes each Ogg Vorbis file with ffmpeg,
 checks the decoded length against the musical loop length, and compares the step across the
 seam (last sample -> first sample) with the ordinary sample-to-sample steps around it, plus the
 RMS of the last and first 50 ms.
 
-Usage: python3 tools/audio/check_loops.py assets/audio/music/{menu,battle_base,battle_war,boss}.mp3
+Usage: python3 tools/audio/check_loops.py assets/audio/music/{menu,battle_base,battle_war,boss}.ogg
 """
 import subprocess
 import sys

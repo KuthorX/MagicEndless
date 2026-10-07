@@ -4,9 +4,9 @@ All music and sound effects in this folder were composed programmatically by AI 
 MagicEndless, as code in `tools/audio/`, and rendered offline with Vital / Serum 2 / the MS Basic
 soundfont. No sample packs or recordings are used.
 
-- **Music** (`music/*.mp3`): the notes are written in `tools/audio/compose.py`. The audiokit
+- **Music** (`music/*.ogg`): the notes are written in `tools/audio/compose.py`. The audiokit
   renderer turns them into audio, `tools/audio/finish_music.py` masters them, and they are encoded
-  with LAME. Instruments:
+  to Ogg Vorbis with libsndfile. Instruments:
   - **Vital** (Matt Tytel, GPL-3.0) presets: "Plucked String" (Vital Factory), "A Night in
     Kalyan" (Yuli Yolo pack), "Cinema Bells" (Billain pack).
   - **Serum 2** (Xfer Records) Factory presets: "WIND - Flute", "WIND - Pan Flute",

@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
-"""Masters the rendered cues (tools/audio/build/<cue>.wav) into assets/audio/music/<cue>.mp3.
+"""Masters the rendered cues (tools/audio/build/<cue>.wav) into assets/audio/music/<cue>.ogg.
 
 - menu / boss: already loop-folded and LUFS-normalised by the renderer; encoded as is.
 - battle_base + battle_war: two sample-locked stems (AudioStreamSynchronized). The base sits at
   BASE_LUFS alone; the war stem gain is solved so base + war hits FULL_LUFS, then both are scaled
   together if the sum would pass the true-peak ceiling.
 - gameover: trimmed/padded to 11.5 s with a fade (one-shot).
-MP3: LAME 128 kbps CBR, 44.1 kHz stereo (the LAME gapless tag keeps decoded length exact).
+Ogg Vorbis via libsndfile, compression level 0.7 (~110 kbps), 44.1 kHz stereo, from the 16-bit
+master; the decoded length equals the loop length to the sample (checked after writing).
 
 Run: arch -arm64 /tmp/audiokit/venv/bin/python tools/audio/finish_music.py
 """
 import os
-import subprocess
 import sys
-import tempfile
 
 import numpy as np
 import soundfile as sf
@@ -27,6 +26,7 @@ OUT = os.path.join(HERE, "..", "..", "assets", "audio", "music")
 SR = 44100
 CEILING_DBTP = -1.0
 BASE_LUFS, FULL_LUFS = -19.5, -17.5
+OGG_LEVEL = 0.7  # libsndfile compression level: 0 = best quality, 1 = smallest
 LENGTHS = {"menu": 64.0, "battle_base": 75.0, "battle_war": 75.0, "boss": 144 * 60 / 140, "gameover": 11.5}
 
 
@@ -48,11 +48,10 @@ def encode(cue, x):
     tp = M.true_peak_db(x)
     assert tp <= CEILING_DBTP + 0.05, f"{cue}: true peak {tp:.2f} dBTP"
     os.makedirs(OUT, exist_ok=True)
-    with tempfile.TemporaryDirectory() as td:
-        wav = os.path.join(td, cue + ".wav")
-        sf.write(wav, x.T, SR, subtype="PCM_16")
-        subprocess.run(["lame", "--quiet", "-b", "128", "-q", "2", wav, os.path.join(OUT, cue + ".mp3")],
-                       check=True)
+    pcm16 = np.clip(np.round(x.T * 32767), -32768, 32767) / 32767  # same 16-bit master as before
+    out = os.path.join(OUT, cue + ".ogg")
+    sf.write(out, pcm16, SR, format="OGG", subtype="VORBIS", compression_level=OGG_LEVEL)
+    assert sf.info(out).frames == x.shape[1], f"{cue}: Vorbis length {sf.info(out).frames} != {x.shape[1]}"
     print(f"{cue:12s} {x.shape[1] / SR:7.3f}s  {M.lufs(x):6.2f} LUFS  TP {tp:6.2f} dBTP")
 
 

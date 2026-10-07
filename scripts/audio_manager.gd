@@ -3,11 +3,11 @@ extends Node
 ## bianqing / taiko (see docs/audio-direction.md). Music runs on the "Music" bus, effects on "SFX".
 ## Battle music is two synchronised stems; the taiko stem rises wave by wave.
 
-const MENU_BGM := preload("res://assets/audio/music/menu.mp3")
-const BATTLE_BASE := preload("res://assets/audio/music/battle_base.mp3")
-const BATTLE_WAR := preload("res://assets/audio/music/battle_war.mp3")
-const BOSS_BGM := preload("res://assets/audio/music/boss.mp3")
-const GAMEOVER_BGM := preload("res://assets/audio/music/gameover.mp3")
+const MENU_BGM := preload("res://assets/audio/music/menu.ogg")
+const BATTLE_BASE := preload("res://assets/audio/music/battle_base.ogg")
+const BATTLE_WAR := preload("res://assets/audio/music/battle_war.ogg")
+const BOSS_BGM := preload("res://assets/audio/music/boss.ogg")
+const GAMEOVER_BGM := preload("res://assets/audio/music/gameover.ogg")
 const SFX := {
 	"shoot_normal": preload("res://assets/audio/sfx/shoot_normal.wav"),
 	"shoot_pierce": preload("res://assets/audio/sfx/shoot_pierce.wav"),
@@ -16,31 +16,31 @@ const SFX := {
 	"shoot_hex": preload("res://assets/audio/sfx/shoot_hex.wav"),
 	"sword": preload("res://assets/audio/sfx/sword.wav"),
 	"arcane": preload("res://assets/audio/sfx/arcane.wav"),
-	"nova": preload("res://assets/audio/sfx/nova.wav"),
+	"nova": preload("res://assets/audio/sfx/nova.ogg"),
 	"chain": preload("res://assets/audio/sfx/chain.wav"),
-	"meteor": preload("res://assets/audio/sfx/meteor.wav"),
+	"meteor": preload("res://assets/audio/sfx/meteor.ogg"),
 	"hit": preload("res://assets/audio/sfx/hit.wav"),
 	"enemy_die": preload("res://assets/audio/sfx/enemy_die.wav"),
 	"enemy_shoot": preload("res://assets/audio/sfx/enemy_shoot.wav"),
 	"hurt": preload("res://assets/audio/sfx/hurt.wav"),
-	"shield_on": preload("res://assets/audio/sfx/shield_on.wav"),
+	"shield_on": preload("res://assets/audio/sfx/shield_on.ogg"),
 	"shield_off": preload("res://assets/audio/sfx/shield_off.wav"),
 	"shield_hit": preload("res://assets/audio/sfx/shield_hit.wav"),
 	"dash": preload("res://assets/audio/sfx/dash.wav"),
 	"mode_switch": preload("res://assets/audio/sfx/mode_switch.wav"),
 	"card_show": preload("res://assets/audio/sfx/card_show.wav"),
-	"card_pick": preload("res://assets/audio/sfx/card_pick.wav"),
-	"wave_start": preload("res://assets/audio/sfx/wave_start.wav"),
-	"respawn": preload("res://assets/audio/sfx/wave_start.wav"),
-	"wave_clear": preload("res://assets/audio/sfx/wave_clear.wav"),
-	"boss_appear": preload("res://assets/audio/sfx/boss_appear.wav"),
-	"objective_success": preload("res://assets/audio/sfx/objective_success.wav"),
-	"objective_fail": preload("res://assets/audio/sfx/objective_fail.wav"),
-	"player_die": preload("res://assets/audio/sfx/player_die.wav"),
+	"card_pick": preload("res://assets/audio/sfx/card_pick.ogg"),
+	"wave_start": preload("res://assets/audio/sfx/wave_start.ogg"),
+	"respawn": preload("res://assets/audio/sfx/wave_start.ogg"),
+	"wave_clear": preload("res://assets/audio/sfx/wave_clear.ogg"),
+	"boss_appear": preload("res://assets/audio/sfx/boss_appear.ogg"),
+	"objective_success": preload("res://assets/audio/sfx/objective_success.ogg"),
+	"objective_fail": preload("res://assets/audio/sfx/objective_fail.ogg"),
+	"player_die": preload("res://assets/audio/sfx/player_die.ogg"),
 	"ui_hover": preload("res://assets/audio/sfx/ui_hover.wav"),
 	"ui_click": preload("res://assets/audio/sfx/ui_click.wav"),
 	"ui_confirm": preload("res://assets/audio/sfx/ui_confirm.wav"),
-	"ui_success": preload("res://assets/audio/sfx/ui_success.wav"),
+	"ui_success": preload("res://assets/audio/sfx/ui_success.ogg"),
 	"ui_fail": preload("res://assets/audio/sfx/ui_fail.wav"),
 }
 ## Sounds that fire many times a second: at most this many voices, this far apart, pitch-jittered.

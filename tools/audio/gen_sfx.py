@@ -6,7 +6,8 @@ Two steps, both run with the audiokit venv (arch -arm64 /tmp/audiokit/venv/bin/p
                      one instrument per track, one hit per 4 s slot (render it with render_all.sh)
   gen_sfx.py build   slices the rendered stems (build/stems_sfx_hits/*.wav) and layers each hit
                      with synthesised ink/paper/wood layers (dsp.py), then writes
-                     assets/audio/sfx/<name>.wav (16-bit mono, names = AudioManager SFX keys)
+                     assets/audio/sfx/<name>.wav (16-bit mono, names = AudioManager SFX keys);
+                     effects longer than 0.5 s are written as Ogg Vorbis (<name>.ogg) instead
 
 Tonal sources: guzheng = Vital "Plucked String", bell = Serum 2 "BL - Wudang Mountain",
 gong = Vital "Cinema Bells", tick = Vital "Ceramic", bianqing = Serum 2 "MAL - Hybrid Balafon",
@@ -19,6 +20,7 @@ import os
 import sys
 
 import numpy as np
+import soundfile as sf
 from scipy.io import wavfile
 
 from dsp import (SR, bandpass, drum, env_ar, env_exp, finish, fm, highpass, lowpass, noise, place,
@@ -28,6 +30,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 BUILD = os.path.join(HERE, "build")
 STEMS = os.path.join(BUILD, "stems_sfx_hits")
 OUT = os.path.join(HERE, "..", "..", "assets", "audio", "sfx")
+# Short effects stay WAV: Vorbis headers would make them bigger than Godot's QOA import.
+OGG_MIN_SECONDS = 0.5
+OGG_LEVEL = 0.6  # libsndfile compression level: 0 = best quality, 1 = smallest
 SLOT = 4.0  # seconds between hits on one track (60 bpm: one beat = one second)
 
 # instrument key -> (spec instrument, list of (hit id, midi pitch, length s, velocity))
@@ -404,11 +409,26 @@ SOUNDS = {f.__name__.rstrip("_"): f for f in [
     player_die, ui_hover, ui_click, ui_confirm, ui_success, ui_fail]}
 
 
+def write_sfx(name, x):
+    """Writes <name>.ogg (longer than OGG_MIN_SECONDS) or <name>.wav and removes the other one."""
+    ogg = len(x) / SR > OGG_MIN_SECONDS
+    path = os.path.join(OUT, name + (".ogg" if ogg else ".wav"))
+    stale = os.path.join(OUT, name + (".wav" if ogg else ".ogg"))
+    if os.path.exists(stale):
+        os.remove(stale)
+    if not ogg:
+        write(path, x)
+        return
+    pcm16 = (np.clip(x, -1, 1) * 32767).astype(np.int16) / 32767  # same quantisation as dsp.write
+    sf.write(path, pcm16, SR, format="OGG", subtype="VORBIS", compression_level=OGG_LEVEL)
+    assert sf.info(path).frames == len(x), f"{name}: Vorbis length mismatch"
+
+
 def build():
     os.makedirs(OUT, exist_ok=True)
     for name, fn in SOUNDS.items():
         x = fn(rng_for(name))
-        write(os.path.join(OUT, name + ".wav"), x)
+        write_sfx(name, x)
         print(f"{name:20s} {len(x) / SR:5.2f}s")
 
 
