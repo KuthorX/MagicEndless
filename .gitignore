@@ -25,3 +25,8 @@ mono_crash.*.json
 /builds/
 /export/
 *.zip
+
+# Python caches and audio render intermediates
+__pycache__/
+*.pyc
+/tools/audio/build/

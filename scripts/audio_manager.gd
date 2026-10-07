@@ -1,6 +1,6 @@
 extends Node
-## Music and sound for the War Grimoire. Score: D "in" scale, taiko / shakuhachi / koto /
-## shamisen (see docs/audio-direction.md). Music runs on the "Music" bus, effects on "SFX".
+## Music and sound for the War Grimoire. Score: D yu pentatonic, guzheng / dizi / xiao /
+## bianqing / taiko (see docs/audio-direction.md). Music runs on the "Music" bus, effects on "SFX".
 ## Battle music is two synchronised stems; the taiko stem rises wave by wave.
 
 const MENU_BGM := preload("res://assets/audio/music/menu.mp3")

@@ -1,296 +1,428 @@
-"""The MagicEndless score, written as code. Key: D, in (miyako-bushi) scale; the boss in iwato.
+#!/usr/bin/env python3
+"""The MagicEndless score, written as code: MIDI files plus /tmp/audiokit render specs.
 
-Tracks
-  menu         60 bpm, 16 bars (64.0 s): ensō / red sun. Bowed drone, sparse koto, two shakuhachi
-               phrases, one odaiko pulse per half (the red sun rising), a rin bowl.
-  battle_base 128 bpm, 40 bars (75.0 s): shamisen ostinato, koto, shakuhachi theme, light
-               hyoshigi + shime. Always playing in a fight.
-  battle_war  same grid: taiko ensemble, chappa, shinobue doubling. Faded in wave by wave.
-  boss        140 bpm, 36 bars (61.7 s), D iwato: shamisen tremolo, hichiriki-like reed, heavy taiko.
-  gameover     60 bpm, one-shot sting (~11 s): the brush lifted from the page.
+Key: D. Menu, battle and game over use the Chinese **yu** pentatonic mode (D F G A C); the boss
+darkens it with Eb, Bb and the tritone G#. Instruments (all rendered offline by audiokit):
+  guzheng  Vital "Plucked String"            dizi   Serum 2 "WIND - Flute"
+  xiao     Serum 2 "WIND - Pan Flute"         suona  Vital "A Night in Kalyan" (reedy lead)
+  bianqing Serum 2 "MAL - Hybrid Balafon"     pad    Serum 2 "PD - Bamboo Forest Reflections"
+  strings  Serum 2 "STR - Strings Ensemble - Elegy"
+  bell     Serum 2 "BL - Wudang Mountain"     gong   Vital "Cinema Bells" (+24, it plays 2 oct low)
+  bass / taiko / drum kit: fluidsynth + MuseScore "MS Basic" GM (programs 32, 116, kit)
+
+Cues (tempo/length match the Godot .import files, so the loops stay on the bar line):
+  menu         60 bpm, 16 bars, 64.0 s loop      battle_base / battle_war 128 bpm, 40 bars, 75.0 s
+  boss        140 bpm, 36 bars, 61.714 s loop    gameover 60 bpm, 11.5 s one-shot
+
+Run with the audiokit venv:  arch -arm64 /tmp/audiokit/venv/bin/python tools/audio/compose.py
+Writes tools/audio/build/<cue>.mid and <cue>.json (render with tools/audio/render_all.sh).
 """
+import json
+import os
+import sys
+
 import numpy as np
 
-from score import (CHINA, CLAVES, FLOOR_HI, FLOOR_LO, IN_SCALE, IWATO, KICK, KOTO, MELODIC_TOM,
-                   PICCOLO, SHAKUHACHI, SHAMISEN, SHANAI, STRINGS_SLOW, TAIKO, TIMPANI,
-                   TOM_LO, TOM_MID, WOOD_HI, WOOD_LO, Part, deg)
+sys.path.insert(0, "/tmp/audiokit")
+import midi_io  # noqa: E402
 
-D2, D3, D4, D5 = 38, 50, 62, 74
+HERE = os.path.dirname(os.path.abspath(__file__))
+BUILD = os.path.join(HERE, "build")
 
-
-def snap(pitch, scale=IN_SCALE, root=D3):
-    """Nearest pitch in the scale (ties go down)."""
-    best = None
-    for o in range(-4, 5):
-        for s in scale:
-            p = root + 12 * o + s
-            if best is None or abs(p - pitch) < abs(best - pitch) or (abs(p - pitch) == abs(best - pitch) and p < best):
-                best = p
-    return best
+VITAL = os.path.expanduser("~/Music/Vital")
+S2 = "/Library/Audio/Presets/Xfer Records/Serum 2 Presets/Presets/Factory"
 
 
-class Human:
-    """Deterministic humanising: small velocity and timing drift."""
+def _find_vital(name):
+    for root, _, files in os.walk(VITAL):
+        if name + ".vital" in files:
+            return os.path.join(root, name + ".vital")
+    raise FileNotFoundError(name)
 
-    def __init__(self, seed):
+
+GUZHENG = {"type": "vital", "preset": _find_vital("Plucked String")}
+SUONA = {"type": "vital", "preset": _find_vital("A Night in Kalyan")}
+GONG = {"type": "vital", "preset": _find_vital("Cinema Bells")}
+DIZI = {"type": "serum2", "preset": f"{S2}/Woodwind/WIND - Flute.SerumPreset"}
+XIAO = {"type": "serum2", "preset": f"{S2}/Woodwind/WIND - Pan Flute.SerumPreset"}
+BIANQING = {"type": "serum2", "preset": f"{S2}/Mallet/MAL - Hybrid Balafon.SerumPreset"}
+PAD = {"type": "serum2", "preset": f"{S2}/Pad/PD - Bamboo Forest Reflections.SerumPreset"}
+STRINGS = {"type": "serum2", "preset": f"{S2}/String/STR - Strings Ensemble - Elegy.SerumPreset"}
+BELL = {"type": "serum2", "preset": f"{S2}/Bell/BL - Wudang Mountain.SerumPreset"}
+BASS = {"type": "fluidsynth", "program": 32, "gain": 0.6}
+TAIKO = {"type": "fluidsynth", "program": 116, "gain": 0.6}
+KIT = {"type": "fluidsynth", "program": 0, "gain": 0.6}
+
+# GM kit keys (channel 10)
+KICK, SIDE, SNARE, FLOOR_LO, FLOOR_HI, TOM_LO, TOM_HI = 36, 37, 38, 41, 43, 45, 50
+CHINA, SHAKER, WOOD_HI, WOOD_LO = 52, 82, 76, 77
+
+N = {"C": 0, "C#": 1, "D": 2, "Eb": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "G#": 8, "A": 9, "Bb": 10, "B": 11}
+YU = [2, 5, 7, 9, 0]  # D F G A C
+
+
+def p(name, octave):
+    """Note name + octave -> MIDI pitch (C4 = 60)."""
+    return 12 * (octave + 1) + N[name]
+
+
+def rev(room=0.7, wet=0.22, dry=0.85, width=1.0):
+    return {"type": "Reverb", "room_size": room, "wet_level": wet, "dry_level": dry, "width": width}
+
+
+def hp(f):
+    return {"type": "HighpassFilter", "cutoff_frequency_hz": f}
+
+
+def lp(f):
+    return {"type": "LowpassFilter", "cutoff_frequency_hz": f}
+
+
+class Part:
+    """One instrument line: notes in beats, deterministic humanising (never before beat 0)."""
+
+    def __init__(self, seed, ch=0, swing=0.008, spread=6):
+        self.notes, self.ch = [], ch
         self.r = np.random.default_rng(seed)
+        self.swing, self.spread = swing, spread
 
-    def v(self, vel, spread=7):
-        return int(vel + self.r.integers(-spread, spread + 1))
+    def n(self, beat, dur, pitch, vel=90):
+        t = beat + (float(self.r.uniform(-self.swing, self.swing)) if beat > 0.05 else 0.0)
+        v = int(np.clip(vel + self.r.integers(-self.spread, self.spread + 1), 1, 127))
+        self.notes.append((round(t, 4), dur, int(pitch), v, self.ch))
 
-    def t(self, beat, spread=0.012):
-        return beat + float(self.r.uniform(-spread, spread)) if beat > 0 else beat
+    def line(self, beat, seq, vel=90, legato=0.96, octave=0):
+        """seq: [(pitch or None, beats), ...] written back to back."""
+        for pitch, d in seq:
+            if pitch is not None:
+                self.n(beat, d * legato, pitch + 12 * octave, vel)
+            beat += d
+        return beat
 
-
-def line(part, h, start, notes, vel=88, blown=False, octave=0):
-    """notes: list of (pitch or None, beats). Writes them back to back from start."""
-    b = start
-    for p, d in notes:
-        if p is not None:
-            if blown:
-                part.blown(h.t(b), d * 0.97, p + octave, h.v(vel))
-            else:
-                part.note(h.t(b), d * 0.95, p + octave, h.v(vel))
-        b += d
-    return b
+    def chord(self, beat, dur, pitches, vel=80):
+        for q in pitches:
+            self.n(beat, dur, q, vel)
 
 
-# ---------------------------------------------------------------------------- menu
+def write(cue, bpm, tracks, spec_extra):
+    """tracks: [(name, Part, instrument, gain_db, pan, fx, transpose)]."""
+    os.makedirs(BUILD, exist_ok=True)
+    mid = os.path.join(BUILD, cue + ".mid")
+    midi_io.write_midi(mid, [t[1].notes for t in tracks], bpm=bpm)
+    spec = {"out": os.path.join(BUILD, cue + ".wav"), "lufs": -18, "ceiling_dbtp": -1,
+            "subtype": "FLOAT", "png": True, "stems_dir": os.path.join(BUILD, "stems_" + cue), "tracks": []}
+    spec.update(spec_extra)
+    for i, (name, _, inst, gain, pan, fx, tr) in enumerate(tracks):
+        spec["tracks"].append({"name": name, "midi": mid, "track": i, "instrument": inst,
+                               "gain_db": gain, "pan": pan, "fx": fx, "transpose": tr})
+    with open(os.path.join(BUILD, cue + ".json"), "w") as f:
+        json.dump(spec, f, indent=1)
+    print(f"{cue:12s} {sum(len(t[1].notes) for t in tracks):5d} notes  {len(tracks)} tracks")
+
+
+# ------------------------------------------------------------------------------------- menu
 MENU_BPM, MENU_BEATS = 60, 64
+MENU_CHORDS = [  # two bars each
+    [p("D", 2), p("A", 2), p("C", 3), p("F", 3), p("A", 3)],          # Dm7
+    [p("F", 2), p("C", 3), p("D", 3), p("A", 3)],                      # F6
+    [p("C", 2), p("G", 2), p("D", 3), p("G", 3)],                      # Csus2
+    [p("D", 2), p("A", 2), p("D", 3), p("F", 3), p("G", 3)],          # Dm(add4)
+    [p("G", 2), p("D", 3), p("C", 3) + 12, p("F", 3)],                # G sus4/7
+    [p("F", 2), p("C", 3), p("A", 3), p("D", 4)],                      # F6
+    [p("C", 2), p("G", 2), p("D", 3), p("G", 3)],                      # Csus2
+    [p("A", 1), p("E", 2), p("D", 3), p("G", 3)],                      # A7sus4 -> back to Dm
+]
+XIAO_1 = [(p("A", 4), 2), (p("C", 5), 1), (p("D", 5), 3), (p("C", 5), 1.5), (p("A", 4), .5), (p("G", 4), 2),
+          (p("A", 4), 4), (None, 2), (p("F", 4), 1), (p("G", 4), 1), (p("A", 4), 2), (p("D", 4), 4)]
+XIAO_2 = [(p("D", 5), 2), (p("F", 5), 2), (p("G", 5), 3), (p("F", 5), 1), (p("D", 5), 2), (p("C", 5), 2),
+          (p("A", 4), 4), (None, 2), (p("C", 5), 1), (p("A", 4), 1), (p("G", 4), 2), (p("A", 4), 2)]
+INK_DROPS = [  # guzheng: (beat in bar, pitch) for each bar, a few plucks like ink drops
+    [(0, p("D", 4)), (1.5, p("A", 4)), (2, p("D", 5)), (3.5, p("C", 5))],
+    [(0.5, p("F", 4)), (2, p("A", 4)), (3, p("G", 4))],
+    [(0, p("C", 4)), (0, p("F", 4)), (1.5, p("A", 4)), (2.5, p("C", 5)), (3, p("D", 5))],
+    [(1, p("A", 4)), (2.5, p("G", 4))],
+    [(0, p("C", 4)), (1, p("G", 4)), (1.5, p("A", 4)), (2, p("D", 5))],
+    [(0.5, p("C", 5)), (2, p("G", 4))],
+    [(0, p("D", 4)), (0.75, p("F", 4)), (1.5, p("A", 4)), (3, p("G", 4)), (3.5, p("F", 4))],
+    [(1, p("D", 4)), (2, p("A", 3))],
+]
 
 
 def menu():
-    h = Human(11)
-    drone_a = Part("drone_a", 0, STRINGS_SLOW, volume=112, reverb=90)
-    drone_b = Part("drone_b", 5, STRINGS_SLOW, volume=112, reverb=90)
-    koto = Part("koto", 1, KOTO, volume=78, pan=44, reverb=80)
-    shaku = Part("shakuhachi", 2, SHAKUHACHI, volume=112, pan=80, reverb=95)
-    taiko = Part("odaiko", 3, TAIKO, volume=88, reverb=70)
-    # two overlapping drones crossfade so the bowing never restarts audibly at the seam
-    for b0, part in ((0, drone_a), (32, drone_b)):
-        part.swell(b0, 12, 20, 100)
-        part.swell(b0 + 24, 12, 100, 0)
-        part.note(b0, 37, D2, 92)
-        part.note(b0, 37, D3 - 5, 80)   # A2
-    # koto: a few plucks every two bars, like ink drops
-    phrases = [
-        [(0, D3, 0), (0, D3 + 7, 0), (1.5, deg(IN_SCALE, D4, 1), 0), (2, D4, 0), (3.5, deg(IN_SCALE, D4, -2), 0)],
-        [(0, deg(IN_SCALE, D3, 2), 0), (1, deg(IN_SCALE, D4, 2), 0), (2.5, deg(IN_SCALE, D4, 1), 0)],
-        [(0, deg(IN_SCALE, D3, -1), 0), (0, deg(IN_SCALE, D3, 3), 0), (2, deg(IN_SCALE, D4, 0), 0),
-         (2.5, deg(IN_SCALE, D4, 1), 0), (3, deg(IN_SCALE, D4, 3), 0)],
-        [(0, deg(IN_SCALE, D3, 3), 0), (2, deg(IN_SCALE, D4, -1), 0), (3, deg(IN_SCALE, D4, -2), 0)],
-    ]
-    for bar2 in range(8):
-        ph = phrases[bar2 % 4]
-        for (b, p, _) in ph:
-            koto.note(h.t(bar2 * 8 + b), 3.0, p, h.v(72 if b else 84))
-    # shakuhachi: two breaths of melody, long silences between (ma)
-    line(shaku, h, 8, [(deg(IN_SCALE, D4, 3), 3), (deg(IN_SCALE, D4, 4), 1), (deg(IN_SCALE, D4, 3), 2),
-                       (deg(IN_SCALE, D4, 2), 2), (None, 1), (deg(IN_SCALE, D4, 1), 1.5),
-                       (D4, 5.5)], vel=84, blown=True)
-    line(shaku, h, 40, [(D5, 3), (deg(IN_SCALE, D4, 6), 0.5), (D5, 0.5), (deg(IN_SCALE, D4, 4), 2),
-                        (deg(IN_SCALE, D4, 3), 3), (deg(IN_SCALE, D4, 2), 1), (deg(IN_SCALE, D4, 3), 6)],
-         vel=88, blown=True)
-    # the red sun: one deep odaiko stroke and a ghost per half
-    for b0 in (0, 32):
-        taiko.note(b0, 2, D2, 112)
-        taiko.note(b0 + 0.75, 1, D2, 52)
-    return [drone_a, drone_b, koto, shaku, taiko]
+    pad, zheng, xiao, bell, taiko = Part(1), Part(2), Part(3), Part(4), Part(5)
+    for k, ch in enumerate(MENU_CHORDS):
+        pad.chord(k * 8, 7.9, ch, 70)
+    for bar in range(16):
+        drops = INK_DROPS[bar % 8]
+        for b, q in drops:
+            zheng.n(bar * 4 + b, 1.8, q + (12 if bar >= 8 and q < p("A", 4) else 0), 72)
+    xiao.line(8, XIAO_1, 84, legato=0.98)
+    xiao.line(40, XIAO_2, 84, legato=0.98)
+    for b in (0, 32):  # the red sun: one deep drum, a ghost stroke and the temple bell
+        taiko.n(b, 2, p("D", 2), 112)
+        taiko.n(b + 0.75, 1, p("D", 2), 48)
+        bell.n(b, 4, p("D", 4) if b == 0 else p("A", 3), 70)
+    taiko.n(16, 2, p("A", 1), 64)
+    taiko.n(48, 2, p("A", 1), 64)
+    write("menu", MENU_BPM, [
+        ("pad", pad, PAD, -3, 0, [hp(60), rev(0.85, 0.3, 0.8)], 0),
+        ("guzheng", zheng, GUZHENG, -7, -0.3, [rev(0.8, 0.3, 0.8)], 0),
+        ("xiao", xiao, XIAO, 0, 0.25, [rev(0.85, 0.3, 0.8)], 0),
+        ("bell", bell, BELL, -4, 0.1, [rev(0.9, 0.3, 0.8)], 0),
+        ("taiko", taiko, TAIKO, 1, 0, [rev(0.75, 0.2, 0.9)], 0),
+    ], {"loop": MENU_BEATS * 60 / MENU_BPM, "tail": 6, "lufs": -18})
 
 
-# ---------------------------------------------------------------------------- battle
+# ----------------------------------------------------------------------------------- battle
 BATTLE_BPM, BATTLE_BEATS = 128, 160
-# bar roots (semitones above D) for sections A1 B A2 C D
-_A = [0, 0, -4, -5, 0, 0, 5, 7]
-_B = [5, 5, 1, 0, 5, 5, -4, -5]
-_C = [-4, -4, -5, -5, 5, 5, 7, 7]
-_D = [0, 1, 0, -5, 0, 1, 5, 7]
-BATTLE_ROOTS = _A + _B + _A + _C + _D
-
-THEME = [  # shakuhachi theme, 8 bars, degrees of D in-scale around D4
-    [(3, 1.5), (2, 0.5), (3, 1), (4, 1)],
-    [(3, 3), (None, 1)],
-    [(5, 1), (4, 0.5), (3, 0.5), (2, 1), (3, 1)],
-    [(1, 2), (0, 2)],
-    [(0, 0.5), (1, 0.5), (2, 1), (3, 1.5), (4, 0.5)],
-    [(5, 2), (6, 1), (5, 1)],
-    [(4, 1), (3, 1), (2, 1), (1, 1)],
-    [(0, 3), (None, 1)],
+_A = ["D", "D", "C", "C", "F", "F", "G", "A"]
+_B = ["F", "F", "G", "G", "D", "D", "C", "A"]
+_C = ["G", "G", "F", "F", "C", "C", "A", "A"]
+BATTLE_FORM = [("A", _A), ("B", _B), ("A", _A), ("C", _C), ("D", _A)]
+FIFTH = {"D": "A", "C": "G", "F": "C", "G": "D", "A": "E", "Eb": "Bb", "Bb": "F", "G#": "D#"}
+UPPER = {  # upper chord tones for dyads/strings (pentatonic voicings, no thirds on C/G)
+    "D": ["A", "D", "F"], "C": ["G", "C", "D"], "F": ["A", "C", "F"], "G": ["C", "D", "G"],
+    "A": ["E", "A", "C"],
+}
+THEME = [  # dizi, 8 bars over D D C C F F G A
+    [("A", 4, 1), ("D", 5, .5), ("C", 5, .5), ("A", 4, 1), ("G", 4, 1)],
+    [("A", 4, 3), ("F", 4, .5), ("G", 4, .5)],
+    [("G", 4, 1), ("C", 5, 1), ("D", 5, 1), ("C", 5, .5), ("A", 4, .5)],
+    [("G", 4, 2), ("D", 4, .5), ("F", 4, .5), ("G", 4, 1)],
+    [("A", 4, 1), ("C", 5, 1), ("F", 5, 1.5), ("D", 5, .5)],
+    [("C", 5, 2), ("A", 4, 1), ("C", 5, 1)],
+    [("D", 5, 1.5), ("C", 5, .5), ("A", 4, 1), ("G", 4, 1)],
+    [("A", 4, 4)],
 ]
-KOTO_ANSWER = [  # section B lead, around G
-    [(2, 1), (3, 1), (4, 1), (5, 1)],
-    [(6, 2), (5, 1), (4, 1)],
-    [(3, 1.5), (4, 0.5), (3, 1), (1, 1)],
-    [(0, 3), (None, 1)],
-    [(2, 0.5), (3, 0.5), (4, 1), (5, 1), (7, 1)],
-    [(6, 1), (5, 1), (4, 2)],
-    [(3, 1), (2, 1), (1, 1), (-1, 1)],
-    [(-2, 3), (None, 1)],
+ANSWER = [  # guzheng lead in B, over F F G G D D C A
+    [("C", 5, .5), ("A", 4, .5), ("C", 5, .5), ("D", 5, .5), ("F", 5, 1), ("D", 5, 1)],
+    [("C", 5, .5), ("D", 5, .5), ("C", 5, .5), ("A", 4, .5), ("F", 4, 2)],
+    [("G", 4, .5), ("C", 5, .5), ("D", 5, .5), ("F", 5, .5), ("G", 5, 1), ("F", 5, .5), ("D", 5, .5)],
+    [("C", 5, 2), ("D", 5, 1), ("C", 5, 1)],
+    [("A", 4, .5), ("D", 5, .5), ("F", 5, .5), ("A", 5, .5), ("G", 5, 1), ("F", 5, 1)],
+    [("D", 5, 3), ("C", 5, .5), ("D", 5, .5)],
+    [("G", 4, .5), ("C", 5, .5), ("D", 5, .5), ("G", 5, .5), ("F", 5, 1), ("D", 5, 1)],
+    [("C", 5, 1), ("A", 4, 1), ("E", 5, 1), ("A", 4, 1)],
 ]
-CRY = [[(5, 4)], [(6, 2), (5, 2)], [(4, 4)], [(3, 4)], [(2, 4)], [(3, 2), (4, 2)], [(3, 4)], [(3, 4)]]
+CRY = [  # suona-like reed, long notes over G G F F C C A A
+    [("D", 5, 4)], [("F", 5, 2), ("D", 5, 2)], [("C", 5, 4)], [("A", 4, 3), ("C", 5, 1)],
+    [("G", 4, 4)], [("D", 5, 2), ("C", 5, 2)], [("A", 4, 4)], [("A", 4, 2), ("G", 4, 1), ("A", 4, 1)],
+]
 
 
-def _deg_notes(bars, root=D4):
-    out = []
-    for bar in bars:
-        out += [(None if d is None else deg(IN_SCALE, root, d), b) for d, b in bar]
-    return out
+def _bars(seq_bars, transpose=0):
+    return [(p(n, o) + transpose, d) for bar in seq_bars for n, o, d in bar]
 
 
 def battle_base():
-    h = Human(23)
-    sham = Part("shamisen", 0, SHAMISEN, volume=127, pan=50, reverb=35)
-    koto = Part("koto", 1, KOTO, volume=96, pan=84, reverb=45)
-    shaku = Part("shakuhachi", 2, SHAKUHACHI, volume=92, pan=64, reverb=60)
-    taiko = Part("taiko", 3, TAIKO, volume=118, reverb=40)
-    shime = Part("shime", 4, MELODIC_TOM, volume=96, pan=74, reverb=25)
-    perc = Part("hyoshigi", 9, None, volume=108, reverb=30)
-    for bar, r in enumerate(BATTLE_ROOTS):
-        b0 = bar * 4
-        root = D3 + r
-        section = bar // 8
-        # shamisen: the bachi strikes eighths; on section D it doubles into sixteenths
-        pat = [0, 12, 7, 12, 0, 7, 12, 7]
-        if section == 4 and bar % 2 == 1:
-            for k in range(16):
-                p = snap(root + [0, 12, 7, 12][k % 4] + (1 if k >= 12 else 0))
-                sham.note(b0 + k * 0.25, 0.22, p, h.v(96 if k % 4 == 0 else 74))
-        else:
-            for k, iv in enumerate(pat):
-                p = snap(root + iv)
-                sham.note(h.t(b0 + k * 0.5), 0.42, p, h.v(104 if k in (0, 3) else 78))
-        # koto off-beat dyads under the A sections, arpeggio in C
-        if section in (0, 2, 4):
-            for off in (0.5, 2.5):
-                koto.note(h.t(b0 + off), 0.4, snap(root + 12), h.v(70))
-                koto.note(h.t(b0 + off), 0.4, snap(root + 19), h.v(62))
-        elif section == 3:
+    bian, bass, zheng, dizi, suona, perc = Part(11), Part(12), Part(13), Part(14), Part(15), Part(16, ch=9)
+    for s, (sec, roots) in enumerate(BATTLE_FORM):
+        for i, r in enumerate(roots):
+            b0 = (s * 8 + i) * 4
+            root3 = p(r, 3) if r in ("C", "D", "F") else p(r, 2)
+            fifth = root3 + 7
+            # bianqing ostinato: eighths (sixteenths in the climax)
+            pat = [root3, fifth, root3 + 12, fifth] * 2
+            if sec == "D":
+                for k in range(16):
+                    bian.n(b0 + k * 0.25, 0.22, pat[k % 8] + (12 if k % 4 == 2 else 0), 92 if k % 4 == 0 else 70)
+            else:
+                for k, q in enumerate(pat):
+                    bian.n(b0 + k * 0.5, 0.45, q, 90 if k % 2 == 0 else 68)
+            # bass: root on 1, the and-of-2, the fifth on 4
+            br = p(r, 2)
+            bass.n(b0, 1.4, br, 100)
+            bass.n(b0 + 1.5, 0.9, br, 84)
+            bass.n(b0 + 3, 0.9, br + 7, 88)
+            # guzheng: off-beat dyads in A / D, rolling arpeggios in C
+            up = [p(n, 4) for n in UPPER[r]]
+            if sec in ("A", "D"):
+                for ob in (1.5, 3.5):
+                    zheng.chord(b0 + ob, 0.4, up[:2], 70)
+            elif sec == "C":
+                for k, q in enumerate([up[0] - 12, up[1] - 12, up[0], up[2], up[1], up[0], up[2], up[1]]):
+                    zheng.n(b0 + k * 0.5, 0.9, q, 66)
+            # percussion skeleton
+            for bt in (0, 2):
+                perc.n(b0 + bt, 0.2, KICK, 92)
+            for bt in (1, 3):
+                perc.n(b0 + bt, 0.1, WOOD_HI, 80)
             for k in range(8):
-                koto.note(h.t(b0 + k * 0.5), 0.6, snap(root + [12, 19, 24, 19][k % 4]), h.v(66))
-        # light skeleton: low taiko 1 & 3, hyoshigi 2 & 4, shime eighths
-        taiko.note(b0, 1, D2 + 7, h.v(92))
-        taiko.note(b0 + 2, 1, D2 + 7, h.v(80))
-        perc.note(b0 + 1, 0.2, WOOD_HI, h.v(76))
-        perc.note(b0 + 3, 0.2, WOOD_LO, h.v(80))
-        for k in range(8):
-            shime.note(b0 + k * 0.5, 0.2, 69, h.v(80 if k % 2 == 0 else 52, 5))
-    # melodies
-    line(shaku, h, 0, _deg_notes(THEME), vel=96, blown=True)
-    line(koto, h, 32, _deg_notes(KOTO_ANSWER, D4), vel=96)
-    line(shaku, h, 64, _deg_notes(THEME), vel=100, blown=True)
-    line(shaku, h, 96, _deg_notes(CRY, D4), vel=104, blown=True)
-    return [sham, koto, shaku, taiko, shime, perc]
+                perc.n(b0 + k * 0.5, 0.1, SHAKER, 46 if k % 2 else 58)
+        s0 = s * 32
+        if sec == "A":
+            dizi.line(s0, _bars(THEME), 92)
+        elif sec == "B":
+            zheng.line(s0, _bars(ANSWER), 96, legato=1.6)
+        elif sec == "C":
+            suona.line(s0, _bars(CRY), 86, legato=0.99)
+        else:
+            dizi.line(s0, _bars(THEME), 98)
+            suona.line(s0, _bars(THEME, -12), 70)
+            # gliss up the yu scale into the loop point
+            run = [p(n, o) for o in (4, 5) for n in ("D", "F", "G", "A", "C")]
+            for k, q in enumerate(run):
+                zheng.n(s0 + 30 + k * 0.2, 0.6, q, 60 + 4 * k)
+    write("battle_base", BATTLE_BPM, [
+        ("bianqing", bian, BIANQING, -2, -0.2, [hp(90), rev(0.6, 0.15, 0.9)], 0),
+        ("bass", bass, BASS, 6, 0, [lp(2500)], 0),
+        ("guzheng", zheng, GUZHENG, -10, 0.3, [rev(0.7, 0.22, 0.85)], 0),
+        ("dizi", dizi, DIZI, -1, -0.05, [rev(0.75, 0.22, 0.85)], 0),
+        ("suona", suona, SUONA, -1, 0.1, [rev(0.75, 0.22, 0.85)], 0),
+        ("perc", perc, KIT, 1, 0, [rev(0.5, 0.12, 0.9)], 0),
+    ], {"loop": BATTLE_BEATS * 60 / BATTLE_BPM, "tail": 4, "lufs": -19.5})
 
 
 def battle_war():
-    h = Human(31)
-    taiko = Part("taiko_ens", 3, TAIKO, volume=118, reverb=45)
-    oda = Part("odaiko", 6, TAIKO, volume=120, reverb=55)
-    shime = Part("shime16", 4, MELODIC_TOM, volume=84, pan=40, reverb=25)
-    fue = Part("shinobue", 5, PICCOLO, volume=78, pan=70, reverb=60)
-    kit = Part("drums", 9, None, volume=96, reverb=35)
-    don = [0, 3, 4, 6, 7, 8, 11, 12, 14]          # don . . do kon . doko don . . do kon . do .
-    for bar in range(BATTLE_BEATS // 4):
-        b0 = bar * 4
-        section = bar // 8
-        for k in don:
-            taiko.note(h.t(b0 + k * 0.25, 0.006), 0.3, 45 if k % 4 else 43, h.v(108 if k % 4 == 0 else 84))
-        oda.note(b0, 1.5, D2 - 2, h.v(116))
-        if section >= 3 or bar % 2 == 1:
-            oda.note(b0 + 2.5, 1.0, D2 - 2, h.v(96))
-        kit.note(b0, 0.5, KICK, h.v(96))
-        kit.note(b0 + 2, 0.5, KICK, h.v(84))
-        for k in range(16):
-            shime.note(b0 + k * 0.25, 0.15, 72, h.v(96 if k % 4 == 0 else 58, 6))
-        if bar % 8 == 0:
-            kit.note(b0, 1.0, CHINA, h.v(92))
-        if bar % 2 == 1:  # roll into the next bar
-            for k in range(4):
-                kit.note(b0 + 3 + k * 0.25, 0.2, FLOOR_LO if k < 2 else FLOOR_HI, h.v(84 + 6 * k))
-        if bar % 4 == 3:
-            kit.note(b0 + 3.5, 0.3, CLAVES, h.v(90))
-    # shinobue doubles the theme an octave up in A2 and the cry in C
-    line(fue, h, 64, _deg_notes(THEME, D5), vel=84)
-    line(fue, h, 96, _deg_notes(CRY, D5), vel=80)
-    return [taiko, oda, shime, fue, kit]
+    drums, taiko, strings, xiao = Part(21, ch=9), Part(22), Part(23), Part(24)
+    for s, (sec, roots) in enumerate(BATTLE_FORM):
+        for i, r in enumerate(roots):
+            bar = s * 8 + i
+            b0 = bar * 4
+            # "don . . do-kon . doko don" on the floor toms, kick on 1 and 3
+            for bt, key, v in ((0, FLOOR_LO, 112), (1.5, FLOOR_HI, 90), (2, FLOOR_LO, 104),
+                               (2.75, FLOOR_HI, 80), (3, FLOOR_LO, 96), (3.5, FLOOR_LO, 88)):
+                drums.n(b0 + bt, 0.2, key, v)
+            drums.n(b0, 0.2, KICK, 110)
+            drums.n(b0 + 2, 0.2, KICK, 96)
+            for k in range(16 if sec in ("C", "D") else 8):
+                step = 0.25 if sec in ("C", "D") else 0.5
+                drums.n(b0 + k * step, 0.1, SIDE, 64 if k % 2 else 78)
+            if i % 4 == 3:  # roll into the next phrase
+                for k in range(8):
+                    drums.n(b0 + 2 + k * 0.25, 0.15, TOM_HI if k < 4 else TOM_LO, 70 + 5 * k)
+            if i == 0:
+                drums.n(b0, 1.5, CHINA, 96)
+            if i % 2 == 0:
+                taiko.n(b0, 1.5, p(r, 2) if r not in ("A", "G") else p(r, 1), 116)
+                taiko.n(b0 + 2.5, 1.0, p(r, 2) if r not in ("A", "G") else p(r, 1), 84)
+            if i % 2 == 0:  # strings: one swelling chord per two bars
+                up = sorted({p(n, 4) for n in UPPER[r]} | {p(r, 3)})
+                strings.chord(b0, 7.8, up, 74)
+        s0 = s * 32
+        if s == 2 or sec == "D":
+            xiao.line(s0, _bars(THEME, 12), 78)
+        elif sec == "C":
+            xiao.line(s0, _bars(CRY, 12), 70)
+    write("battle_war", BATTLE_BPM, [
+        ("drums", drums, KIT, 2, 0, [rev(0.6, 0.15, 0.9)], 0),
+        ("taiko", taiko, TAIKO, 5, 0, [rev(0.7, 0.18, 0.9)], 0),
+        ("strings", strings, STRINGS, -9, 0, [hp(120), rev(0.8, 0.25, 0.85)], 0),
+        ("xiao_hi", xiao, XIAO, -8, 0.3, [rev(0.8, 0.25, 0.85)], 0),
+    ], {"loop": BATTLE_BEATS * 60 / BATTLE_BPM, "tail": 4, "lufs": -19.5})
 
 
-# ---------------------------------------------------------------------------- boss
+# ------------------------------------------------------------------------------------- boss
 BOSS_BPM, BOSS_BEATS = 140, 144
-BOSS_ROOTS = ([0] * 4 + [0, 0, 1, 0, 6, 6, 5, 1] + [0, 1, 6, 5, 0, 1, 10 - 12, 1]
-              + [6, 6, 5, 5, 1, 1, 0, 0] + [0, 1, 0, 6, 0, 1, 5, 1])
-REED = [[(5, 2), (4, 1), (3, 1)], [(2, 3), (1, 1)], [(0, 1.5), (1, 0.5), (2, 1), (3, 1)], [(2, 4)],
-        [(3, 2), (4, 1), (5, 1)], [(6, 2), (5, 1), (4, 1)], [(3, 1), (2, 1), (1, 1), (2, 1)], [(0, 4)]]
-SCREAM = [[(10, 4)], [(9, 2), (10, 2)], [(8, 4)], [(7, 4)], [(10, 3), (11, 1)], [(10, 4)], [(9, 2), (8, 2)], [(7, 4)]]
+_BI = ["D"] * 4
+_BA = ["D", "D", "Eb", "D", "D", "D", "C", "Bb"]
+_BB = ["G", "G", "F", "F", "Eb", "Eb", "D", "D"]
+_BC = ["D", "D", "Eb", "Eb", "G#", "G#", "A", "A"]
+_BD = ["D", "D", "Eb", "D", "D", "D", "C", "A"]
+BOSS_FORM = [("I", _BI), ("A", _BA), ("B", _BB), ("C", _BC), ("D", _BD)]
+REED = [
+    [("D", 5, 1.5), ("Eb", 5, .5), ("D", 5, 1), ("A", 4, 1)],
+    [("C", 5, 1), ("A", 4, 1), ("G#", 4, 1), ("A", 4, 1)],
+    [("Bb", 4, 1.5), ("C", 5, .5), ("Eb", 5, 2)],
+    [("D", 5, 4)],
+    [("F", 5, 1.5), ("Eb", 5, .5), ("D", 5, 1), ("C", 5, 1)],
+    [("D", 5, 2), ("A", 4, 2)],
+    [("G", 4, 1), ("A", 4, 1), ("C", 5, 1), ("Eb", 5, 1)],
+    [("D", 5, 3), ("C", 5, 1)],
+]
+SCREAM = [
+    [("A", 5, 4)], [("G#", 5, 2), ("A", 5, 2)], [("Bb", 5, 3), ("A", 5, 1)], [("G", 5, 4)],
+    [("G#", 5, 4)], [("F", 5, 2), ("D", 5, 2)], [("E", 5, 4)], [("A", 4, 2), ("C#", 5, 2)],
+]
 
 
-def _iwato(bars, root):
-    out = []
-    for bar in bars:
-        out += [(None if d is None else deg(IWATO, root, d), b) for d, b in bar]
-    return out
+def _boss_root(r):
+    q = p(r, 2)
+    return q + 12 if q < p("C#", 2) else q
 
 
 def boss():
-    h = Human(47)
-    sham = Part("shamisen", 0, SHAMISEN, volume=104, pan=46, reverb=30)
-    koto = Part("koto", 1, KOTO, volume=90, pan=86, reverb=45)
-    reed = Part("hichiriki", 2, SHANAI, volume=88, pan=64, reverb=55)
-    shaku = Part("shakuhachi", 7, SHAKUHACHI, volume=108, pan=70, reverb=60)
-    taiko = Part("taiko", 3, TAIKO, volume=120, reverb=45)
-    shime = Part("shime", 4, MELODIC_TOM, volume=84, pan=36, reverb=25)
-    timp = Part("timpani", 5, TIMPANI, volume=80, reverb=50)
-    kit = Part("drums", 9, None, volume=96, reverb=35)
-    for bar, r in enumerate(BOSS_ROOTS):
-        b0 = bar * 4
-        root = D3 + r
-        section = 0 if bar < 4 else 1 + (bar - 4) // 8
-        for k in range(16):  # shamisen tremolo-ostinato in sixteenths
-            iv = [0, 0, 12, 0, 6, 0, 12, 13][k % 8] if section != 3 else [0, 12][k % 2]
-            sham.note(b0 + k * 0.25, 0.2, snap(root + iv, IWATO), h.v(100 if k % 4 == 0 else 70))
-        heavy = section in (2, 4)
-        for k in range(4):
-            taiko.note(h.t(b0 + k, 0.005), 0.8, D2 - 2, h.v(118 if k == 0 else (104 if heavy else 84)))
-        for k in (3, 6, 7, 11, 14, 15) if heavy else (6, 14):
-            taiko.note(b0 + k * 0.25, 0.3, 45, h.v(96))
-        for k in range(16):
-            shime.note(b0 + k * 0.25, 0.15, 72, h.v(100 if k % 4 == 0 else 60, 6))
-        kit.note(b0, 0.5, KICK, h.v(110))
-        kit.note(b0 + 2, 0.5, KICK, h.v(96))
-        if bar % 4 == 0:
-            kit.note(b0, 1.0, CHINA, h.v(100))
-        if section == 3 and bar % 2 == 0:  # koto glissando breaks
-            for k in range(8):
-                koto.note(b0 + k * 0.125, 1.0, deg(IWATO, D4, k - 2), h.v(70 + 4 * k))
-        if bar % 8 == 3:  # timpani roll into each section
-            for k in range(16):
-                timp.note(b0 + k * 0.25, 0.25, D2 + 12 - 12, h.v(60 + 3 * k))
-    line(reed, h, 16, _iwato(REED, D4), vel=96, blown=True)
-    line(shaku, h, 48, _iwato(SCREAM, D4 - 12), vel=110, blown=True)
-    line(reed, h, 112, _iwato(REED, D4), vel=100, blown=True)
-    line(shaku, h, 112, _iwato(REED, D5 - 12), vel=96, blown=True)
-    return [sham, koto, reed, shaku, taiko, shime, timp, kit]
+    bian, bass, suona, strings, gong, zheng, drums, taiko = (Part(31), Part(32), Part(33), Part(34), Part(35),
+                                                             Part(36), Part(37, ch=9), Part(38))
+    bar = 0
+    for sec, roots in BOSS_FORM:
+        for i, r in enumerate(roots):
+            b0 = bar * 4
+            root = _boss_root(r)
+            fifth = root + 7
+            for k in range(16):  # bianqing sixteenth tremolo
+                q = [root + 12, fifth + 12, root + 24, fifth + 12][k % 4]
+                bian.n(b0 + k * 0.25, 0.2, q, 90 if k % 4 == 0 else 66)
+            for k in range(8):  # driving bass eighths
+                bass.n(b0 + k * 0.5, 0.42, root if k != 6 else fifth, 100 if k % 2 == 0 else 82)
+            if i % 2 == 0 and sec != "I":
+                strings.chord(b0, 7.8, [root + 12, fifth + 12, root + 24], 80)
+            heavy = sec in ("B", "D")
+            for bt in range(4):
+                if heavy or bt % 2 == 0:
+                    drums.n(b0 + bt, 0.2, KICK, 112 if bt == 0 else 96)
+                if heavy and bt % 2 == 1:
+                    drums.n(b0 + bt, 0.2, SNARE, 100)
+            for bt, key in ((0.5, FLOOR_HI), (1.5, FLOOR_LO), (2.5, FLOOR_HI), (3.25, FLOOR_LO), (3.5, FLOOR_LO)):
+                drums.n(b0 + bt, 0.2, key, 84)
+            if i == 0:
+                drums.n(b0, 1.5, CHINA, 104)
+                gong.n(b0, 6, root + 24 + 12, 92)  # Cinema Bells sounds two octaves down
+            if i == len(roots) - 1:  # guzheng glissando into the next section
+                run = [p(n, o) for o in (4, 5) for n in ("D", "Eb", "G", "A", "C")]
+                for k, q in enumerate(run):
+                    zheng.n(b0 + 2 + k * 0.2, 0.5, q, 62 + 4 * k)
+            taiko.n(b0, 1.5, root - 12 if root - 12 >= p("A", 1) else root, 120 if heavy else 100)
+            if heavy:
+                taiko.n(b0 + 2, 1.0, root - 12 if root - 12 >= p("A", 1) else root, 96)
+            bar += 1
+        s0 = (bar - len(roots)) * 4
+        if sec == "A":
+            suona.line(s0, _bars(REED), 94)
+        elif sec == "C":
+            suona.line(s0, _bars(SCREAM), 100)
+        elif sec == "D":
+            seq = _bars(REED[:7]) + [(p("C#", 5), 2), (p("E", 5), 2)]
+            suona.line(s0, seq, 100)
+        elif sec == "B":
+            for k, r in enumerate(roots):  # guzheng tremolo motif answering the strings
+                b0 = s0 + k * 4
+                q = _boss_root(r) + 24
+                for j in range(8):
+                    zheng.n(b0 + j * 0.5, 0.45, q + (7 if j in (2, 6) else 0) + (3 if j == 4 else 0), 76)
+    write("boss", BOSS_BPM, [
+        ("bianqing", bian, BIANQING, -3, -0.25, [hp(110), rev(0.6, 0.15, 0.9)], 0),
+        ("bass", bass, BASS, 4, 0, [lp(2200)], 0),
+        ("suona", suona, SUONA, 0, 0.05, [rev(0.75, 0.22, 0.85)], 0),
+        ("strings", strings, STRINGS, -8.5, 0, [hp(120), rev(0.8, 0.25, 0.85)], 0),
+        ("gong", gong, GONG, -6, 0, [rev(0.85, 0.25, 0.85)], 0),
+        ("guzheng", zheng, GUZHENG, -13, 0.3, [rev(0.75, 0.22, 0.85)], 0),
+        ("drums", drums, KIT, 3, 0, [rev(0.55, 0.12, 0.9)], 0),
+        ("taiko", taiko, TAIKO, 5, 0, [rev(0.7, 0.18, 0.9)], 0),
+    ], {"loop": BOSS_BEATS * 60 / BOSS_BPM, "tail": 4, "lufs": -17.5})
 
 
-# ---------------------------------------------------------------------------- game over
-GAMEOVER_BPM, GAMEOVER_BEATS = 60, 14
-
-
+# --------------------------------------------------------------------------------- gameover
 def gameover():
-    h = Human(59)
-    shaku = Part("shakuhachi", 2, SHAKUHACHI, volume=104, reverb=100)
-    koto = Part("koto", 1, KOTO, volume=96, pan=44, reverb=90)
-    taiko = Part("odaiko", 3, TAIKO, volume=96, reverb=80)
-    drone = Part("drone", 0, STRINGS_SLOW, volume=110, reverb=100)
-    taiko.note(0, 2, D2, 120)
-    taiko.note(0.5, 1, D2, 60)
-    drone.swell(0, 3, 30, 100)
-    drone.swell(7, 5, 100, 0)
-    drone.note(0, 12, D2, 70)
-    drone.note(0, 12, D2 + 7, 55)
-    line(shaku, h, 1, [(deg(IN_SCALE, D4, 3), 2), (deg(IN_SCALE, D4, 2), 1), (deg(IN_SCALE, D4, 1), 1.5),
-                       (D4, 5)], vel=92, blown=True)
-    koto.note(4, 4, D3, 80)
-    koto.note(4.05, 4, D3 + 7, 70)
-    koto.note(9, 4, D2 + 12, 76)
-    return [drone, shaku, koto, taiko]
+    pad, xiao, zheng, bell, taiko = Part(41), Part(42), Part(43), Part(44), Part(45)
+    taiko.n(0, 3, p("D", 2), 118)
+    bell.n(0, 6, p("D", 4), 76)
+    pad.chord(0, 8.5, [p("D", 2), p("A", 2), p("F", 3), p("C", 4)], 66)
+    xiao.line(1.5, [(p("A", 4), 1.5), (p("G", 4), 1), (p("F", 4), 1), (p("D", 4), 4)], 80, legato=0.98)
+    zheng.chord(5, 3, [p("D", 3), p("A", 3)], 74)
+    zheng.n(7.5, 3, p("D", 2), 82)
+    write("gameover", 60, [
+        ("pad", pad, PAD, -2, 0, [hp(60), rev(0.85, 0.3, 0.8)], 0),
+        ("xiao", xiao, XIAO, 0, 0.2, [rev(0.85, 0.3, 0.8)], 0),
+        ("guzheng", zheng, GUZHENG, -10, -0.2, [rev(0.85, 0.3, 0.8)], 0),
+        ("bell", bell, BELL, -3, 0, [rev(0.9, 0.3, 0.8)], 0),
+        ("taiko", taiko, TAIKO, 1, 0, [rev(0.75, 0.2, 0.9)], 0),
+    ], {"length": 11.5, "tail": 2, "lufs": -18, "fade_out": 2.5})
+
+
+if __name__ == "__main__":
+    menu()
+    battle_base()
+    battle_war()
+    boss()
+    gameover()
