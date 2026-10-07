@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://boofn53lgflsl"
-path="res://.godot/imported/sfx_shoot.wav-fe2a21ecdbfcaa4edebea1e7a8f6a75f.sample"
+uid="uid://b1n01mje1bs35"
+path="res://.godot/imported/shield_on.wav-1d47261814403f80449bdf0e85a78a2b.sample"
 
 [deps]
 
-source_file="res://assets/audio/sfx_shoot.wav"
-dest_files=["res://.godot/imported/sfx_shoot.wav-fe2a21ecdbfcaa4edebea1e7a8f6a75f.sample"]
+source_file="res://assets/audio/sfx/shield_on.wav"
+dest_files=["res://.godot/imported/shield_on.wav-1d47261814403f80449bdf0e85a78a2b.sample"]
 
 [params]
 

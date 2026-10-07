@@ -111,6 +111,8 @@ func _try_apply_potential_cheat() -> void:
 	_subtitle_restore_t = 3.0
 
 func _on_start_pressed() -> void:
+	if AudioManager != null:
+		AudioManager.play_sfx("ui_confirm")
 	get_tree().change_scene_to_file("res://scenes/EndlessMode2D.tscn")
 
 func _on_codex_pressed() -> void:

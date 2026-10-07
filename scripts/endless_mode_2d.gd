@@ -6,22 +6,6 @@ extends Node2D
 @export var hazard_scene: PackedScene
 @export var boss_totem_scene: PackedScene
 
-const SFX := {
-	"shoot": preload("res://assets/audio/sfx_shoot.wav"),
-	"sword": preload("res://assets/audio/sfx_sword_soft.wav"),
-	"hit": preload("res://assets/audio/sfx_hit.wav"),
-	"hurt": preload("res://assets/audio/sfx_hit.wav"),
-	"shield_hit": preload("res://assets/audio/sfx_hit.wav"),
-	"dash": preload("res://assets/audio/sfx_dash.wav"),
-	"mode_switch": preload("res://assets/audio/sfx_card_pick.wav"),
-	"respawn": preload("res://assets/audio/sfx_wave_start.wav"),
-	"shield_on": preload("res://assets/audio/sfx_shield_on.wav"),
-	"shield_off": preload("res://assets/audio/sfx_shield_off.wav"),
-	"card_pick": preload("res://assets/audio/sfx_card_pick.wav"),
-	"wave_start": preload("res://assets/audio/sfx_wave_start.wav"),
-	"wave_clear": preload("res://assets/audio/sfx_wave_clear.wav"),
-	"enemy_shoot": preload("res://assets/audio/sfx_enemy_shoot.wav")
-}
 const VirtualStickScript := preload("res://scripts/virtual_stick.gd")
 const DISPLAY_FONT_PATH := "res://assets/fonts/display.tres"
 const DEBUG_SHOT_START_WAVE := 4
@@ -407,6 +391,7 @@ func _ready() -> void:
 	_setup_actions()
 	if AudioManager != null:
 		AudioManager.play_battle()
+		AudioManager.set_battle_intensity(1, false)
 	else:
 		push_error("AudioManager singleton is null in EndlessMode2D.")
 	_build_static_arena()
@@ -632,19 +617,10 @@ func _apply_virtual_move_actions(vec: Vector2) -> void:
 	Input.action_press("move_forward", maxf(0.0, -vec.y))
 	Input.action_press("move_back", maxf(0.0, vec.y))
 
-func play_sfx(name: String) -> void:
-	if not SFX.has(name) or (AudioManager != null and not AudioManager.can_play()):
-		return
-	var p = AudioStreamPlayer.new()
-	p.stream = SFX[name]
-	p.bus = "Master"
-	var sfx_db = 0.0
+## Entities call this on the current scene; the AudioManager owns voices, buses and limits.
+func play_sfx(sfx_name: String) -> void:
 	if AudioManager != null:
-		sfx_db = AudioManager.get_sfx_volume_db()
-	p.volume_db = -6.0 + sfx_db
-	add_child(p)
-	p.finished.connect(func() -> void: p.queue_free())
-	p.play()
+		AudioManager.play_sfx(sfx_name)
 
 func request_elite_summon(pos: Vector2) -> void:
 	if _alive_enemies() > 120:
@@ -856,6 +832,7 @@ func _update_objective_convoy(delta: float) -> void:
 		_complete_wave_objective()
 
 func _complete_wave_objective() -> void:
+	play_sfx("objective_success")
 	if not _objective_active:
 		return
 	_run_objective_success += 1
@@ -891,6 +868,7 @@ func _complete_wave_objective() -> void:
 	_cleanup_objective_state()
 
 func _fail_wave_objective() -> void:
+	play_sfx("objective_fail")
 	if not _objective_active:
 		return
 	if _objective_type == "pylon_capture":
@@ -1094,6 +1072,8 @@ func _begin_wave_preview() -> void:
 	_preview_ecology_summary = _build_ecology_summary(_spawn_queue)
 	_set_hazards_active(false)
 	_spawn_preview_enemies()
+	if AudioManager != null:
+		AudioManager.set_battle_intensity(wave, false)
 	var theme_name = tr(str(TERRAIN_THEME_LABEL.get(_terrain_theme, "terrain_theme_ruins")))
 	var mutator_name = tr(str(_wave_mutator.get("label", "mutator_none")))
 	var headline := tr("msg_wave_preview_theme") % [wave, PREVIEW_SECONDS, theme_name, mutator_name]
@@ -1137,6 +1117,12 @@ func _activate_wave_from_preview() -> void:
 	_spawn_miniboss_if_needed()
 	_show_message(tr("msg_wave_start") % wave)
 	play_sfx("wave_start")
+	if AudioManager != null:
+		if _boss_spawned_this_wave:
+			AudioManager.play_boss()
+		else:
+			AudioManager.play_battle()
+			AudioManager.set_battle_intensity(wave, true)
 
 func _build_spawn_queue() -> void:
 	_spawn_queue.clear()
@@ -1256,6 +1242,7 @@ func _spawn_miniboss_if_needed() -> void:
 	if boss.has_method("apply_elite_mod"):
 		boss.apply_elite_mod({"name":"MiniBoss", "hp_mul": 2.8, "dmg_mul": 1.35, "speed_mul": 0.95, "color": Color(1.0, 0.74, 0.18, 1.0)})
 	_show_message(tr("msg_miniboss") % wave)
+	play_sfx("boss_appear")
 
 func _on_wave_clear() -> void:
 	_wave_active = false
@@ -1268,10 +1255,14 @@ func _on_wave_clear() -> void:
 	player.restore_sp(25.0)
 	_show_message(tr("msg_wave_clear") % wave)
 	play_sfx("wave_clear")
+	if AudioManager != null:
+		AudioManager.play_battle()
+		AudioManager.set_battle_intensity(wave + 1, false)
 	_show_cards()
 
 func _show_cards() -> void:
 	_choice_mode = "card"
+	play_sfx("card_show")
 	_apply_ui_locale()
 	_card_choices = _draw_cards(3)
 	_update_card_button(card_a, _card_choices[0])
@@ -2528,6 +2519,7 @@ func _build_summary() -> String:
 
 func _on_enemy_died(score_value: int, enemy: Node = null) -> void:
 	_kills += 1
+	play_sfx("enemy_die")
 	var gained: int = int(round(float(score_value) * _wave_multiplier()))
 	_score += maxi(1, gained)
 	if _wave_active:
@@ -2589,6 +2581,9 @@ func _on_player_died() -> void:
 	if _game_over:
 		return
 	_game_over = true
+	play_sfx("player_die")
+	if AudioManager != null:
+		AudioManager.play_game_over()
 	_wave_active = false
 	_wave_preview = false
 	_commit_wave_telemetry()

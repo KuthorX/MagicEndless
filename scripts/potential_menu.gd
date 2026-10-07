@@ -79,6 +79,8 @@ func _refresh() -> void:
 
 func _set_tip(ok: bool) -> void:
 	tip_label.text = tr("potential_done") if ok else tr("potential_not_enough")
+	if AudioManager != null:
+		AudioManager.play_sfx("ui_success" if ok else "ui_fail")
 
 func _buy_hp() -> void:
 	var ok := ProgressionManager != null and ProgressionManager.buy_hp()

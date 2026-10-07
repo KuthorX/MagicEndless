@@ -35,6 +35,14 @@ enum BulletMode {
 	HEX
 }
 
+const SHOT_SFX := {
+	BulletMode.NORMAL: "shoot_normal",
+	BulletMode.PIERCE: "shoot_pierce",
+	BulletMode.BURST: "shoot_burst",
+	BulletMode.RICOCHET: "shoot_ricochet",
+	BulletMode.HEX: "shoot_hex"
+}
+
 const BULLET_MODE_LABEL := {
 	BulletMode.NORMAL: "mode_normal",
 	BulletMode.PIERCE: "mode_pierce",
@@ -387,7 +395,7 @@ func _handle_attacks() -> void:
 	if _shot_cd_left <= 0.0 and (auto_fire_enabled or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
 		_shot_cd_left = BASE_SHOT_CD * shot_cd_mul * _current_shot_mode_cd_mul()
 		_shoot_projectile()
-		sfx_event.emit("shoot")
+		sfx_event.emit(SHOT_SFX.get(bullet_mode, "shoot_normal"))
 
 func _handle_shield(delta: float) -> void:
 	var shield_input := _virtual_shield_hold or Input.is_action_pressed("shield")
@@ -416,6 +424,7 @@ func trigger_virtual_dash() -> void:
 func _do_sword_sweep() -> void:
 	if sword_scene == null:
 		return
+	sfx_event.emit("sword")
 	var dmg := sword_damage
 	var radius := sword_radius
 	var speed := sword_speed_mul
@@ -609,6 +618,7 @@ func _fire_arcane_bolt() -> void:
 	if target == null:
 		return
 	_spawn_arcane_fx(target.global_position)
+	sfx_event.emit("arcane")
 	if target.has_method("take_damage"):
 		var dmg := int(round(22.0 * _effective_spell_power()))
 		target.take_damage(dmg)
@@ -617,6 +627,7 @@ func _cast_frost_nova() -> void:
 	var radius := 170.0
 	var dmg := int(round(18.0 * _effective_spell_power()))
 	_spawn_nova_fx(radius)
+	sfx_event.emit("nova")
 	for e in get_tree().get_nodes_in_group("enemy"):
 		if e is Node2D:
 			var en := e as Node2D
@@ -639,6 +650,7 @@ func _cast_chain_sigil() -> void:
 	var current := first
 	var hit: Array[Node] = []
 	var from_pos := global_position
+	sfx_event.emit("chain")
 	while current != null and jumps >= 0:
 		hit.append(current)
 		_spawn_arcane_fx_from(from_pos, current.global_position)
@@ -679,6 +691,7 @@ func _cast_meteor_rain() -> void:
 		strikes = maxi(2, int(round(float(strikes) * 0.55)))
 		delay_mul *= 1.18
 	strikes = mini(12, strikes)
+	sfx_event.emit("meteor")
 	for i in range(strikes):
 		var angle := deg_to_rad(float(120 * i) + _rng.randf_range(-24.0, 24.0))
 		var dist := _rng.randf_range(24.0, 84.0)
