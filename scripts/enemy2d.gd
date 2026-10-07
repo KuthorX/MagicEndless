@@ -628,7 +628,8 @@ func take_damage(amount: int) -> void:
 		if elite_splitter:
 			var scene := get_tree().current_scene
 			if scene != null and scene.has_method("request_split_spawn"):
-				scene.request_split_spawn(global_position)
+				# Deaths usually land inside a physics callback; spawning bodies there errors.
+				scene.request_split_spawn.call_deferred(global_position)
 		queue_free()
 
 func _play_sfx(name: String) -> void:
